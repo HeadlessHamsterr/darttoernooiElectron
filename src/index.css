@@ -1,5 +1,6 @@
 body {
   background-color: rgb(42, 42,42);
+  font-family: Arial, Helvetica, sans-serif;
 }
 
 #playerInputForm{
@@ -8,6 +9,10 @@ body {
 
 .playerInput{
   margin-bottom: 5px;
+}
+
+input:focus{
+  outline: none;
 }
       
 .card{
@@ -21,4 +26,32 @@ body {
   margin: auto;
   text-align: center;
   display: flex;
+}
+
+.cardSetup{
+  min-width: 300px;
+  max-width: 600px;
+  min-height: 340px;
+  background: #2e2e2e;
+  border-radius: 10px;
+  box-sizing: border-box;
+  color: #FFF;
+  box-shadow: 0px 2px 18px -4px rgba(0,0,0,0.75);
+  margin: auto;
+  text-align: center;
+  display: inline-block;
+}
+
+.cardPoules{
+  min-width: 300px;
+  max-width: 600px;
+  min-height: 100px;
+  background: #2e2e2e;
+  border-radius: 10px;
+  box-sizing: border-box;
+  color: #FFF;
+  box-shadow: 0px 2px 18px -4px rgba(0,0,0,0.75);
+  margin: auto;
+  text-align: center;
+  display: inline-block;
 }
