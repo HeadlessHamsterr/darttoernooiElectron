@@ -8,24 +8,26 @@
   </head>
   <body>
     <div id='gameSetup' class='cardSetup'>
-      <form id='numPlayersForm'>
-        <label for='numPlayers'><h1>Aantal spelers:</h1></label><br>
-        <input id='numPlayers' type="number" name="numPlayers">
-        <label for='numPoules'><h1>Aantal poules:</h1></label><br>
-        <input id='numPoules' type='number' name="numPoules"><br>
-      </form>
-      <button id="subBtn" onclick="">Versturen</button>
+      <div id='gameSetupSubDiv' class='setupSubDiv'>
+        <form id='numPlayersForm'>
+          <label for='numPlayers'>Aantal spelers:</label><br>
+          <input id='numPlayers' type="number" name="numPlayers"><br>
+          <label for='numPoules'>Aantal poules:</label><br>
+          <input id='numPoules' type='number' name="numPoules"><br>
+        </form>
+        <button id="subBtn" onclick="" class='sendBtn'>Versturen</button>
+      </div>
     </div>
 
-    <div id='playerInputDiv' class='card'>
-      <form id='playerInputForm'>
-      
-      </form><br>
-      <button id='mkPoulesBtn'>Versturen</button>
+    <div id='playerInputDiv' class='playerInputCard'>
+      <div id ='playerInputSubDiv' class="playerInputSubDiv">
+        <form id='playerInputForm'>
+        
+        </form>
+        <button id='mkPoulesBtn' class='sendBtn'>Versturen</button>
+      </div>
     </div>
 
-    <div id='poulesDiv' class='cardPoules'>
-
-    </div>
+    <div id='poulesDiv' class='cardPoules'></div>
   </body>
 </html>
