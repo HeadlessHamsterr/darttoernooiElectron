@@ -7,17 +7,25 @@
     <script defer src="render.js"></script>
   </head>
   <body>
-    <div id='gameSetup'>
-      <h1>Aantal spelers:</h1>
+    <div id='gameSetup' class='cardSetup'>
       <form id='numPlayersForm'>
-        <input id='numPlayers' type="number">
+        <label for='numPlayers'><h1>Aantal spelers:</h1></label><br>
+        <input id='numPlayers' type="number" name="numPlayers">
+        <label for='numPoules'><h1>Aantal poules:</h1></label><br>
+        <input id='numPoules' type='number' name="numPoules"><br>
       </form>
-      <h1>Aantal poules:</h1>
-      <form id='numPoulesForm'>
-        <input id='numPoules' type='number'>
-      </form>
-
       <button id="subBtn" onclick="">Versturen</button>
+    </div>
+
+    <div id='playerInputDiv' class='card'>
+      <form id='playerInputForm'>
+      
+      </form><br>
+      <button id='mkPoulesBtn'>Versturen</button>
+    </div>
+
+    <div id='poulesDiv' class='cardPoules'>
+
     </div>
   </body>
 </html>
