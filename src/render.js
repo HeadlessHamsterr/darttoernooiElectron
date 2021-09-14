@@ -4,10 +4,7 @@ var numPlayers = 0;
 var numPoules = 0;
 
 var players = [];
-var pouleA = [];
-var pouleB = [];
-var pouleC = [];
-var pouleD = [];
+var gameFormat = [[0, 1], [0, 2], [1, 2], [0, 3], [1, 3], [2, 3], [0, 4], [1, 4], [2, 4], [3, 4]];
 
 const subBtn = document.getElementById('subBtn');
 subBtn.onclick = getGameInfo;
