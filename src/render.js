@@ -14,6 +14,98 @@ const makePoulesBtn = document.getElementById('mkPoulesBtn');
 $(document.getElementById('playerInputDiv')).hide();
 $(document.getElementById('poulesDiv')).hide();
 
+class pouleGames{
+    constructor(pouleNum){
+        this.pouleNum = pouleNum;
+        this.players = [];
+    }
+
+    makePoule(){
+        console.log(`Making poule ${this.pouleNum}`);
+        var poulesDiv = document.getElementById('poulesDiv');
+
+        if(typeof this.players !== 'undefined' && this.players.length > 0){
+            var playerDiv = $(`<div id="poule${this.pouleNum}" class="pouleDiv"></div>`);
+            var pouleHeader = $(`<header class="pouleHeader"><h2>Poule ${this.pouleNum}:</h2><hr/><header>`);
+            var pouleTable = $(`<table class="pouleTable" id="poule${this.pouleNum}Table"></table>`);
+            var pouleTableHeader = $('<tr><th>Speler</th><th>Score</th></tr>');
+
+            $(poulesDiv).append(playerDiv);
+            $(playerDiv).append(pouleHeader);
+            $(playerDiv).append(pouleTable);
+            $(pouleTable).append(pouleTableHeader);
+
+            for(let i in this.players){
+                var tableEntry = $(`<tr><td>${this.players[i][0]}</td><td>${this.players[i][1]}</td></tr>`);
+                $(pouleTable).append(tableEntry);
+            }
+        }
+    }
+
+    makeGames(){
+        console.log("Making games");
+        var gamesDiv = document.getElementById('pouleGames');
+        var pouleGamesDiv = $(`<div id='poule${this.pouleNum}Games' class='pouleGamesDiv'></div>`);
+        var pouleGamesHeader = $(`<header class="pouleGamesHeader"><h1>Poule ${this.pouleNum}:</h1></header><hr>`);
+
+        $(gamesDiv).append(pouleGamesDiv);
+        $(pouleGamesDiv).append(pouleGamesHeader);
+
+        var numGames = (this.factorial(this.players.length)/(2*this.factorial(this.players.length-2)));
+
+        for(let i = 0; i < numGames; i++){
+            var gameTable = $('<table class="pouleGamesTable"></table>');
+            $(pouleGamesDiv).append(gameTable);
+            $(pouleGamesDiv).append($('<hr>'));
+
+            var gameLabels = $(`<tr><td><p1 id="game${this.pouleNum}${i+1}1Name">${this.players[gameFormat[i][0]][0]}</p1></td><td><p1>-</p1></td><td><p1 id="ame${this.pouleNum}${i+1}2Name">${this.players[gameFormat[i][1]][0]}</p1></td></tr>`);
+            var gameInputs = $(`<tr><td><input id="game${this.pouleNum}${i+1}1Score" type="number" class="gameScore"></td><td><p1>-</p1></td><td><input id="game${this.pouleNum}${i+1}2Score" type="number" class="gameScore"></td></tr>`);
+            $(gameTable).append(gameLabels);
+            $(gameTable).append(gameInputs);
+        }
+
+        $(gamesDiv).show();
+    }
+
+    factorial(n){
+        if(n === 0 || n === 1){
+            return n;
+        }
+
+        var result = 1;
+
+        for(let i = 1; i <= n; i++){
+            result = result*i;
+        }
+        return result;
+    }
+
+    addPlayer(playerInfo){
+        this.players.append(playerInfo);
+    }
+
+    sort(){
+        this.players.sort(function(a,b){return(b[1]-a[1])});
+        console.log(this.players);
+
+        var pouleTable = document.getElementById(`poule${this.pouleNum}Table`);
+        var pouleTableHeader = $('<tr><th>Speler</th><th>Score</th></tr>');
+
+        $(pouleTable).empty();
+        $(pouleTable).append(pouleTableHeader);
+
+        for(let i in this.players){
+            var tableEntry = $(`<tr><td>${this.players[i][0]}</td><td>${this.players[i][1]}</td></tr>`);
+            $(pouleTable).append(tableEntry);
+        }
+    }
+}
+
+let pouleA = new pouleGames("A");
+let pouleB = new pouleGames("B");
+let pouleC = new pouleGames("C");
+let pouleD = new pouleGames("D");
+
 function getGameInfo(){
     numPlayers = document.getElementById("numPlayers").value;
     numPoules = document.getElementById('numPoules').value;
@@ -60,149 +152,62 @@ function makePoules(){
     for(let i = 0; i < numPlayers; i++){
         if(i < PLAYERS_PER_POULE){
             var tempArray = [players[i], i];
-            pouleA.push(tempArray);
+            pouleA.players.push(tempArray);
         }else if(PLAYERS_PER_POULE <= i && i < (2*PLAYERS_PER_POULE)){
             var tempArray = [players[i], i];
-            pouleB.push(tempArray)
+            pouleB.players.push(tempArray);
         }else if((2*PLAYERS_PER_POULE) <= i && i < (3*PLAYERS_PER_POULE)){
             var tempArray = [players[i], i];
-            pouleC.push(tempArray)
+            pouleC.players.push(tempArray);
         }else if((3*PLAYERS_PER_POULE) <= i && i < (4*PLAYERS_PER_POULE)){
             var tempArray = [players[i], i];
-            pouleD.push(tempArray)
+            pouleD.players.push(tempArray);
         }
     }
 
-    console.log(pouleA);
-    console.log(pouleB);
-    console.log(pouleC);
-    console.log(pouleD);
-
-    if(typeof pouleA !== 'undefined' && pouleA.length > 0){
-        var playerDiv = $('<div id="pouleA" class="pouleDiv"></div>');
-        var pouleHeader = $('<header class="pouleHeader"><h2>Poule A:</h2><hr/></header>');
-        var pouleTable = $('<table class="pouleTable" id="pouleATable"></table>');
-
-        $(poulesDiv).append(playerDiv);
-        $(playerDiv).append(pouleHeader);
-        $(playerDiv).append(pouleTable);
-
-        for(let i in pouleA){
-            var tableEntry = $(`<tr><td>${pouleA[i][0]}</td><td>${pouleA[i][1]}</td></tr>`);
-            $(pouleTable).append(tableEntry);
-        }
-
-        $(playerDiv).show();
+    if(typeof pouleA.players !== 'undefined' && pouleA.players.length > 0){
+        pouleA.makePoule();
+        pouleA.makeGames();
     }
 
-    if(typeof pouleB !== 'undefined' && pouleB.length > 0){
-        var playerDiv = $('<div id="pouleB" class="pouleDiv"></div>');
-        var pouleHeader = $('<header class="pouleHeader"><h2>Poule B:</h2><hr/></header>');
-        var pouleTable = $('<table class="pouleTable" id="pouleBTable"></table>');
-
-        $(poulesDiv).append(playerDiv);
-        $(playerDiv).append(pouleHeader);
-        $(playerDiv).append(pouleTable);
-
-        for(let i in pouleB){
-            var tableEntry = $(`<tr><td>${pouleB[i][0]}</td><td>${pouleB[i][1]}</td></tr>`);
-            $(pouleTable).append(tableEntry);
-        }
-
-        $(playerDiv).show();
+    if(typeof pouleB.players !== 'undefined' && pouleB.players.length > 0){
+        pouleB.makePoule();
+        pouleB.makeGames();
     }
 
-    if(typeof pouleC !== 'undefined' && pouleC.length > 0){
-        var playerDiv = $('<div id="pouleC" class="pouleDiv"></div>');
-        var pouleHeader = $('<header class="pouleHeader"><h2>Poule C:</h2><hr/></header>');
-        var pouleTable = $('<table class="pouleTable" id="pouleCTable"></table>');
-
-        $(poulesDiv).append(playerDiv);
-        $(playerDiv).append(pouleHeader);
-        $(playerDiv).append(pouleTable);
-
-        for(let i in pouleC){
-            var tableEntry = $(`<tr><td>${pouleC[i][0]}</td><td>${pouleC[i][1]}</td></tr>`);
-            $(pouleTable).append(tableEntry);
-        }
-
-        $(playerDiv).show();
+    if(typeof pouleC.players !== 'undefined' && pouleC.players.length > 0){
+        pouleC.makePoule();
+        pouleC.makeGames();
     }
 
-    if(typeof pouleD !== 'undefined' && pouleD.length > 0){
-        var playerDiv = $('<div id="pouleD" class="pouleDiv"></div>');
-        var pouleHeader = $('<header class="pouleHeader"><h2>Poule D:</h2><hr/></header>');
-        var pouleTable = $('<table class="pouleTable" id="pouleDTable"></table>');
-
-        $(poulesDiv).append(playerDiv);
-        $(playerDiv).append(pouleHeader);
-        $(playerDiv).append(pouleTable);
-
-        for(let i in pouleD){
-            var tableEntry = $(`<tr><td>${pouleD[i][0]}</td><td>${pouleD[i][1]}</td></tr>`);
-            $(pouleTable).append(tableEntry);
-        }
-
-        $(playerDiv).show();
+    if(typeof pouleD.players !== 'undefined' && pouleD.players.length > 0){
+        pouleD.makePoule();
+        pouleD.makeGames();
     }
 
-    $(poulesDiv).append($('<button id="sortPoules">Sorteer</button>'));
-    document.getElementById('sortPoules').onclick = sortPoules;
+    console.log(pouleA.players);
+    console.log(pouleB.players);
+    console.log(pouleC.players);
+    console.log(pouleD.players);
+    
     $(poulesDiv).show();
 }
-
-function sortPoules(){
+setInterval(function sortPoules(){
     console.log("Poules sorteren...");
 
-    if(typeof pouleA !== 'undefined' && pouleA.length > 0){
-        pouleA.sort(function(a,b){return b[1]-a[1]});
-        console.log(pouleA);
-        
-        var pouleTable = document.getElementById('pouleATable');
-        $(pouleTable).empty();
-
-        for(let i in pouleA){
-            var tableEntry = $(`<tr><td>${pouleA[i][0]}</td><td>${pouleA[i][1]}</td></tr>`);
-            $(pouleTable).append(tableEntry);
-        }
+    if(typeof pouleA.players !== 'undefined' && pouleA.players.length > 0){
+        pouleA.sort();
     }
 
-    if(typeof pouleB !== 'undefined' && pouleB.length > 0){
-        pouleB.sort(function(a,b){return b[1]-a[1]});
-        console.log(pouleB);
-        
-        var pouleTable = document.getElementById('pouleBTable');
-        $(pouleTable).empty();
-
-        for(let i in pouleB){
-            var tableEntry = $(`<tr><td>${pouleB[i][0]}</td><td>${pouleB[i][1]}</td></tr>`);
-            $(pouleTable).append(tableEntry);
-        }
+    if(typeof pouleB.players !== 'undefined' && pouleB.players.length > 0){
+        pouleB.sort();
     }
 
-    if(typeof pouleC !== 'undefined' && pouleC.length > 0){
-        pouleC.sort(function(a,b){return b[1]-a[1]});
-        console.log(pouleC);
-        
-        var pouleTable = document.getElementById('pouleCTable');
-        $(pouleTable).empty();
-
-        for(let i in pouleC){
-            var tableEntry = $(`<tr><td>${pouleC[i][0]}</td><td>${pouleC[i][1]}</td></tr>`);
-            $(pouleTable).append(tableEntry);
-        }
+    if(typeof pouleC.players !== 'undefined' && pouleC.players.length > 0){
+        pouleC.sort();
     }
 
-    if(typeof pouleD !== 'undefined' && pouleD.length > 0){
-        pouleD.sort(function(a,b){return b[1]-a[1]});
-        console.log(pouleD);
-        
-        var pouleTable = document.getElementById('pouleDTable');
-        $(pouleTable).empty();
-
-        for(let i in pouleD){
-            var tableEntry = $(`<tr><td>${pouleD[i][0]}</td><td>${pouleD[i][1]}</td></tr>`);
-            $(pouleTable).append(tableEntry);
-        }
+    if(typeof pouleD.players !== 'undefined' && pouleD.players.length > 0){
+        pouleD.sort();
     }
-}
+}, 500);
