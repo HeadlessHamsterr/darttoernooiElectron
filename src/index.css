@@ -119,13 +119,27 @@ label{
 }
 
 table.pouleTable{
-  margin: 10px;
+  margin-left: 10px;
   border-collapse: collapse;
+  width: 100px;
 }
 
-table.pouleTable th, td{
-  border-bottom: 1px solid #ddd;
-  padding: 8px;
+table.pouleTable td{
+  border-bottom: 1px solid #212121;
+  padding-left: 8px;
+}
+
+table.pouleTable th{
+  border-bottom: 1px solid #212121;
+  font-size: 15px
+}
+
+table.pouleTable th:first-child, td:first-child{
+  border-right: 1px solid #212121;
+}
+
+table.pouleTable tr:last-child td{
+  border-bottom: none;
 }
 
 .cardPoules{
@@ -168,28 +182,48 @@ table.pouleTable th, td{
 
 table.pouleGamesTable{
   text-align: center;
-  margin: 0px;
+  margin-left: 10px;
+  width: 100px;
 }
 
 table.pouleGamesTable td{
   border: none;
   text-align: center;
+  margin: 0px;
 }
 
 table.pouleGamesTable h2{
   padding: 0px;
   margin: 0px;
   color: white;
+  font-size: 20px;
 }
 
-.gameScore{
-  height: 35px;
-  width: 35px;
-  background: #212121;
+input.gameScore{
+  height: 15px;
+  width: 15px;
+  background: #404040;
   border: none;
-  border-bottom: solid 2px #2046b9;
   text-align: center;
   color: white;
   font-family: Arial;
+  font-size: 15px;
+  margin: 0px;
+}
+
+header h1{
   font-size: 30px;
+  padding: 0px 10px 0px 0px;
+}
+
+.cardPouleGames{
+  box-sizing: border-box;
+  color: #FFF;
+  text-align: center;
+  display: flex;
+}
+
+.cardPouleGames hr{
+  margin: 0px;
+  border-color: #505050;
 }
