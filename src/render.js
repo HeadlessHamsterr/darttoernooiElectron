@@ -1,3 +1,12 @@
+/*
+Todo:
+    - Poule winnaar berekenen: 
+      Functie returnt array foo[0] = winnaar, foo[1] = tweede plaats
+      werking: copy players -> playersCopy, foo[0] = max(playersCopy), splice foo[0] uit playersCopy, foo[1] = max(playersCopy)
+    - Rest van de games maken
+    - CSS fixen, shit is lelijk
+*/
+
 let $ = require('jquery');
 
 var numPlayers = 0;
@@ -15,9 +24,12 @@ $(document.getElementById('playerInputDiv')).hide();
 $(document.getElementById('poulesDiv')).hide();
 
 class pouleGames{
+    #numGames;
     constructor(pouleNum){
         this.pouleNum = pouleNum;
         this.players = [];
+        this.winner = "";
+        this.secondPlace = "";
     }
 
     makePoule(){
@@ -51,14 +63,14 @@ class pouleGames{
         $(gamesDiv).append(pouleGamesDiv);
         $(pouleGamesDiv).append(pouleGamesHeader);
 
-        var numGames = (this.factorial(this.players.length)/(2*this.factorial(this.players.length-2)));
+        this.#numGames = (this.factorial(this.players.length)/(2*this.factorial(this.players.length-2)));
 
-        for(let i = 0; i < numGames; i++){
+        for(let i = 0; i < this.#numGames; i++){
             var gameTable = $('<table class="pouleGamesTable"></table>');
             $(pouleGamesDiv).append(gameTable);
             $(pouleGamesDiv).append($('<hr>'));
 
-            var gameLabels = $(`<tr><td><p1 id="game${this.pouleNum}${i+1}1Name">${this.players[gameFormat[i][0]][0]}</p1></td><td><p1>-</p1></td><td><p1 id="ame${this.pouleNum}${i+1}2Name">${this.players[gameFormat[i][1]][0]}</p1></td></tr>`);
+            var gameLabels = $(`<tr><td><p1 id="game${this.pouleNum}${i+1}1Name">${this.players[gameFormat[i][0]][0]}</p1></td><td><p1>-</p1></td><td><p1 id="game${this.pouleNum}${i+1}2Name">${this.players[gameFormat[i][1]][0]}</p1></td></tr>`);
             var gameInputs = $(`<tr><td><input id="game${this.pouleNum}${i+1}1Score" type="number" class="gameScore"></td><td><p1>-</p1></td><td><input id="game${this.pouleNum}${i+1}2Score" type="number" class="gameScore"></td></tr>`);
             $(gameTable).append(gameLabels);
             $(gameTable).append(gameInputs);
@@ -85,8 +97,9 @@ class pouleGames{
     }
 
     sort(){
-        this.players.sort(function(a,b){return(b[1]-a[1])});
-        console.log(this.players);
+        var playersCopy = []
+        Array.prototype.push.apply(playersCopy, this.players);
+        playersCopy.sort(function(a,b){return(b[1]-a[1])});
 
         var pouleTable = document.getElementById(`poule${this.pouleNum}Table`);
         var pouleTableHeader = $('<tr><th>Speler</th><th>Score</th></tr>');
@@ -94,10 +107,46 @@ class pouleGames{
         $(pouleTable).empty();
         $(pouleTable).append(pouleTableHeader);
 
-        for(let i in this.players){
-            var tableEntry = $(`<tr><td>${this.players[i][0]}</td><td>${this.players[i][1]}</td></tr>`);
+        for(let i in playersCopy){
+            if(typeof playersCopy[i][1] == 'undefined'){
+                playersCopy[i][1] = 0;
+            }
+
+            var tableEntry = $(`<tr><td>${playersCopy[i][0]}</td><td>${playersCopy[i][1]}</td></tr>`);
             $(pouleTable).append(tableEntry);
         }
+    }
+
+    updatePoints(){
+        var points = [];
+        for(let i = 0; i < this.players.length; i++){
+            points.push(0);
+        }
+
+        for(let i = 0; i < this.#numGames; i++){
+            var points1 = document.getElementById(`game${this.pouleNum}${i+1}1Score`).value;
+            var points2 = document.getElementById(`game${this.pouleNum}${i+1}2Score`).value;
+
+            points1 = parseInt(points1);
+            points2 = parseInt(points2);
+
+            if(isNaN(points1)){
+                points1 = 0;
+            }
+
+            if(isNaN(points2)){
+                points2 = 0;
+            }
+
+            points[gameFormat[i][0]] = points[gameFormat[i][0]] + points1;
+            points[gameFormat[i][1]] = points[gameFormat[i][1]] + points2;
+        }
+
+        for(let i = 0; i < this.players.length; i++){
+            this.players[i][1] = points[i];
+        }
+
+        this.sort();
     }
 }
 
@@ -144,10 +193,8 @@ function makePoules(){
     }
 
     players.sort(function(a,b){return 0.5 - Math.random()});
-    console.log(players);
     
     var PLAYERS_PER_POULE = numPlayers/numPoules;
-    console.log(PLAYERS_PER_POULE);
 
     for(let i = 0; i < numPlayers; i++){
         if(i < PLAYERS_PER_POULE){
@@ -184,30 +231,23 @@ function makePoules(){
         pouleD.makePoule();
         pouleD.makeGames();
     }
-
-    console.log(pouleA.players);
-    console.log(pouleB.players);
-    console.log(pouleC.players);
-    console.log(pouleD.players);
-    
     $(poulesDiv).show();
 }
-setInterval(function sortPoules(){
-    console.log("Poules sorteren...");
 
+setInterval(function sortPoules(){
     if(typeof pouleA.players !== 'undefined' && pouleA.players.length > 0){
-        pouleA.sort();
+        pouleA.updatePoints();
     }
 
     if(typeof pouleB.players !== 'undefined' && pouleB.players.length > 0){
-        pouleB.sort();
+        pouleB.updatePoints();
     }
 
     if(typeof pouleC.players !== 'undefined' && pouleC.players.length > 0){
-        pouleC.sort();
+        pouleC.updatePoints();
     }
 
     if(typeof pouleD.players !== 'undefined' && pouleD.players.length > 0){
-        pouleD.sort();
+        pouleD.updatePoints();
     }
 }, 500);
