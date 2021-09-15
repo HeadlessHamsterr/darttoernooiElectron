@@ -1,13 +1,10 @@
 /*
 Todo:
-    - Poule winnaar berekenen: 
-      Functie returnt array foo[0] = winnaar, foo[1] = tweede plaats
-      werking: copy players -> playersCopy, foo[0] = max(playersCopy), splice foo[0] uit playersCopy, foo[1] = max(playersCopy)
     - Rest van de games maken
     - CSS fixen, shit is lelijk
 */
-
 let $ = require('jquery');
+let jetpack = require('fs-jetpack');
 
 var numPlayers = 0;
 var numPoules = 0;
@@ -18,13 +15,18 @@ var gameFormat = [[0, 1], [0, 2], [1, 2], [0, 3], [1, 3], [2, 3], [0, 4], [1, 4]
 const subBtn = document.getElementById('subBtn');
 subBtn.onclick = getGameInfo;
 
+const saveBtn = document.getElementById('saveBtn');
+saveBtn.onclick = exportGameInfo;
+
 const makePoulesBtn = document.getElementById('mkPoulesBtn');
 
 $(document.getElementById('playerInputDiv')).hide();
 $(document.getElementById('poulesDiv')).hide();
+$(saveBtn).hide();
 
 class pouleGames{
     #numGames;
+    #winnerPrinted = false;
     constructor(pouleNum){
         this.pouleNum = pouleNum;
         this.players = [];
@@ -33,7 +35,6 @@ class pouleGames{
     }
 
     makePoule(){
-        console.log(`Making poule ${this.pouleNum}`);
         var poulesDiv = document.getElementById('poulesDiv');
 
         if(typeof this.players !== 'undefined' && this.players.length > 0){
@@ -55,23 +56,20 @@ class pouleGames{
     }
 
     makeGames(){
-        console.log("Making games");
         var gamesDiv = document.getElementById('pouleGames');
         var pouleGamesDiv = $(`<div id='poule${this.pouleNum}Games' class='pouleGamesDiv'></div>`);
         var pouleGamesHeader = $(`<header class="pouleGamesHeader"><h1>Poule ${this.pouleNum}:</h1></header><hr>`);
+        var gameTable = $('<table class="pouleGamesTable"></table>');
 
         $(gamesDiv).append(pouleGamesDiv);
         $(pouleGamesDiv).append(pouleGamesHeader);
-
+        $(pouleGamesDiv).append(gameTable);
+        
         this.#numGames = (this.factorial(this.players.length)/(2*this.factorial(this.players.length-2)));
 
         for(let i = 0; i < this.#numGames; i++){
-            var gameTable = $('<table class="pouleGamesTable"></table>');
-            $(pouleGamesDiv).append(gameTable);
-            $(pouleGamesDiv).append($('<hr>'));
-
             var gameLabels = $(`<tr><td><p1 id="game${this.pouleNum}${i+1}1Name">${this.players[gameFormat[i][0]][0]}</p1></td><td><p1>-</p1></td><td><p1 id="game${this.pouleNum}${i+1}2Name">${this.players[gameFormat[i][1]][0]}</p1></td></tr>`);
-            var gameInputs = $(`<tr><td><input id="game${this.pouleNum}${i+1}1Score" type="number" class="gameScore"></td><td><p1>-</p1></td><td><input id="game${this.pouleNum}${i+1}2Score" type="number" class="gameScore"></td></tr>`);
+            var gameInputs = $(`<tr><td><input id="game${this.pouleNum}${i+1}1Score" type="number" class="gameScore"></td><td><p1>-</p1></td><td><input id="game${this.pouleNum}${i+1}2Score" type="number" class="gameScore"></td></tr><hr>`);
             $(gameTable).append(gameLabels);
             $(gameTable).append(gameInputs);
         }
@@ -85,7 +83,6 @@ class pouleGames{
         }
 
         var result = 1;
-
         for(let i = 1; i <= n; i++){
             result = result*i;
         }
@@ -147,6 +144,31 @@ class pouleGames{
         }
 
         this.sort();
+
+        if(this.allGamesPlayed() && !this.#winnerPrinted){
+            var playersCopy = [];
+            Array.prototype.push.apply(playersCopy, this.players);
+            playersCopy.sort(function(a,b){return(b[1]-a[1])})
+
+            console.log(`Winnaar poule ${this.pouleNum}: ${playersCopy[0][0]}`);
+            console.log(`Tweede plaats poule ${this.pouleNum}: ${playersCopy[1][0]}`);
+            this.#winnerPrinted = true;
+        }
+    }
+
+    allGamesPlayed(){
+        for(let i = 0; i < this.#numGames; i++){
+            var points1 = document.getElementById(`game${this.pouleNum}${i+1}1Score`).value;
+            var points2 = document.getElementById(`game${this.pouleNum}${i+1}2Score`).value;
+
+            points1 = parseInt(points1);
+            points2 = parseInt(points2);
+
+            if(isNaN(points1) || isNaN(points2)){
+                return false;
+            }
+        }
+        return true;
     }
 }
 
@@ -158,9 +180,6 @@ let pouleD = new pouleGames("D");
 function getGameInfo(){
     numPlayers = document.getElementById("numPlayers").value;
     numPoules = document.getElementById('numPoules').value;
-
-    console.log(numPlayers);
-    console.log(numPoules);
 
     //$(document.getElementById('gameSetup')).hide();
     $("div").hide();
@@ -182,8 +201,8 @@ function getGameInfo(){
 }
 
 function makePoules(){
-    console.log("Making poules");
     $("div").hide();
+    $(saveBtn).show();
 
     var poulesDiv = document.getElementById('poulesDiv');
 
@@ -198,36 +217,36 @@ function makePoules(){
 
     for(let i = 0; i < numPlayers; i++){
         if(i < PLAYERS_PER_POULE){
-            var tempArray = [players[i], i];
+            var tempArray = [players[i], 0];
             pouleA.players.push(tempArray);
         }else if(PLAYERS_PER_POULE <= i && i < (2*PLAYERS_PER_POULE)){
-            var tempArray = [players[i], i];
+            var tempArray = [players[i], 0];
             pouleB.players.push(tempArray);
         }else if((2*PLAYERS_PER_POULE) <= i && i < (3*PLAYERS_PER_POULE)){
-            var tempArray = [players[i], i];
+            var tempArray = [players[i], 0];
             pouleC.players.push(tempArray);
         }else if((3*PLAYERS_PER_POULE) <= i && i < (4*PLAYERS_PER_POULE)){
-            var tempArray = [players[i], i];
+            var tempArray = [players[i], 0];
             pouleD.players.push(tempArray);
         }
     }
 
-    if(typeof pouleA.players !== 'undefined' && pouleA.players.length > 0){
+    if(pouleExists(pouleA)){
         pouleA.makePoule();
         pouleA.makeGames();
     }
 
-    if(typeof pouleB.players !== 'undefined' && pouleB.players.length > 0){
+    if(pouleExists(pouleB)){
         pouleB.makePoule();
         pouleB.makeGames();
     }
 
-    if(typeof pouleC.players !== 'undefined' && pouleC.players.length > 0){
+    if(pouleExists(pouleC)){
         pouleC.makePoule();
         pouleC.makeGames();
     }
 
-    if(typeof pouleD.players !== 'undefined' && pouleD.players.length > 0){
+    if(pouleExists(pouleD)){
         pouleD.makePoule();
         pouleD.makeGames();
     }
@@ -235,19 +254,74 @@ function makePoules(){
 }
 
 setInterval(function sortPoules(){
-    if(typeof pouleA.players !== 'undefined' && pouleA.players.length > 0){
+    if(pouleExists(pouleA)){
         pouleA.updatePoints();
     }
 
-    if(typeof pouleB.players !== 'undefined' && pouleB.players.length > 0){
+    if(pouleExists(pouleB)){
         pouleB.updatePoints();
     }
 
-    if(typeof pouleC.players !== 'undefined' && pouleC.players.length > 0){
+    if(pouleExists(pouleC)){
         pouleC.updatePoints();
     }
 
-    if(typeof pouleD.players !== 'undefined' && pouleD.players.length > 0){
+    if(pouleExists(pouleD)){
         pouleD.updatePoints();
     }
 }, 500);
+
+function pouleExists(poule){
+    if(typeof poule.players !== 'undefined' && poule.players.length > 0){
+        return true;
+    }else{
+        return false;
+    }
+}
+
+function exportGameInfo(){
+    var jsonStr = '{"games":[]}'
+
+    if(pouleExists(pouleA)){
+        jsonObj = JSON.parse(jsonStr)
+        jsonObj["games"].push({"pouleA":[]});
+        jsonStr = JSON.stringify(jsonObj);
+        console.log(jsonObj);
+        for(let i = 0; i < pouleA.players.length; i++){
+            console.log(i)
+            jsonObj = JSON.parse(jsonStr);
+
+            jsonObj["pouleA"].push({"name": `${pouleA.players[i][0]}`, "points": `${pouleA.players[i][1]}`});
+            jsonStr = JSON.stringify(jsonObj);
+        }
+
+        console.log(jsonStr);
+    }
+
+    if(pouleExists(pouleB)){
+        obj["pouleGames"].push('{"pouleB":[]}');
+        /*for(let i = 0; i < pouleB.players.length; i++){
+            obj["pouleB"].push({i:[]});
+            obj[`${i}`].push('{"name": pouleB.players[i][0], "points": pouleB.players[i][1]}');
+        }*/
+    }
+
+    if(pouleExists(pouleC)){
+        obj["pouleGames"].push('{"pouleC":[]}');
+        for(let i = 0; i < pouleC.players.length; i++){
+            obj["pouleC"].push({i:[]});
+            obj[`${i}`].push('{"name": pouleC.players[i][0], "points": pouleC.players[i][1]}');
+        }
+    }
+
+    if(pouleExists(pouleD)){
+        obj["pouleGames"].push('{"pouleD":[]}');
+        for(let i = 0; i < pouleD.players.length; i++){
+            obj["pouleD"].push({i:[]});
+            obj[`${i}`].push('{"name": pouleD.players[i][0], "points": pouleD.players[i][1]}');
+        }
+    }
+
+    jsonObj = JSON.parse(jsonStr)
+    jetpack.write('game.json', jsonObj);
+}
