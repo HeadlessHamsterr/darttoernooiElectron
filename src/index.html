@@ -7,6 +7,14 @@
     <script defer src="render.js"></script>
   </head>
   <body>
+    <button id="saveBtn" class="saveBtn">Opslaan</button>
+
+    <div id="gameOptions" class="startDiv">
+      <h1 class="startScreenLabel">Nieuw spel, of spel laden?</h1>
+      <button class="sendBtn" id="newGameBtn">Nieuw</button>
+      <button class="sendBtn" id="loadGameBtn">Laden</button>
+    </div>
+
     <div id='gameSetup' class='cardSetup'>
       <div id='gameSetupSubDiv' class='setupSubDiv'>
         <form id='numPlayersForm'>
@@ -18,7 +26,7 @@
         <button id="subBtn" onclick="" class='sendBtn'>Versturen</button>
       </div>
     </div>
-
+  
     <div id='playerInputDiv' class='playerInputCard'>
       <div id ='playerInputSubDiv' class="playerInputSubDiv">
         <form id='playerInputForm'>
@@ -27,10 +35,192 @@
         <button id='mkPoulesBtn' class='sendBtn'>Versturen</button>
       </div>
     </div>
-
+  
     <div id='poulesDiv' class='cardPoules'></div>
-    <div id='pouleGames' class='cardPouleGames'></div>
+    
+    <div id='gameDiv' class='cardPoules'>
+      <div id='pouleGames' class='cardPouleGames'></div>
+      <div id="mainRosterDiv" class="mainRosterDiv">
+        <div id="mainRosterSubDiv" class="mainRosterSubDiv">
+          <table class="mainRosterTable">
+            <tr>
+              <th colspan="3"><h2>Kwart Finale</h2></th>
+            </tr>
+            <tr>
+              <td>
+                <h2 id="M11Name"></h2>
+              </td>
+              <td>
+                <h2>-</h2>
+              </td>
+              <td>
+                <h2 id="M12Name"></h2>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <input id="M11Score" class="gameScore">
+              </td>
+              <td>
+                <h2>-</h2>
+              </td>
+              <td>
+                <input id="M12Score" class="gameScore">
+              </td>
+            <tr>
+              <td>
+                <h2 id="M21Name"></h2>
+              </td>
+              <td>
+                <h2>-</h2>
+              </td>
+              <td>
+                <h2 id="M22Name"></h2>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <input id="M21Score" class="gameScore">
+              </td>
+              <td>
+                <h2>-</h2>
+              </td>
+              <td>
+                <input id="M22Score" class="gameScore">
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <h2 id="M31Name"></h2>
+              </td>
+              <td>
+                <h2>-</h2>
+              </td>
+              <td>
+                <h2 id="M32Name"></h2>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <input id="M31Score" class="gameScore">
+              </td>
+              <td>
+                <h2>-</h2>
+              </td>
+              <td>
+                <input id="M32Score" class="gameScore">
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <h2 id="M41Name"></h2>
+              </td>
+              <td>
+                <h2>-</h2>
+              </td>
+              <td>
+                <h2 id="M42Name"></h2>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <input id="M41Score" class="gameScore">
+              </td>
+              <td>
+                <h2>-</h2>
+              </td>
+              <td>
+                <input id="M42Score" class="gameScore">
+              </td>
+            </tr>
+          </table>
+          <table class="mainRosterTable">
+            <tr>
+              <th colspan="3"><h2>Halve Finale</h2></th>
+            </tr>
+            <tr>
+              <td>
+                <h2 id="M51Name"></h2>
+              </td>
+              <td>
+                <h2>-</h2>
+              </td>
+              <td>
+                <h2 id="M52Name"></h2>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <input id="M51Score" class="gameScore">
+              </td>
+              <td>
+                <h2>-</h2>
+              </td>
+              <td>
+                <input id="M52Score" class="gameScore">
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <h2 id="M61"></h2>
+              </td>
+              <td>
+                <h2>-</h2>
+              </td>
+              <td>
+                <h2 id="M62"></h2>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <input id="M61Score" class="gameScore">
+              </td>
+              <td>
+                <h2>-</h2>
+              </td>
+              <td>
+                <input id="M62Score" class="gameScore">
+              </td>
+            </tr>
+          </table>
+          <table class="mainRosterTable">
+            <tr>
+              <th colspan="3"><h2>Finale</h2></th>
+            </tr>
+            <tr>
+              <td>
+                <h2 id="M71Name"></h2>
+              </td>
+              <td>
+                <h2>-</h2>
+              </td>
+              <td>
+                <h2 id="M72Name"></h2>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <input id="M71Score" class="gameScore">
+              </td>
+              <td>
+                <h2>-</h2>
+              </td>
+              <td>
+                <input id="M72Score" class="gameScore">
+              </td>
+            </tr>
+          </table>
+          <table class="mainRosterTable">
+            <tr>
+              <td colspan="3"><h2>Winnaar:</h2></td>
+            </tr>
+            <tr>
+              <td colspan="3"><h2 id="winnerName"></h2></td>
+            </tr>
+          </table>
+        </div>
+      </div>
+    </div>
   </body>
 
-  <button id="saveBtn" class="saveBtn">Opslaan</button>
 </html>
