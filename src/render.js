@@ -1,7 +1,7 @@
 /*
 Todo:
-    - Rest van de games maken
-    - CSS fixen, shit is lelijk
+    - Finales opslaan en laden
+    - Finales aanpassen aan aantal poules
 */
 let $ = require('jquery');
 let fs = require('fs');
@@ -9,7 +9,6 @@ let path = require('path');
 const { combinedDisposable } = require('custom-electron-titlebar/common/lifecycle');
 
 var numPlayers = 0;
-var numPoules = 0;
 
 var players = [];
 var gameFormat = [[0, 1], [0, 2], [1, 2], [0, 3], [1, 3], [2, 3], [0, 4], [1, 4], [2, 4], [3, 4]];
@@ -301,7 +300,7 @@ function loadPoulGames(pouleLetter, jsonObj){
 
 function getGameInfo(){
     numPlayers = document.getElementById("numPlayers").value;
-    numPoules = document.getElementById('numPoules').value;
+    var numPoules = document.getElementById('numPoules').value;
 
     //$(document.getElementById('gameSetup')).hide();
     $("div").hide();
@@ -319,10 +318,10 @@ function getGameInfo(){
         $(playerInputForm).append(playerInput);
     }
 
-    makePoulesBtn.onclick = makePoules;
+    makePoulesBtn.onclick = makePoules(numPoules);
 }
 
-function makePoules(){
+function makePoules(numPoules){
     $("div").hide();
     $(saveBtn).show();
 
@@ -379,6 +378,35 @@ function makePoules(){
     $(document.getElementById('gameDiv')).show();
 }
 
+function makeFinals(){
+    var numPoules = 0;
+
+    let gameRosterDiv = document.getElementById('mainRosterSubDiv');
+
+    if(pouleExists(pouleA)){
+        numPoules++;
+    }
+
+    if(pouleExists(pouleB)){
+        numPoules++;
+    }
+
+    if(pouleExists(pouleC)){
+        numPoules++;
+    }
+
+    if(pouleExists(pouleD)){
+        numPoules++;
+    }
+
+    if(numPoules >= 1){
+        let winnerTable = $('<table class="mainRosterTable" id="winnerTable">\n<tr>\n<td colspan="3"><h2>Winnaar:</h2></td>\n</tr>\n<tr>\n<td colspan="3"><h2 id="winnerName"></h2></td>\n</tr>\n</table>\n');
+        let finals = $('<table class="mainRosterTable id="finalsTable">\n<tr>\n<th colspan="3"><h2>Finale</h2></th>\n</tr>\n<tr>\n<td>\n<h2 id="M71Name"></h2>\n</td>\n<td>\n<h2>-</h2>\n</td>\n<td>\n<h2 id="M72Name"></h2>\n</td>\n</tr>\n<tr>\n<td>\n<input id="M71Score" class="gameScore">\n</td>\n<td>\n<h2>-</h2>\n</td>\n<td>\n<input id="M72Score" class="gameScore">\n</td>\n</tr>\n</table>\n')
+    }
+
+    $(gameRosterDiv).append(finals);
+    $(gameRosterDiv).append(winnerTable);
+}
 
 function startPoulesSorting(){
     setInterval(function sortPoules(){
