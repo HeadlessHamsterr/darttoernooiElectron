@@ -28,7 +28,7 @@ input:focus{
 
 .saveBtn{
   position: absolute;
-  right: 1%;
+  right: 5.5%;
   background-color: var(--btn-color);
   border: none;
   height: 40px;
@@ -46,6 +46,27 @@ input:focus{
 
 .saveBtn:active{
   transform: scale(0.95);
+}
+
+.returnBtn{
+  position: absolute;
+  right: 1%;
+  background-color: var(--btn-color);
+  border: none;
+  height: 40px;
+  width: 100px;
+  border-radius: 4px;
+  color: white;
+  font-family: var(--default-font);
+  font-size: 17px;
+}
+
+.returnBtn:hover{
+  background: #3E0505;
+}
+
+.returnBtn:active{
+  transform: scale(0.95)
 }
       
 .playerInputCard{
@@ -424,4 +445,18 @@ table.mainRosterTable h2{
 
 #M81Name{
   color: gold;
+}
+
+.singlePlayerDiv{
+  text-align: center;
+  color: white;
+}
+
+.singlePlayerDiv h3{
+  font-size: 50px;
+}
+
+.singlePlayerDiv h4{
+  color: gold;
+  font-size: 40px;
 }

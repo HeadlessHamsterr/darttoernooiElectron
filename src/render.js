@@ -27,12 +27,16 @@ const subBtn = document.getElementById('subBtn');
 subBtn.onclick = getGameInfo;
 
 const saveBtn = document.getElementById('saveBtn');
-saveBtn.onclick = enterGameFileName;
+saveBtn.onclick = exportGameInfo;
+
+const returnBtn = document.getElementById('returnBtn');
+returnBtn.onclick = returnToHome;
 
 const makePoulesBtn = document.getElementById('mkPoulesBtn');
 
 $("div").hide();
 $(document.getElementById('gameOptions')).show();
+$(returnBtn).hide();
 $(saveBtn).hide();
 
 class pouleGames{
@@ -41,6 +45,13 @@ class pouleGames{
     constructor(pouleNum){
         this.pouleNum = pouleNum;
         this.players = [];
+        this.winner = "";
+        this.secondPlace = "";
+    }
+
+    reset(){
+        this.players = []
+        this.#numGames = null;
         this.winner = "";
         this.secondPlace = "";
     }
@@ -67,16 +78,31 @@ class pouleGames{
     }
 
     makeGames(){
-        var gamesDiv = document.getElementById('pouleGames');
-        var pouleGamesDiv = $(`<div id='poule${this.pouleNum}Games' class='pouleGamesDiv'></div>`);
-        var pouleGamesHeader = $(`<header class="pouleGamesHeader"><h1>Poule ${this.pouleNum}:</h1></header><hr>`);
-        var gameTable = $('<table class="pouleGamesTable"></table>');
+        let numPlayers = this.players.length;
+        var gameTable;
+        var gamesDiv;
 
-        $(gamesDiv).append(pouleGamesDiv);
-        $(pouleGamesDiv).append(pouleGamesHeader);
-        $(pouleGamesDiv).append(gameTable);
+        if(numPlayers == 1){
+            let singlePlayerDiv = $(`<div id="singlePlayerDiv" class="singlePlayerDiv"><h3>Winnaar:</h3><h4>${this.players[0][0]}!</h4><p1>Leuk geprobeerd, hier heb ik aan gedacht</p1></div>`);
+            $(singlePlayerDiv).appendTo(document.body);
+        }else{
+            gamesDiv = document.getElementById('pouleGames');
+            var pouleGamesDiv = $(`<div id='poule${this.pouleNum}Games' class='pouleGamesDiv'></div>`);
+            var pouleGamesHeader = $(`<header class="pouleGamesHeader"><h1>Poule ${this.pouleNum}:</h1></header><hr>`);
+            gameTable = $('<table class="pouleGamesTable"></table>');
+
+            $(gamesDiv).append(pouleGamesDiv);
+            $(pouleGamesDiv).append(pouleGamesHeader);
+            $(pouleGamesDiv).append(gameTable);
+        }
         
-        this.#numGames = (this.factorial(this.players.length)/(2*this.factorial(this.players.length-2)));
+        if(numPlayers == 2){
+            this.#numGames = 1;
+        }else{
+            this.#numGames = (this.factorial(numPlayers)/(2*this.factorial(numPlayers-2)));
+        }
+        console.log(`Number of players for poule ${this.pouleNum}: ${numPlayers}`)
+        console.log(`Number of games for poule ${this.pouleNum}: ${this.#numGames}`);
 
         for(let i = 0; i < this.#numGames; i++){
             var gameLabels = $(`<tr><td><p1 id="game${this.pouleNum}${i+1}1Name">${this.players[gameFormat[i][0]][0]}</p1></td><td><p1>-</p1></td><td><p1 id="game${this.pouleNum}${i+1}2Name">${this.players[gameFormat[i][1]][0]}</p1></td></tr>`);
@@ -89,7 +115,7 @@ class pouleGames{
     }
 
     factorial(n){
-        if(n === 0 || n === 1){
+        if(n === 0 || n === 1 || n === 2){
             return n;
         }
 
@@ -199,19 +225,56 @@ let pouleB = new pouleGames("B");
 let pouleC = new pouleGames("C");
 let pouleD = new pouleGames("D");
 
+function returnToHome(){
+    document.getElementById('numPlayers').value = null;
+    document.getElementById('numPoules').value = null;
+    $("#playerInputForm").empty();
+    $("#poulesDiv").empty()
+    $("#mainRosterSubDiv").empty();
+    $("#pouleGames").empty();
+    pouleA.reset();
+    pouleB.reset();
+    pouleC.reset();
+    pouleD.reset();
+
+    $("div").hide();
+    $(document.getElementById('gameOptions')).show();
+    $(returnBtn).hide();
+    $(saveBtn).hide();
+}
+
 function drawSetup(){
     console.log("New game...")
     $("div").hide();
     $(document.getElementById('gameSetup')).show();
     $(document.getElementById('gameSetupSubDiv')).show();
+    $(returnBtn).show();
+}
 
-    startPoulesSorting();
+function getGameFileName(action){
+    var fileName;
+    if(action == "save"){
+        fileName = ipcRenderer.sendSync('enterFileName');
+    }else if(action == "load"){
+        fileName = ipcRenderer.sendSync('selectSaveFile')[0];
+    }else{
+        return null;
+    }
+    console.log(fileName)
+    return fileName;
 }
 
 function loadGame(){
+    var gameFileName = getGameFileName("load");
+    if(gameFileName === null){
+        console.log("No file selected");
+        return -1;
+    }
+
     $("div").hide();
     $(poulesDiv).show();
     $(saveBtn).show();
+    $(returnBtn).show();
     $(document.getElementById('mainRosterDiv')).show();
     $(document.getElementById('mainRosterSubDiv')).show();
     $(document.getElementById('gameDiv')).show();
@@ -221,7 +284,8 @@ function loadGame(){
     pouleC.players = [];
     pouleD.players = [];
 
-    let jsonString = fs.readFileSync(path.resolve(__dirname, 'game.json'), function(err){
+
+    let jsonString = fs.readFileSync(path.resolve(gameFileName), function(err){
         if(err){
             console.log(err);
         }
@@ -399,6 +463,9 @@ function getGameInfo(){
     numPlayers = document.getElementById("numPlayers").value;
     numPoules = document.getElementById('numPoules').value;
 
+    console.log(`Number of total players: ${numPlayers}`);
+    console.log(`Number of poules: ${numPoules}`);
+
     //$(document.getElementById('gameSetup')).hide();
     $("div").hide();
     $(document.getElementById('playerInputDiv')).show();
@@ -416,6 +483,7 @@ function getGameInfo(){
     }
 
     makePoulesBtn.onclick = makePoules;
+    startPoulesSorting();
 }
 
 function makePoules(){
@@ -432,6 +500,8 @@ function makePoules(){
     players.sort(function(a,b){return 0.5 - Math.random()});
     
     var PLAYERS_PER_POULE = numPlayers/numPoules;
+    PLAYERS_PER_POULE = Math.round(PLAYERS_PER_POULE)
+    console.log(PLAYERS_PER_POULE);
 
     for(let i = 0; i < numPlayers; i++){
         if(i < PLAYERS_PER_POULE){
@@ -632,13 +702,18 @@ function exportFinalsGame(gameNum){
     return [player1Score, player1Name, player2Score, player2Name];
 }
 
-function enterGameFileName(){
-    ipcRenderer.invoke('enterFileName').then((result)=>{
-        exportGameInfo(result);
-    });
-}
+function exportGameInfo(){
+    var gameFileName = getGameFileName("save");
 
-function exportGameInfo(gameFileName){
+    if(gameFileName === null){
+        console.log("No file name given")
+        return -1;
+    }
+
+    if(!gameFileName.includes(".json")){
+        gameFileName = gameFileName + ".json"
+    }
+
     var jsonObj = {"poules":[], "games":[]};
 
     if(pouleExists(pouleA)){
@@ -892,7 +967,7 @@ function exportGameInfo(gameFileName){
         if(err){
             console.log(err);
         }else{
-            console.log("JSON save to game.json");
+            console.log(`Game saved to ${gameFileName}.`);
         }
     });
 }
