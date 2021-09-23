@@ -1,4 +1,4 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -47,6 +47,30 @@ app.on('activate', () => {
     createWindow();
   }
 });
+
+ipcMain.handle('enterFileName', async(event) =>{
+  const result = await showDialog()
+  return result;
+});
+
+function showDialog(){
+  const {dialog} = require('electron');
+
+  dialog.showOpenDialog(mainWindow, {
+    properties:['openFile'],
+    filters:[
+      {name: "JSON files",
+      extensions: 'json'}
+    ]
+  }).then(fileNames=>{
+    if(fileNames === undefined){
+      console.log("Failed to open files");
+      return null;
+    }else{
+      return fileNames;
+    }
+  });
+}
 
 // In this file you can include the rest of your app's specific main process
 // code. You can also put them in separate files and import them here.

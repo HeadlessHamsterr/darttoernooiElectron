@@ -8,6 +8,7 @@ let fs = require('fs');
 let path = require('path');
 const { combinedDisposable } = require('custom-electron-titlebar/common/lifecycle');
 const { parse } = require('path');
+const {ipcRenderer} = require('electron');
 const exp = require('constants');
 
 var numPlayers = 0;
@@ -26,7 +27,7 @@ const subBtn = document.getElementById('subBtn');
 subBtn.onclick = getGameInfo;
 
 const saveBtn = document.getElementById('saveBtn');
-saveBtn.onclick = exportGameInfo;
+saveBtn.onclick = enterGameFileName;
 
 const makePoulesBtn = document.getElementById('mkPoulesBtn');
 
@@ -329,6 +330,17 @@ function loadGame(){
                 document.getElementById(`M${i+5}2Score`).value = player2Score;
             }
         break;
+        case 1:
+            let player1Name = jsonObj["games"][0]["game1Name"];
+            let player1Score = jsonObj["games"][0]["game1Score"];
+            let player2Name = jsonObj["games"][0]["game2Name"];
+            let player2Score = jsonObj["games"][0]["game2Score"];
+
+            document.getElementById('M71Name').innerHTML = player1Name;
+            document.getElementById('M71Score').value = player1Score;
+            document.getElementById('M72Name').innerHTML = player2Name;
+            document.getElementById('M72Score').value = player2Score;
+        break;
     }
 
     startPoulesSorting();
@@ -620,7 +632,13 @@ function exportFinalsGame(gameNum){
     return [player1Score, player1Name, player2Score, player2Name];
 }
 
-function exportGameInfo(){
+function enterGameFileName(){
+    ipcRenderer.invoke('enterFileName').then((result)=>{
+        exportGameInfo(result);
+    });
+}
+
+function exportGameInfo(gameFileName){
     var jsonObj = {"poules":[], "games":[]};
 
     if(pouleExists(pouleA)){
@@ -870,7 +888,7 @@ function exportGameInfo(){
         break;
     }
 
-    fs.writeFile(path.resolve(__dirname, 'game.json'), JSON.stringify(jsonObj, null, 4), function(err){
+    fs.writeFile(path.resolve(gameFileName), JSON.stringify(jsonObj, null, 4), function(err){
         if(err){
             console.log(err);
         }else{
