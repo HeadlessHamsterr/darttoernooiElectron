@@ -10,6 +10,7 @@ const { combinedDisposable } = require('custom-electron-titlebar/common/lifecycl
 const { parse } = require('path');
 const {ipcRenderer} = require('electron');
 const exp = require('constants');
+const { randomInt } = require('crypto');
 
 var numPlayers = 0;
 var numPoules = 0;
@@ -463,6 +464,16 @@ function getGameInfo(){
     numPlayers = document.getElementById("numPlayers").value;
     numPoules = document.getElementById('numPoules').value;
 
+    numPlayers = parseInt(numPlayers);
+    if(numPlayers === undefined){
+        numPlayers = 0;
+    }
+
+    numPoules = parseInt(numPoules);
+    if(numPoules === undefined){
+        numPoules = 0;
+    }
+
     console.log(`Number of total players: ${numPlayers}`);
     console.log(`Number of poules: ${numPoules}`);
 
@@ -500,22 +511,72 @@ function makePoules(){
     players.sort(function(a,b){return 0.5 - Math.random()});
     
     var PLAYERS_PER_POULE = numPlayers/numPoules;
-    PLAYERS_PER_POULE = Math.round(PLAYERS_PER_POULE)
-    console.log(PLAYERS_PER_POULE);
+    PLAYERS_PER_POULE_ROUNDED = Math.round(PLAYERS_PER_POULE)
+    console.log(`Players per poule: ${PLAYERS_PER_POULE}`);
+    console.log(`Players per poule rounded: ${PLAYERS_PER_POULE_ROUNDED}`);
 
-    for(let i = 0; i < numPlayers; i++){
-        if(i < PLAYERS_PER_POULE){
-            var tempArray = [players[i], 0];
-            pouleA.players.push(tempArray);
-        }else if(PLAYERS_PER_POULE <= i && i < (2*PLAYERS_PER_POULE)){
-            var tempArray = [players[i], 0];
-            pouleB.players.push(tempArray);
-        }else if((2*PLAYERS_PER_POULE) <= i && i < (3*PLAYERS_PER_POULE)){
-            var tempArray = [players[i], 0];
-            pouleC.players.push(tempArray);
-        }else if((3*PLAYERS_PER_POULE) <= i && i < (4*PLAYERS_PER_POULE)){
-            var tempArray = [players[i], 0];
-            pouleD.players.push(tempArray);
+    if(PLAYERS_PER_POULE - PLAYERS_PER_POULE_ROUNDED > 0){
+        for(let i = 0; i < numPlayers-1; i++){
+            if(i < PLAYERS_PER_POULE_ROUNDED){
+                var tempArray = [players[i], 0];
+                pouleA.players.push(tempArray);
+            }else if(PLAYERS_PER_POULE_ROUNDED <= i && i < (2*PLAYERS_PER_POULE_ROUNDED)){
+                var tempArray = [players[i], 0];
+                pouleB.players.push(tempArray);
+            }else if((2*PLAYERS_PER_POULE_ROUNDED) <= i && i < (3*PLAYERS_PER_POULE_ROUNDED)){
+                var tempArray = [players[i], 0];
+                pouleC.players.push(tempArray);
+            }else if((3*PLAYERS_PER_POULE_ROUNDED) <= i && i < (4*PLAYERS_PER_POULE_ROUNDED)){
+                var tempArray = [players[i], 0];
+                pouleD.players.push(tempArray);
+            }
+        }
+
+        var randomNumber;
+        if(numPoules == 1){
+            randomNumber = 0;
+        }else if(numPoules == 2){
+            randomNumber = randomInt(2);
+        }else if(numPoules == 3){
+            randomNumber = randomInt(3);
+        }else if(numPoules == 4){
+            randomNumber = ranodmInt(4);
+        }
+        let playerArray = [players[numPlayers-1], 0];
+
+        switch(randomNumber){
+            case 0:
+                pouleA.players.push(playerArray);
+                console.log(`Adding ${playerArray} to poule A`);
+            break;
+            case 1:
+                pouleB.players.push(playerArray);
+                console.log(`Adding ${playerArray} to poule B`);
+            break;
+            case 2:
+                pouleC.players.push(playerArray);
+                console.log(`Adding ${playerArray} to poule C`);
+            break;
+            case 3:
+                pouleD.players.push(playerArray);
+                console.log(`Adding ${playerArray} to poule D`);
+            break;
+        }
+    }else{
+        for(let i = 0; i < numPlayers; i++){
+            if(i < PLAYERS_PER_POULE_ROUNDED){
+                var tempArray = [players[i], 0];
+                pouleA.players.push(tempArray);
+            }else if(PLAYERS_PER_POULE_ROUNDED <= i && i < (2*PLAYERS_PER_POULE_ROUNDED)){
+                var tempArray = [players[i], 0];
+                pouleB.players.push(tempArray);
+            }else if((2*PLAYERS_PER_POULE_ROUNDED) <= i && i < (3*PLAYERS_PER_POULE_ROUNDED)){
+                var tempArray = [players[i], 0];
+                pouleC.players.push(tempArray);
+            }else if((3*PLAYERS_PER_POULE_ROUNDED) <= i && i < (4*PLAYERS_PER_POULE_ROUNDED)){
+                var tempArray = [players[i], 0];
+                pouleD.players.push(tempArray);
+            }
         }
     }
 
@@ -554,7 +615,9 @@ function makeFinals(numberOfPoules){
 
     if(numberOfPoules == 4){
         let quarters = $('<table class="mainRosterTable"><tr><th colspan="3"><h2>Kwart Finale</h2></th></tr><tr><td><h2 id="M11Name"></h2></td><td><h2>-</h2></td><td><h2 id="M12Name"></h2></td></tr><tr><td><input id="M11Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M12Score" class="gameScore"></td></tr><tr><td><h2 id="M21Name"></h2></td><td><h2>-</h2></td><td><h2 id="M22Name"></h2></td></tr><tr><td><input id="M21Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M22Score" class="gameScore"></td></tr><tr><td><h2 id="M31Name"></h2></td><td><h2>-</h2></td><td><h2 id="M32Name"></h2></td></tr><tr><td><input id="M31Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M32Score" class="gameScore"></td></tr><tr><td><h2 id="M41Name"></h2></td><td><h2>-</h2></td><td><h2 id="M42Name"></h2></td></tr><tr><td><input id="M41Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M42Score" class="gameScore"></td></tr></table>')
+        let halves = $('<table class="mainRosterTable"><tr><th colspan="3"><h2>Halve Finale</h2></th></tr><tr><td><h2 id="M51Name"></h2></td><td><h2>-</h2></td><td><h2 id="M52Name"></h2></td></tr><tr><td><input id="M51Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M52Score" class="gameScore"></td></tr><tr><td><h2 id="M61Name"></h2></td><td><h2>-</h2></td><td><h2 id="M62Name"></h2></td></tr><tr><td><input id="M61Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M62Score" class="gameScore"></td></tr></table>');
         $(rosterDiv).append(quarters);
+        $(rosterDiv).append(halves);
     }else if(numberOfPoules == 3){
         let quarters = $('<table class="mainRosterTable"><tr><th colspan="3"><h2>Kwart Finale</h2></th></tr><tr><td><h2 id="M11Name"></h2></td><td><h2>-</h2></td><td><h2 id="M12Name"></h2></td></tr><tr><td><input id="M11Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M12Score" class="gameScore"></td></tr><tr><td><h2 id="M21Name"></h2></td><td><h2>-</h2></td><td><h2 id="M22Name"></h2></td></tr><tr><td><input id="M21Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M22Score" class="gameScore"></td></tr><tr><td><h2 id="M31Name"></h2></td><td><h2>-</h2></td><td><h2 id="M32Name"></h2></td></tr><tr><td><input id="M31Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M32Score" class="gameScore"></td></tr></table>')
         let halves = $('<table class="mainRosterTable"><tr><th colspan="3"><h2>Halve Finale</h2></th></tr><tr><td><h2 id="M51Name"></h2></td><td><h2>-</h2></td><td><h2 id="M52Name"></h2></td></tr><tr><td><input id="M51Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M52Score" class="gameScore"></td></tr></table>');
