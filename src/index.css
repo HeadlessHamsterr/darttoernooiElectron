@@ -4,7 +4,7 @@
   --table-borders: #e46800;
   --input-background: #121212;
   --input-border: #313131;
-  --default-font: Monospace;
+  --default-font: 'Poppins', sans-serif;
   --btn-color: #4a0000;
   --btn-color-hover: #3e0505;
 }
