@@ -25,7 +25,7 @@ ipcMain.on('selectSaveFile', async(event) =>{
 });
 
 function showLoadDialog(){
-  filePath = app.getPath("documents");
+  var filePath = app.getPath("documents");
   return new Promise((resolve, reject)=>{
     dialog.showOpenDialog({
       buttonLabel: "Spel laden",
@@ -47,7 +47,7 @@ function showLoadDialog(){
 }
 
 function showSaveDialog(){
-  filePath = app.getPath("documents");
+  var filePath = app.getPath("documents");
   return new Promise((resolve, reject)=>{
     const {dialog} = require('electron');
   
