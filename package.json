@@ -19,7 +19,9 @@
   "license": "MIT",
   "config": {
     "forge": {
-      "packagerConfig": {},
+      "packagerConfig": {
+        "icon": "/icons/appIcon.icon"
+      },
       "makers": [
         {
           "name": "@electron-forge/maker-squirrel",
@@ -57,7 +59,10 @@
     "@electron-forge/maker-squirrel": "^6.0.0-beta.60",
     "@electron-forge/maker-zip": "^6.0.0-beta.60",
     "electron": "14.0.0",
+    "electron-compile": "^6.4.4",
+    "electron-forge": "^5.2.4",
     "electron-json-storage": "^4.5.0",
+    "electron-prebuilt-compile": "8.2.0",
     "fs-jetpack": "^4.1.1"
   }
 }
