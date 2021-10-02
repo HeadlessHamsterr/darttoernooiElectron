@@ -81,7 +81,6 @@ input:focus{
 }
 
 .playerInputSubDiv{
-  min-width: 310px;
   background: var(--card-background);
   border-radius: 10px;
   box-sizing: border-box;
