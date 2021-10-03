@@ -19,10 +19,12 @@
       </div>
     </div>
 
-    <div id="gameOptions" class="startDiv">
-      <h1 class="startScreenLabel">Nieuw spel of spel laden?</h1>
-      <button class="sendBtn" id="newGameBtn">Nieuw</button>
-      <button class="sendBtn" id="loadGameBtn">Laden</button>
+    <div id='gameOptionsWrapper' class='startDivWrapper'>
+      <div id="gameOptions" class="startDiv">
+        <h1 class="startScreenLabel">Nieuw spel of spel laden?</h1>
+        <button class="sendBtn" id="newGameBtn">Nieuw</button>
+        <button class="sendBtn" id="loadGameBtn">Laden</button>
+      </div>
     </div>
 
     <div id='gameSetup' class='cardSetup'>
@@ -33,7 +35,8 @@
           <label for='numPoules'>Aantal poules:</label><br>
           <input id='numPoules' type='number' name="numPoules"><br>
         </form>
-        <button id="subBtn" onclick="" class='sendBtn'>Versturen</button>
+        <button id="subBtn" onclick="" class='sendBtn'>Versturen</button><br>
+        <span id='setupErrorSpan' style="color: red;"></span>
       </div>
     </div>
   
@@ -42,7 +45,8 @@
         <form id='playerInputForm'>
         
         </form>
-        <button id='mkPoulesBtn' class='sendBtn'>Versturen</button>
+        <button id='mkPoulesBtn' class='sendBtn'>Versturen</button><br>
+        <span id='playerInputErrorSpan' style="color: red;"></span>
       </div>
     </div>
   
