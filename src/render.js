@@ -817,8 +817,8 @@ function exportGameInfo(){
         return -1;
     }
 
-    if(!gameFileName.includes(".json")){
-        gameFileName = gameFileName + ".json"
+    if(!gameFileName.includes(".darts")){
+        gameFileName = gameFileName + ".darts"
     }
 
     var jsonObj = {"poules":[], "games":[]};

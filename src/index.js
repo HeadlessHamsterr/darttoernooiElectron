@@ -31,8 +31,8 @@ function showLoadDialog(){
       buttonLabel: "Spel laden",
       properties: ["openFile"],
       filters:[
-        {name: "JSON files",
-        extensions: ".json"}
+        {name: "DARTS files",
+        extensions: "DARTS"}
       ],
       defaultPath: filePath
     }).then(fileNames=>{
@@ -54,8 +54,8 @@ function showSaveDialog(){
     dialog.showSaveDialog({
       buttonLabel:"Opslaan",
       filters:[
-        {name: "JSON files",
-        extensions: '.json'}
+        {name: "DARTS files",
+        extensions: 'darts'}
       ],
       properties:[
         {showOverwriteConfirmation: true}
