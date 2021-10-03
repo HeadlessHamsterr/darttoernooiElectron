@@ -1,8 +1,3 @@
-/*
-Todo:
-    - Games laden voor minder dan 3 poules
-    - CSS fixen, shit is lelijk
-*/
 let $ = require('jquery');
 let fs = require('fs');
 let path = require('path');
@@ -36,6 +31,7 @@ const makePoulesBtn = document.getElementById('mkPoulesBtn');
 
 $("div").hide();
 $(document.getElementById('gameOptions')).show();
+$(document.getElementById('gameOptionsWrapper')).show();
 //$(returnBtn).hide();
 //$(saveBtn).hide();
 $(document.getElementById('returnBtnDiv')).hide();
@@ -240,6 +236,7 @@ function returnToHome(){
 
     $("div").hide();
     $(document.getElementById('gameOptions')).show();
+    $(document.getElementById('gameOptionsWrapper')).show();1
     //$(returnBtn).hide();
     //$(saveBtn).hide();
 }
@@ -470,155 +467,190 @@ function getGameInfo(){
     numPlayers = document.getElementById("numPlayers").value;
     numPoules = document.getElementById('numPoules').value;
 
-    numPlayers = parseInt(numPlayers);
-    if(numPlayers === undefined){
-        numPlayers = 0;
+    if(numPlayers == "" && numPoules == ""){
+        $(document.getElementById('numPlayers')).css('border-color', 'red');
+        $(document.getElementById('numPoules')).css('border-color', 'red');
+
+        document.getElementById('setupErrorSpan').innerHTML = "Vul aantal spelers en aantal poules in.";
+    }else if(numPoules == ""){
+        $(document.getElementById('numPlayers')).css('border-color', '#414141');
+        $(document.getElementById('numPoules')).css('border-color', 'red');
+
+        document.getElementById('setupErrorSpan').innerHTML = "Vul aantal poules in.";
+    }else if(numPlayers == ""){
+        $(document.getElementById('numPlayers')).css('border-color', 'red');
+        $(document.getElementById('numPoules')).css('border-color', '#414141');
+
+        document.getElementById('setupErroSpan').innerHTML = "Vul aantal spelers in.";
+    }else{
+        $(document.getElementById('numPlayers')).css('border-color', '#414141');
+        $(document.getElementById('numPoules')).css('border-color', '#414141');
+        document.getElementById('setupErrorSpan').innerHTML = "";
+
+        numPlayers = parseInt(numPlayers);
+        numPoules = parseInt(numPoules);
+
+        console.log(`Number of total players: ${numPlayers}`);
+        console.log(`Number of poules: ${numPoules}`);
+
+        //$(document.getElementById('gameSetup')).hide();
+        $("div").hide();
+        $(document.getElementById('playerInputDiv')).show();
+        $(document.getElementById('playerInputSubDiv')).show();
+        $(document.getElementById('controlBtnDiv')).show();
+        $(document.getElementById('returnBtnDiv')).show();
+
+        var playerInputForm = document.getElementById('playerInputForm');
+
+        for(let i = 0; i < numPlayers; i++){
+            //var playerInput = $(`<input type='text' id='player${i}'></input>`).attr(`Speler ${i}`);
+            var playerInput = document.createElement("input");
+            playerInput.setAttribute("id", `player${i}`);
+            playerInput.setAttribute("placeholder", `Speler ${i+1}`);
+            playerInput.setAttribute("class", "playerInput");
+            $(playerInputForm).append(playerInput);
+        }
+
+        makePoulesBtn.onclick = makePoules;
+        startPoulesSorting();
     }
-
-    numPoules = parseInt(numPoules);
-    if(numPoules === undefined){
-        numPoules = 0;
-    }
-
-    console.log(`Number of total players: ${numPlayers}`);
-    console.log(`Number of poules: ${numPoules}`);
-
-    //$(document.getElementById('gameSetup')).hide();
-    $("div").hide();
-    $(document.getElementById('playerInputDiv')).show();
-    $(document.getElementById('playerInputSubDiv')).show();
-    $(document.getElementById('controlBtnDiv')).show();
-    $(document.getElementById('returnBtnDiv')).show();
-
-    var playerInputForm = document.getElementById('playerInputForm');
-
-    for(let i = 0; i < numPlayers; i++){
-        //var playerInput = $(`<input type='text' id='player${i}'></input>`).attr(`Speler ${i}`);
-        var playerInput = document.createElement("input");
-        playerInput.setAttribute("id", `player${i}`);
-        playerInput.setAttribute("placeholder", `Speler ${i+1}`);
-        playerInput.setAttribute("class", "playerInput");
-        $(playerInputForm).append(playerInput);
-    }
-
-    makePoulesBtn.onclick = makePoules;
-    startPoulesSorting();
 }
 
 function makePoules(){
-    $("div").hide();
-    //$(document.getElementById('controlBtnDiv')).show();
-    //$(saveBtn).show();
-    $(document.getElementById('controlBtnDiv')).show();
-    $(document.getElementById('saveBtnDiv')).show();
-    $(document.getElementById('returnBtnDiv')).show();
-
-    var poulesDiv = document.getElementById('poulesDiv');
+    var playerEmpty = false;
+    players = [];
 
     for(let i = 0; i < numPlayers; i++){
         var playerName = document.getElementById(`player${i}`).value;
+        console.log(playerName);
         players.push(playerName);
     }
 
-    players.sort(function(a,b){return 0.5 - Math.random()});
-    
-    var PLAYERS_PER_POULE = numPlayers/numPoules;
-    let PLAYERS_PER_POULE_ROUNDED = Math.round(PLAYERS_PER_POULE)
-    console.log(`Players per poule: ${PLAYERS_PER_POULE}`);
-    console.log(`Players per poule rounded: ${PLAYERS_PER_POULE_ROUNDED}`);
-
-    if(PLAYERS_PER_POULE - PLAYERS_PER_POULE_ROUNDED > 0){
-        for(let i = 0; i < numPlayers-1; i++){
-            if(i < PLAYERS_PER_POULE_ROUNDED){
-                var tempArray = [players[i], 0];
-                pouleA.players.push(tempArray);
-            }else if(PLAYERS_PER_POULE_ROUNDED <= i && i < (2*PLAYERS_PER_POULE_ROUNDED)){
-                var tempArray = [players[i], 0];
-                pouleB.players.push(tempArray);
-            }else if((2*PLAYERS_PER_POULE_ROUNDED) <= i && i < (3*PLAYERS_PER_POULE_ROUNDED)){
-                var tempArray = [players[i], 0];
-                pouleC.players.push(tempArray);
-            }else if((3*PLAYERS_PER_POULE_ROUNDED) <= i && i < (4*PLAYERS_PER_POULE_ROUNDED)){
-                var tempArray = [players[i], 0];
-                pouleD.players.push(tempArray);
-            }
+    for(let i = 0; i < numPlayers; i++){
+        console.log(players[i]);
+        if(players[i] == ""){
+            $(document.getElementById(`player${i}`)).css('border-color', 'red');
+            playerEmpty = true;
+            console.log(`Player${i} leeg!`);
+        }else{
+            $(document.getElementById(`player${i}`)).css('border-color', '#414141');
         }
+    }
 
-        var randomNumber;
-        if(numPoules == 1){
-            randomNumber = 0;
-        }else if(numPoules == 2){
-            randomNumber = Math.floor(Math.random()*2);
-        }else if(numPoules == 3){
-            randomNumber = Math.floor(Math.random()*3);
-        }else if(numPoules == 4){
-            randomNumber = Math.floor(Math.random()*4);
-        }
-        let playerArray = [players[numPlayers-1], 0];
-
-        switch(randomNumber){
-            case 0:
-                pouleA.players.push(playerArray);
-                console.log(`Adding ${playerArray} to poule A`);
-            break;
-            case 1:
-                pouleB.players.push(playerArray);
-                console.log(`Adding ${playerArray} to poule B`);
-            break;
-            case 2:
-                pouleC.players.push(playerArray);
-                console.log(`Adding ${playerArray} to poule C`);
-            break;
-            case 3:
-                pouleD.players.push(playerArray);
-                console.log(`Adding ${playerArray} to poule D`);
-            break;
-        }
+    if(playerEmpty){
+        document.getElementById('playerInputErrorSpan').innerHTML = "Vul voor alle spelers een naam in."
     }else{
-        for(let i = 0; i < numPlayers; i++){
-            if(i < PLAYERS_PER_POULE_ROUNDED){
-                var tempArray = [players[i], 0];
-                pouleA.players.push(tempArray);
-            }else if(PLAYERS_PER_POULE_ROUNDED <= i && i < (2*PLAYERS_PER_POULE_ROUNDED)){
-                var tempArray = [players[i], 0];
-                pouleB.players.push(tempArray);
-            }else if((2*PLAYERS_PER_POULE_ROUNDED) <= i && i < (3*PLAYERS_PER_POULE_ROUNDED)){
-                var tempArray = [players[i], 0];
-                pouleC.players.push(tempArray);
-            }else if((3*PLAYERS_PER_POULE_ROUNDED) <= i && i < (4*PLAYERS_PER_POULE_ROUNDED)){
-                var tempArray = [players[i], 0];
-                pouleD.players.push(tempArray);
+        $("div").hide();
+        //$(document.getElementById('controlBtnDiv')).show();
+        //$(saveBtn).show();
+        $(document.getElementById('controlBtnDiv')).show();
+        $(document.getElementById('saveBtnDiv')).show();
+        $(document.getElementById('returnBtnDiv')).show();
+
+        var poulesDiv = document.getElementById('poulesDiv');
+
+        document.getElementById('playerInputErrorSpan').innerHTML = "";
+
+        players.sort(function(a,b){return 0.5 - Math.random()});
+        
+        var PLAYERS_PER_POULE = numPlayers/numPoules;
+        let PLAYERS_PER_POULE_ROUNDED = Math.round(PLAYERS_PER_POULE)
+        console.log(`Players per poule: ${PLAYERS_PER_POULE}`);
+        console.log(`Players per poule rounded: ${PLAYERS_PER_POULE_ROUNDED}`);
+
+        if(PLAYERS_PER_POULE - PLAYERS_PER_POULE_ROUNDED > 0){
+            for(let i = 0; i < numPlayers-1; i++){
+                if(i < PLAYERS_PER_POULE_ROUNDED){
+                    var tempArray = [players[i], 0];
+                    pouleA.players.push(tempArray);
+                }else if(PLAYERS_PER_POULE_ROUNDED <= i && i < (2*PLAYERS_PER_POULE_ROUNDED)){
+                    var tempArray = [players[i], 0];
+                    pouleB.players.push(tempArray);
+                }else if((2*PLAYERS_PER_POULE_ROUNDED) <= i && i < (3*PLAYERS_PER_POULE_ROUNDED)){
+                    var tempArray = [players[i], 0];
+                    pouleC.players.push(tempArray);
+                }else if((3*PLAYERS_PER_POULE_ROUNDED) <= i && i < (4*PLAYERS_PER_POULE_ROUNDED)){
+                    var tempArray = [players[i], 0];
+                    pouleD.players.push(tempArray);
+                }
+            }
+
+            var randomNumber;
+            if(numPoules == 1){
+                randomNumber = 0;
+            }else if(numPoules == 2){
+                randomNumber = Math.floor(Math.random()*2);
+            }else if(numPoules == 3){
+                randomNumber = Math.floor(Math.random()*3);
+            }else if(numPoules == 4){
+                randomNumber = Math.floor(Math.random()*4);
+            }
+            let playerArray = [players[numPlayers-1], 0];
+
+            switch(randomNumber){
+                case 0:
+                    pouleA.players.push(playerArray);
+                    console.log(`Adding ${playerArray} to poule A`);
+                break;
+                case 1:
+                    pouleB.players.push(playerArray);
+                    console.log(`Adding ${playerArray} to poule B`);
+                break;
+                case 2:
+                    pouleC.players.push(playerArray);
+                    console.log(`Adding ${playerArray} to poule C`);
+                break;
+                case 3:
+                    pouleD.players.push(playerArray);
+                    console.log(`Adding ${playerArray} to poule D`);
+                break;
+            }
+        }else{
+            for(let i = 0; i < numPlayers; i++){
+                if(i < PLAYERS_PER_POULE_ROUNDED){
+                    var tempArray = [players[i], 0];
+                    pouleA.players.push(tempArray);
+                }else if(PLAYERS_PER_POULE_ROUNDED <= i && i < (2*PLAYERS_PER_POULE_ROUNDED)){
+                    var tempArray = [players[i], 0];
+                    pouleB.players.push(tempArray);
+                }else if((2*PLAYERS_PER_POULE_ROUNDED) <= i && i < (3*PLAYERS_PER_POULE_ROUNDED)){
+                    var tempArray = [players[i], 0];
+                    pouleC.players.push(tempArray);
+                }else if((3*PLAYERS_PER_POULE_ROUNDED) <= i && i < (4*PLAYERS_PER_POULE_ROUNDED)){
+                    var tempArray = [players[i], 0];
+                    pouleD.players.push(tempArray);
+                }
             }
         }
-    }
 
-    if(pouleExists(pouleA)){
-        pouleA.makePoule();
-        pouleA.makeGames();
-    }
+        if(pouleExists(pouleA)){
+            pouleA.makePoule();
+            pouleA.makeGames();
+        }
 
-    if(pouleExists(pouleB)){
-        pouleB.makePoule();
-        pouleB.makeGames();
-    }
+        if(pouleExists(pouleB)){
+            pouleB.makePoule();
+            pouleB.makeGames();
+        }
 
-    if(pouleExists(pouleC)){
-        pouleC.makePoule();
-        pouleC.makeGames();
-    }
+        if(pouleExists(pouleC)){
+            pouleC.makePoule();
+            pouleC.makeGames();
+        }
 
-    if(pouleExists(pouleD)){
-        pouleD.makePoule();
-        pouleD.makeGames();
-    }
+        if(pouleExists(pouleD)){
+            pouleD.makePoule();
+            pouleD.makeGames();
+        }
 
-    makeFinals(numPoules);
-    
-    $(poulesDiv).show();
-    //$(saveBtn).show();
-    $(document.getElementById('mainRosterDiv')).show();
-    $(document.getElementById('mainRosterSubDiv')).show();
-    $(document.getElementById('gameDiv')).show();
+        makeFinals(numPoules);
+        
+        $(poulesDiv).show();
+        //$(saveBtn).show();
+        $(document.getElementById('mainRosterDiv')).show();
+        $(document.getElementById('mainRosterSubDiv')).show();
+        $(document.getElementById('gameDiv')).show();
+    }
 }
 
 function makeFinals(numberOfPoules){
