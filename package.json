@@ -1,15 +1,29 @@
 {
   "name": "darttoernooi",
-  "productName": "darttoernooi",
-  "version": "1.0.0",
-  "description": "My Electron application description",
+  "productName": "Darttoernooi",
+  "version": "1.0.3",
+  "description": "Speelschema voor darttoernooien (of een ander toernooi met poules).",
   "main": "src/index.js",
   "scripts": {
     "start": "electron-forge start",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
-    "lint": "echo \"No linting configured\""
+    "lint": "echo \"No linting configured\"",
+    "build-installer-windows": "electron-builder --windows nsis:x64"
+  },
+  "build":{
+    "appId": "Darttoernooi",
+    "win":{
+      "target": ["nsis"],
+      "icon": "src/icons/appIcon.ico"
+    },
+    "nsis":{
+      "installerIcon": "src/icons/appIcon.ico",
+      "uninstallDisplayName": "Darttoernooi",
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   },
   "keywords": [],
   "author": {
@@ -49,10 +63,10 @@
   "dependencies": {
     "custom-electron-titlebar": "^3.2.7",
     "electron-squirrel-startup": "^1.0.0",
-    "electron-winstaller": "^5.0.0",
     "jquery": "^3.6.0"
   },
   "devDependencies": {
+    "electron-builder": "22.10.5",
     "@electron-forge/cli": "^6.0.0-beta.60",
     "@electron-forge/maker-deb": "^6.0.0-beta.60",
     "@electron-forge/maker-rpm": "^6.0.0-beta.60",
