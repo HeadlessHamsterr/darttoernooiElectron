@@ -82,6 +82,7 @@ const createWindow = () => {
       contextIsolation: false,
     },
     autoHideMenuBar: true,
+    icon: path.join(__dirname, 'icons/appIcon.ico')
   });
 
   // and load the index.html of the app.
