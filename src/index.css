@@ -26,6 +26,28 @@ input:focus{
   outline: none;
 }
 
+.exportBtn{
+  position: absolute;
+  right: 10%;
+  background-color: var(--btn-color);
+  border: none;
+  height: 40px;
+  width: 120px;
+  font-size: 14px;
+  color: white;
+  font-family: var(--default-font);
+  border-radius: 4px;
+}
+
+.exportBtn:hover{
+  background-color: #3e0505;
+  color: white
+}
+
+.exportBtn:active{
+  transform: scale(0.95);
+}
+
 .saveBtn{
   position: absolute;
   right: 5.5%;
@@ -93,6 +115,7 @@ input:focus{
   top: 10%;
   margin: -35px 0 0 -35px;
   text-align: center;
+  width: 268px;
 }
 
 .cardSetup{
@@ -179,11 +202,19 @@ input::-webkit-inner-spin-button{
   margin: 0;
 }
 
-label{
+.setupLabel{
   margin: auto;
   padding-bottom: 100px;
   font-family: var(--default-font);
   font-size: 30px;
+}
+
+.checkboxLabel{
+  font-size: 20px;
+}
+
+#printCheckbox{
+  margin-bottom: 20px;
 }
 
 .sendBtn{
