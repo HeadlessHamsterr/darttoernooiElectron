@@ -1,7 +1,7 @@
 {
   "name": "darttoernooi",
   "productName": "Darttoernooi",
-  "version": "1.0.3",
+  "version": "1.6.5",
   "description": "Speelschema voor darttoernooien (of een ander toernooi met poules).",
   "main": "src/index.js",
   "scripts": {
@@ -12,13 +12,15 @@
     "lint": "echo \"No linting configured\"",
     "build-installer-windows": "electron-builder --windows nsis:x64"
   },
-  "build":{
+  "build": {
     "appId": "Darttoernooi",
-    "win":{
-      "target": ["nsis"],
+    "win": {
+      "target": [
+        "nsis"
+      ],
       "icon": "src/icons/appIcon.ico"
     },
-    "nsis":{
+    "nsis": {
       "installerIcon": "src/icons/appIcon.ico",
       "uninstallDisplayName": "Darttoernooi",
       "oneClick": false,
@@ -63,7 +65,8 @@
   "dependencies": {
     "custom-electron-titlebar": "^3.2.7",
     "electron-squirrel-startup": "^1.0.0",
-    "jquery": "^3.6.0"
+    "jquery": "^3.6.0",
+    "jspdf": "^2.4.0"
   },
   "devDependencies": {
     "electron-builder": "22.10.5",
