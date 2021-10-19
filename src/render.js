@@ -11,7 +11,8 @@ var numPlayers = 0;
 var numPoules = 0;
 
 var players = [];
-var gameFormat = [[0, 1], [0, 2], [1, 2], [0, 3], [1, 3], [2, 3], [0, 4], [1, 4], [2, 4], [3, 4]];
+
+let tieBreakersEnabled = document.getElementById('tieBreakerCheckbox').checked;
 
 const newGameBtn = document.getElementById('newGameBtn');
 newGameBtn.onclick = drawSetup;
@@ -43,16 +44,28 @@ class pouleGames{
     constructor(pouleNum){
         this.pouleNum = pouleNum;
         this.players = [];
+        this.tiedPlayers = [];
         this.winner = "";
         this.secondPlace = "";
         this.numGames;
+        this.tieDetected = false;
+        this.tiedPoulesDrawn = false;
+        this.numTiedGames;
+        this.gameFormat;
+        this.tiedGameFormat;
     }
 
     reset(){
-        this.players = []
-        this.numGames = null;
+        this.players = [];
+        this.tiedPlayers = [];
         this.winner = "";
         this.secondPlace = "";
+        this.numGames;
+        this.tieDetected = false;
+        this.tiedPoulesDrawn = false;
+        this.numTiedGames;
+        this.gameFormat;
+        this.tiedGameFormat;
     }
 
     makePoule(){
@@ -105,8 +118,22 @@ class pouleGames{
         console.log(`Number of players for poule ${this.pouleNum}: ${numPlayers}`)
         console.log(`Number of games for poule ${this.pouleNum}: ${this.numGames}`);
 
+        switch(numPlayers){
+            case 2:
+                this.gameFormat = [[0, 1]];
+            break;
+            case 3:
+                this.gameFormat = [[0,1], [1,2], [0,2]];
+            break;
+            case 4:
+                this.gameFormat = [[0,1], [0,2], [1,3], [0,3], [1,2], [2,3]];
+            break;
+            case 5:
+                this.gameFormat = [[0,1], [0,2], [1,4], [3,4], [1,2], [2,3], [0,4], [1,3], [2,4], [0,3]]
+        }
+
         for(let i = 0; i < this.numGames; i++){
-            var gameLabels = $(`<tr><td><p1 id="game${this.pouleNum}${i+1}1Name">${this.players[gameFormat[i][0]][0]}</p1></td><td><p1>-</p1></td><td><p1 id="game${this.pouleNum}${i+1}2Name">${this.players[gameFormat[i][1]][0]}</p1></td></tr>`);
+            var gameLabels = $(`<tr><td><p1 id="game${this.pouleNum}${i+1}1Name">${this.players[this.gameFormat[i][0]][0]}</p1></td><td><p1>-</p1></td><td><p1 id="game${this.pouleNum}${i+1}2Name">${this.players[this.gameFormat[i][1]][0]}</p1></td></tr>`);
             var gameInputs = $(`<tr><td><input id="game${this.pouleNum}${i+1}1Score" type="number" class="gameScore"></td><td><p1>-</p1></td><td><input id="game${this.pouleNum}${i+1}2Score" type="number" class="gameScore"></td></tr><hr>`);
             $(gameTable).append(gameLabels);
             $(gameTable).append(gameInputs);
@@ -173,8 +200,43 @@ class pouleGames{
                 points2 = 0;
             }
 
-            points[gameFormat[i][0]] = points[gameFormat[i][0]] + points1;
-            points[gameFormat[i][1]] = points[gameFormat[i][1]] + points2;
+            points[this.gameFormat[i][0]] = points[this.gameFormat[i][0]] + points1;
+            points[this.gameFormat[i][1]] = points[this.gameFormat[i][1]] + points2;
+        }
+
+        if(this.tieDetected && tieBreakersEnabled){
+            for(let i = 0; i < this.numTiedGames; i++){
+                var points1 = document.getElementById(`tie${this.pouleNum}${i+1}1Score`).value;
+                var points2 = document.getElementById(`tie${this.pouleNum}${i+1}2Score`).value;
+    
+                points1 = parseInt(points1);
+                points2 = parseInt(points2);
+    
+                if(isNaN(points1)){
+                    points1 = 0;
+                }
+    
+                if(isNaN(points2)){
+                    points2 = 0;
+                }
+    
+                //Punten worden berekend door punten te tellen en in array te zetten op de index van de speler (0 voor speler 1, 1 voor speler 2 etc.)
+                //Deze index wordt vervolgens in de players array geplaatst.
+                //Daarom moet de locatie in de tiedPlayers array worden vertaald naar de juiste locatie in de players array, zodat de punten bij de juiste spelers komen.
+                var playersEqIndex1;
+                var playersEqIndex2;
+                console.log("For loop moet nu beginnen");
+                for(let j = 0; j < this.players.length; j++){
+                    if(this.players[j][0] === this.tiedPlayers[this.tiedGameFormat[i][0]][0]){
+                        playersEqIndex1 = j;
+                    }else if(this.players[j][0] === this.tiedPlayers[this.tiedGameFormat[i][1]][0]){
+                        playersEqIndex2 = j;
+                    }
+                }
+                console.log("For loop moet nu klaar zijn")
+                points[playersEqIndex1] = points[playersEqIndex1] + points1;    //Punten toewijzen aan die speler
+                points[playersEqIndex2] = points[playersEqIndex2] + points2;
+            }
         }
 
         for(let i = 0; i < this.players.length; i++){
@@ -207,13 +269,109 @@ class pouleGames{
             }
         }
 
+        if(tieBreakersEnabled){
+            let newTiedPlayers = this.isTie();
+        
+            if(newTiedPlayers.length != 0 && this.newTieDetected(this.tiedPlayers, newTiedPlayers)){
+                this.tiedPlayers = newTiedPlayers;
+                this.tieDetected = true;
+                this.drawTiedPoules();
+            }
+
+            if(this.tieDetected){
+                for(let i = 0; i < this.numTiedGames; i++){
+                    var points1 = document.getElementById(`tie${this.pouleNum}${i+1}1Score`).value;
+                    var points2 = document.getElementById(`tie${this.pouleNum}${i+1}2Score`).value;
+
+                    points1 = parseInt(points1);
+                    points2 = parseInt(points2);
+
+                    if(isNaN(points1) || isNaN(points2)){
+                        return false;
+                    }
+                }
+            }
+        }
+
+        var playersCopy = [];
+        Array.prototype.push.apply(playersCopy, this.players);
+        playersCopy.sort(function(a,b){return b[1] - a[1]});
+        this.winner = playersCopy[0][0];
+        this.secondPlace = playersCopy[1][0];
+        return true;
+    }
+
+    newTieDetected(firstTie, secondTie){
+        if(firstTie.length != secondTie.length){
+            return true;
+        }
+
+        for(let i = 0; i < firstTie.length; i++){
+            if(firstTie[i][0] != secondTie[i][0]){
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    drawTiedPoules(){
+        let pouleGamesDiv = document.getElementById(`poule${this.pouleNum}Games`);
+        $(pouleGamesDiv).append(`<hr id="tieBreaker"><header class="pouleGamesHeader" id="tieBreaker"><h1 id="tieBreaker">Tiebreakers:</h1></header><hr><table class="pouleGamesTable" id="poule${this.pouleNum}TiedGames"></table>`);
+        let tieBreakerTable = document.getElementById(`poule${this.pouleNum}TiedGames`);
+        switch(this.tiedPlayers.length){
+            case 2:
+                this.tiedGameFormat = [[0, 1]];
+            break;
+            case 3:
+                this.tiedGameFormat = [[0,1], [1,2], [0,2]];
+            break;
+            case 4:
+                this.tiedGameFormat = [[0,1], [0,2], [1,3], [0,3], [1,2], [2,3]];
+            break;
+            case 5:
+                this.tiedGameFormat = [[0,1], [0,2], [1,4], [3,4], [1,2], [2,3], [0,4], [1,3], [2,4], [0,3]]
+        }
+
+        if(this.tiedPlayers.length == 2){
+            this.numTiedGames = 1;
+        }else{
+            this.numTiedGames = (this.factorial(this.tiedPlayers.length)/(2*this.factorial(this.tiedPlayers.length-2)));
+        }
+
+        for(let i = 0; i < this.numTiedGames; i++){
+            $(tieBreakerTable).append(`<tr><td><p1 id="tie${this.pouleNum}${i+1}1Name">${this.tiedPlayers[this.tiedGameFormat[i][0]][0]}</p1></td><td><p1>-</p1></td><td><p1 id="tie${this.pouleNum}${i+1}2Name">${this.tiedPlayers[this.tiedGameFormat[i][1]][0]}</p1></td></tr>`);
+            $(tieBreakerTable).append(`<tr><td><input id="tie${this.pouleNum}${i+1}1Score" type="number" class="gameScore"></td><td><p1>-</p1></td><td><input id="tie${this.pouleNum}${i+1}2Score" type="number" class="gameScore"></td></tr>`);
+        }
+    }
+
+    isTie(){
         var playersCopy = [];
         Array.prototype.push.apply(playersCopy, this.players);
         playersCopy.sort(function(a,b){return b[1] - a[1]});
 
-        this.winner = playersCopy[0][0];
-        this.secondPlace = playersCopy[1][0]
-        return true;
+        let newTiedPlayers = [];
+        if(!this.tieDetected){
+            var tiedScore;
+            for(let i = 0; i < numPlayers-1; i++){
+                if(playersCopy[i][1] == playersCopy[i+1][1] && (i==0 || i==1)){
+                    tiedScore = playersCopy[i][1];
+                    break;
+                }
+            }
+
+            if(tiedScore == "0"){
+                return newTiedPlayers;
+            }
+
+            for(let i = 0; i < numPlayers; i++){
+                if(playersCopy[i][1] == tiedScore){
+                    newTiedPlayers.push(playersCopy[i]);
+                }
+            }
+        }
+
+        return newTiedPlayers;
     }
 }
 
@@ -652,7 +810,7 @@ function makePoules(){
         }
 
         let shouldBePrinted = document.getElementById('printCheckbox').checked;
-        var filePath
+        var filePath;
 
         if(shouldBePrinted){
             filePath = ipcRenderer.sendSync('selectPDFDirectory');
