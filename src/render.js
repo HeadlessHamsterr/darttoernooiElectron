@@ -43,9 +43,11 @@ class pouleGames{
     constructor(pouleNum){
         this.pouleNum = pouleNum;
         this.players = [];
+        this.tiedPlayers = [];
         this.winner = "";
         this.secondPlace = "";
         this.numGames;
+        this.tiedChecked = false;
     }
 
     reset(){
@@ -207,13 +209,48 @@ class pouleGames{
             }
         }
 
+        if(this.isTie()){
+            this.tiedChecked = true;
+            return false;
+        }
+
+        var playersCopy = [];
+        Array.prototype.push.apply(playersCopy, this.players);
+        playersCopy.sort(function(a,b){return b[1] - a[1]});
+        this.winner = playersCopy[0][0];
+        this.secondPlace = playersCopy[1][0];
+        return true;
+    }
+
+    isTie(){
         var playersCopy = [];
         Array.prototype.push.apply(playersCopy, this.players);
         playersCopy.sort(function(a,b){return b[1] - a[1]});
 
-        this.winner = playersCopy[0][0];
-        this.secondPlace = playersCopy[1][0]
-        return true;
+        if(!this.tiedChecked){
+            this.tiedChecked = [];
+            var tiedScore;
+            for(let i = 0; i < numPlayers-1; i++){
+                if(playersCopy[i][1] == playersCopy[i+1][1] && (i==0 || i==1)){
+                    tiedScore = playersCopy[i][1];
+                    console.log(`tiedScore: ${tiedScore}`);
+                    break;
+                }
+            }
+
+            for(let i = 0; i < numPlayers; i++){
+                if(playersCopy[i][1] == tiedScore){
+                    this.tiedPlayers.push(playersCopy[i]);
+                }
+            }
+        }
+
+        if(this.tiedPlayers.length != 0){
+            console.log(this.tiedPlayers);
+            return true;
+        }else{
+            return false;
+        }
     }
 }
 
