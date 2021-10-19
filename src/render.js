@@ -1,12 +1,11 @@
-/*
-Todo:
-    - Rest van de games maken
-    - CSS fixen, shit is lelijk
-*/
 let $ = require('jquery');
 let fs = require('fs');
 let path = require('path');
-const { combinedDisposable } = require('custom-electron-titlebar/common/lifecycle');
+const { parse } = require('path');
+const {app, ipcRenderer} = require('electron');
+const exp = require('constants');
+const { randomInt } = require('crypto');
+const { default: jsPDF } = require('jspdf');
 
 var numPlayers = 0;
 var numPoules = 0;
@@ -23,21 +22,35 @@ loadGameBtn.onclick = loadGame;
 const subBtn = document.getElementById('subBtn');
 subBtn.onclick = getGameInfo;
 
+const exportBtn = document.getElementById('exportBtn');
+exportBtn.onclick = preparePDFExport;
+
 const saveBtn = document.getElementById('saveBtn');
 saveBtn.onclick = exportGameInfo;
 
+const returnBtn = document.getElementById('returnBtn');
+returnBtn.onclick = returnToHome;
+
 const makePoulesBtn = document.getElementById('mkPoulesBtn');
 
-$("div").hide();
-$(document.getElementById('gameOptions')).show();
-$(saveBtn).hide();
+$(document.getElementById('gameSetup')).hide();
+$(document.getElementById('controlBtnDiv')).hide();
+$(document.getElementById('playerInputDiv')).hide();
+$(document.getElementById('poulesDiv')).hide();
+$(document.getElementById('gameDiv')).hide();
 
 class pouleGames{
-    #numGames;
-    #winnerPrinted = false;
     constructor(pouleNum){
         this.pouleNum = pouleNum;
         this.players = [];
+        this.winner = "";
+        this.secondPlace = "";
+        this.numGames;
+    }
+
+    reset(){
+        this.players = []
+        this.numGames = null;
         this.winner = "";
         this.secondPlace = "";
     }
@@ -64,18 +77,35 @@ class pouleGames{
     }
 
     makeGames(){
-        var gamesDiv = document.getElementById('pouleGames');
-        var pouleGamesDiv = $(`<div id='poule${this.pouleNum}Games' class='pouleGamesDiv'></div>`);
-        var pouleGamesHeader = $(`<header class="pouleGamesHeader"><h1>Poule ${this.pouleNum}:</h1></header><hr>`);
-        var gameTable = $('<table class="pouleGamesTable"></table>');
+        let numPlayers = this.players.length;
+        var gameTable;
+        var gamesDiv;
 
-        $(gamesDiv).append(pouleGamesDiv);
-        $(pouleGamesDiv).append(pouleGamesHeader);
-        $(pouleGamesDiv).append(gameTable);
+        if(numPlayers == 1){
+            let singlePlayerDiv = $(`<div id="singlePlayerDiv" class="singlePlayerDiv"><h3>Winnaar:</h3><h4>${this.players[0][0]}!</h4><p1>Leuk geprobeerd, hier heb ik aan gedacht</p1></div>`);
+            $(singlePlayerDiv).appendTo(document.body);
+            $(document.getElementById('saveBtnDiv')).hide();
+            $(document.getElementById('exportBtnDiv')).hide();
+        }else{
+            gamesDiv = document.getElementById('pouleGames');
+            var pouleGamesDiv = $(`<div id='poule${this.pouleNum}Games' class='pouleGamesDiv'></div>`);
+            var pouleGamesHeader = $(`<header class="pouleGamesHeader"><h1>Poule ${this.pouleNum}:</h1></header><hr>`);
+            gameTable = $('<table class="pouleGamesTable"></table>');
+
+            $(gamesDiv).append(pouleGamesDiv);
+            $(pouleGamesDiv).append(pouleGamesHeader);
+            $(pouleGamesDiv).append(gameTable);
+        }
         
-        this.#numGames = (this.factorial(this.players.length)/(2*this.factorial(this.players.length-2)));
+        if(numPlayers == 2){
+            this.numGames = 1;
+        }else{
+            this.numGames = (this.factorial(numPlayers)/(2*this.factorial(numPlayers-2)));
+        }
+        console.log(`Number of players for poule ${this.pouleNum}: ${numPlayers}`)
+        console.log(`Number of games for poule ${this.pouleNum}: ${this.numGames}`);
 
-        for(let i = 0; i < this.#numGames; i++){
+        for(let i = 0; i < this.numGames; i++){
             var gameLabels = $(`<tr><td><p1 id="game${this.pouleNum}${i+1}1Name">${this.players[gameFormat[i][0]][0]}</p1></td><td><p1>-</p1></td><td><p1 id="game${this.pouleNum}${i+1}2Name">${this.players[gameFormat[i][1]][0]}</p1></td></tr>`);
             var gameInputs = $(`<tr><td><input id="game${this.pouleNum}${i+1}1Score" type="number" class="gameScore"></td><td><p1>-</p1></td><td><input id="game${this.pouleNum}${i+1}2Score" type="number" class="gameScore"></td></tr><hr>`);
             $(gameTable).append(gameLabels);
@@ -86,7 +116,7 @@ class pouleGames{
     }
 
     factorial(n){
-        if(n === 0 || n === 1){
+        if(n === 0 || n === 1 || n === 2){
             return n;
         }
 
@@ -128,7 +158,7 @@ class pouleGames{
             points.push(0);
         }
 
-        for(let i = 0; i < this.#numGames; i++){
+        for(let i = 0; i < this.numGames; i++){
             var points1 = document.getElementById(`game${this.pouleNum}${i+1}1Score`).value;
             var points2 = document.getElementById(`game${this.pouleNum}${i+1}2Score`).value;
 
@@ -153,19 +183,19 @@ class pouleGames{
 
         this.sort();
 
-        if(this.allGamesPlayed() && !this.#winnerPrinted){
+        if(this.allGamesPlayed() && !this.winnerPrinted){
             var playersCopy = [];
             Array.prototype.push.apply(playersCopy, this.players);
             playersCopy.sort(function(a,b){return(b[1]-a[1])})
 
             console.log(`Winnaar poule ${this.pouleNum}: ${playersCopy[0][0]}`);
             console.log(`Tweede plaats poule ${this.pouleNum}: ${playersCopy[1][0]}`);
-            this.#winnerPrinted = true;
+            this.winnerPrinted = true;
         }
     }
 
     allGamesPlayed(){
-        for(let i = 0; i < this.#numGames; i++){
+        for(let i = 0; i < this.numGames; i++){
             var points1 = document.getElementById(`game${this.pouleNum}${i+1}1Score`).value;
             var points2 = document.getElementById(`game${this.pouleNum}${i+1}2Score`).value;
 
@@ -185,10 +215,6 @@ class pouleGames{
         this.secondPlace = playersCopy[1][0]
         return true;
     }
-
-    numGames(){
-        return this.#numGames;
-    }
 }
 
 let pouleA = new pouleGames("A");
@@ -196,30 +222,119 @@ let pouleB = new pouleGames("B");
 let pouleC = new pouleGames("C");
 let pouleD = new pouleGames("D");
 
+function returnToHome(){
+    document.getElementById('numPlayers').value = null;
+    document.getElementById('numPoules').value = null;
+    $("#playerInputForm").empty();
+    $("#poulesDiv").empty()
+    $("#mainRosterSubDiv").empty();
+    $("#pouleGames").empty();
+
+    try{
+        $(".singlePlayerDiv").remove();
+    }catch{
+        console.log("Single player div bestaat niet")
+    }
+
+    pouleA.reset();
+    pouleB.reset();
+    pouleC.reset();
+    pouleD.reset();
+
+    players = [];
+    numPlayers = 0;
+    numPoules = 0;
+
+    $(document.getElementById('gameSetup')).hide();
+    $(document.getElementById('controlBtnDiv')).hide();
+    $(document.getElementById('gameDiv')).hide();
+    $(document.getElementById('poulesDiv')).hide();
+    $(document.getElementById('playerInputDiv')).hide();
+    $(document.getElementById('gameOptionsWrapper')).show();
+    //$(returnBtn).hide();
+    //$(saveBtn).hide();
+}
+
 function drawSetup(){
     console.log("New game...")
-    $("div").hide();
+    $(document.getElementById('gameOptionsWrapper')).hide();
     $(document.getElementById('gameSetup')).show();
     $(document.getElementById('gameSetupSubDiv')).show();
+    //$(document.getElementById('controlBtnDiv')).show();
+    //$(returnBtn).show();
+    $(document.getElementById('controlBtnDiv')).show();
+    $(document.getElementById('saveBtnDiv')).hide();
+    $(document.getElementById('exportBtnDiv')).hide();
+}
 
-    startPoulesSorting();
+function getGameFileName(action){
+    var fileName;
+    if(action == "save"){
+        fileName = ipcRenderer.sendSync('enterFileName');
+    }else if(action == "load"){
+        fileName = ipcRenderer.sendSync('selectSaveFile')[0];
+    }else{
+        return null;
+    }
+    console.log(fileName)
+    return fileName;
 }
 
 function loadGame(){
-    $("div").hide();
+    var gameFileName = getGameFileName("load");
+    if(gameFileName === null){
+        console.log("No file selected");
+        return -1;
+    }
+
+    $(document.getElementById('gameOptionsWrapper')).hide();
+    $(poulesDiv).show();
+    //$(document.getElementById('controlBtnDiv')).show();
+    //$(saveBtn).show();
+    //$(returnBtn).show();
+    $(document.getElementById('controlBtnDiv')).show();
+    $(document.getElementById('saveBtnDiv')).show();
+    $(document.getElementById('exportBtnDiv')).show();
+    $(document.getElementById('returnBtnDiv')).show();
+    $(document.getElementById('mainRosterDiv')).show();
+    $(document.getElementById('mainRosterSubDiv')).show();
+    $(document.getElementById('gameDiv')).show();
+
     pouleA.players = [];
     pouleB.players = [];
     pouleC.players = [];
     pouleD.players = [];
 
-    let jsonString = fs.readFileSync(path.resolve(__dirname, 'game.json'), function(err){
+
+    let jsonString = fs.readFileSync(path.resolve(gameFileName), function(err){
         if(err){
             console.log(err);
         }
     });
     let jsonObj = JSON.parse(jsonString);
 
-    var numPoules = jsonObj["poules"].length;
+    numPoules = jsonObj["poules"].length;
+
+    numPlayers = 0;
+    var poule = "";
+
+    for(let i = 0; i < numPoules; i++){
+        switch(i){
+            case 0:
+                poule = "pouleA";
+            break;
+            case 1:
+                poule = "pouleB";
+            break;
+            case 2:
+                poule = "pouleC";
+            break;
+            case 3:
+                poule = "pouleD";
+            break;
+        }
+        numPlayers += jsonObj["poules"][i][poule][0]["numPlayers"];
+    }
     
     //Load Poule A
     if(numPoules >= 1){
@@ -241,17 +356,83 @@ function loadGame(){
         loadPoulGames("D", jsonObj);
     }
 
-    
-    $(poulesDiv).show();
-    $(saveBtn).show();
-    $(document.getElementById('mainRosterDiv')).show();
-    $(document.getElementById('mainRosterSubDiv')).show();
-    $(document.getElementById('gameDiv')).show();
+    makeFinals(numPoules);
+
+    switch(numPoules){
+        case 4:
+            for(let i = 0; i < 7; i++){
+                let player1Name = jsonObj["games"][i]["game1Name"];
+                let player1Score = jsonObj["games"][i]["game1Score"];
+                let player2Name = jsonObj["games"][i]["game2Name"];
+                let player2Score = jsonObj["games"][i]["game2Score"];
+
+                document.getElementById(`M${i+1}1Name`).innerHTML = player1Name;
+                document.getElementById(`M${i+1}1Score`).value = player1Score;
+                document.getElementById(`M${i+1}2Name`).innerHTML = player2Name;
+                document.getElementById(`M${i+1}2Score`).value = player2Score;
+            }
+        break;
+        case 3:
+            for(let i = 0; i < 5; i++){
+                let player1Name = jsonObj["games"][i]["game1Name"];
+                let player1Score = jsonObj["games"][i]["game1Score"];
+                let player2Name = jsonObj["games"][i]["game2Name"];
+                let player2Score = jsonObj["games"][i]["game2Score"];
+                console.log(player1Name);
+                console.log(player1Score);
+                console.log(player2Name);
+                console.log(player2Score);
+
+                if(i < 3){
+                    document.getElementById(`M${i+1}1Name`).innerHTML = player1Name;
+                    document.getElementById(`M${i+1}1Score`).value = player1Score;
+                    document.getElementById(`M${i+1}2Name`).innerHTML = player2Name;
+                    document.getElementById(`M${i+1}2Score`).value = player2Score;
+                }else if(i < 4){
+                    document.getElementById(`M${i+2}1Name`).innerHTML = player1Name;
+                    document.getElementById(`M${i+2}1Score`).value = player1Score;
+                    document.getElementById(`M${i+2}2Name`).innerHTML = player2Name;
+                    document.getElementById(`M${i+2}2Score`).value = player2Score;
+                }else{
+                    document.getElementById(`M${i+3}1Name`).innerHTML = player1Name;
+                    document.getElementById(`M${i+3}1Score`).value = player1Score;
+                    document.getElementById(`M${i+3}2Name`).innerHTML = player2Name;
+                    document.getElementById(`M${i+3}2Score`).value = player2Score;
+                }
+                console.log("wtf");
+            }
+        break;
+        case 2:
+            for(let i = 0; i < 3; i++){
+                console.log(i);
+                let player1Name = jsonObj["games"][i]["game1Name"];
+                let player1Score = jsonObj["games"][i]["game1Score"];
+                let player2Name = jsonObj["games"][i]["game2Name"];
+                let player2Score = jsonObj["games"][i]["game2Score"];
+                
+                document.getElementById(`M${i+5}1Name`).innerHTML = player1Name;
+                document.getElementById(`M${i+5}1Score`).value = player1Score;
+                document.getElementById(`M${i+5}2Name`).innerHTML = player2Name;
+                document.getElementById(`M${i+5}2Score`).value = player2Score;
+            }
+        break;
+        case 1:
+            let player1Name = jsonObj["games"][0]["game1Name"];
+            let player1Score = jsonObj["games"][0]["game1Score"];
+            let player2Name = jsonObj["games"][0]["game2Name"];
+            let player2Score = jsonObj["games"][0]["game2Score"];
+
+            document.getElementById('M71Name').innerHTML = player1Name;
+            document.getElementById('M71Score').value = player1Score;
+            document.getElementById('M72Name').innerHTML = player2Name;
+            document.getElementById('M72Score').value = player2Score;
+        break;
+    }
+
     startPoulesSorting();
 }
 
 function loadPoulGames(pouleLetter, jsonObj){
-    pouleLetter = pouleLetter.toUpperCase();
 
     var indexInJson = 0;
     var pouleToEdit;
@@ -272,13 +453,12 @@ function loadPoulGames(pouleLetter, jsonObj){
         case "D":
             indexInJson = 3;
             pouleToEdit = pouleD;
+        break;
     }
 
     for(let i = 0; i < jsonObj["poules"][indexInJson][`poule${pouleLetter}`][0]["numPlayers"]; i++){
-        playerName = jsonObj["poules"][indexInJson][`poule${pouleLetter}`][1]["players"][i]["name"];
-        playerScore = jsonObj["poules"][indexInJson][`poule${pouleLetter}`][1]["players"][i]["points"];
-
-        tempArray = [playerName, playerScore];
+        let playerName = jsonObj["poules"][indexInJson][`poule${pouleLetter}`][1]["players"][i]["name"];
+        let playerScore = jsonObj["poules"][indexInJson][`poule${pouleLetter}`][1]["players"][i]["points"];
 
         pouleToEdit.players.push([playerName, playerScore]);
     }
@@ -286,13 +466,13 @@ function loadPoulGames(pouleLetter, jsonObj){
     pouleToEdit.makePoule();
     pouleToEdit.makeGames();
 
-    for(let i = 0; i < pouleToEdit.numGames(); i++){
-        gameScore1Saved = jsonObj["poules"][indexInJson][`poule${pouleLetter}`][2]["games"][i]["score1"];
-        gameScore2Saved = jsonObj["poules"][indexInJson][`poule${pouleLetter}`][2]["games"][i]["score2"];
+    for(let i = 0; i < pouleToEdit.numGames; i++){
+        let gameScore1Saved = jsonObj["poules"][indexInJson][`poule${pouleLetter}`][2]["games"][i]["score1"];
+        let gameScore2Saved = jsonObj["poules"][indexInJson][`poule${pouleLetter}`][2]["games"][i]["score2"];
 
         if(gameScore1Saved > 0 || gameScore2Saved > 0){
-            gameScore1Field = document.getElementById(`game${pouleLetter}${i+1}1Score`);
-            gameScore2Field = document.getElementById(`game${pouleLetter}${i+1}2Score`);
+            let gameScore1Field = document.getElementById(`game${pouleLetter}${i+1}1Score`);
+            let gameScore2Field = document.getElementById(`game${pouleLetter}${i+1}2Score`);
             gameScore1Field.value = gameScore1Saved;
             gameScore2Field.value = gameScore2Saved;
         }
@@ -303,82 +483,297 @@ function getGameInfo(){
     numPlayers = document.getElementById("numPlayers").value;
     numPoules = document.getElementById('numPoules').value;
 
-    //$(document.getElementById('gameSetup')).hide();
-    $("div").hide();
-    $(document.getElementById('playerInputDiv')).show();
-    $(document.getElementById('playerInputSubDiv')).show();
+    if(numPlayers == "" && numPoules == ""){
+        $(document.getElementById('numPlayers')).css('border-color', 'red');
+        $(document.getElementById('numPoules')).css('border-color', 'red');
 
-    var playerInputForm = document.getElementById('playerInputForm');
+        document.getElementById('setupErrorSpan').innerHTML = "Vul aantal spelers en aantal poules in.";
+    }else if(numPoules == ""){
+        $(document.getElementById('numPlayers')).css('border-color', '#414141');
+        $(document.getElementById('numPoules')).css('border-color', 'red');
 
-    for(let i = 0; i < numPlayers; i++){
-        //var playerInput = $(`<input type='text' id='player${i}'></input>`).attr(`Speler ${i}`);
-        var playerInput = document.createElement("input");
-        playerInput.setAttribute("id", `player${i}`);
-        playerInput.setAttribute("placeholder", `Speler ${i+1}`);
-        playerInput.setAttribute("class", "playerInput");
-        $(playerInputForm).append(playerInput);
+        document.getElementById('setupErrorSpan').innerHTML = "Vul aantal poules in.";
+    }else if(numPlayers == ""){
+        $(document.getElementById('numPlayers')).css('border-color', 'red');
+        $(document.getElementById('numPoules')).css('border-color', '#414141');
+
+        document.getElementById('setupErroSpan').innerHTML = "Vul aantal spelers in.";
+    }else if(parseInt(numPlayers)/parseInt(numPoules) > 5){
+        $(document.getElementById('numPlayers')).css('border-color', 'red');
+        $(document.getElementById('numPoules')).css('border-color', 'red');
+
+        /*Spelers per poule moet in het bericht afgerond zijn op twee decimalen, eerst vermeningvuldigen met 100
+          om twee decimalen te bewaren, dan afronden (gaat automatisch naar 0 decimalen), dan weer delen door 100
+          om de twee decimalen terug te halen*/
+        let currPlayersPerPoule = Math.round((parseInt(numPlayers)/parseInt(numPoules)) * 100) /100
+        document.getElementById('setupErrorSpan').innerHTML = `Aantal spelers per poule mag maximaal 5 zijn. Het is nu ${currPlayersPerPoule}.`;
+    }else if(parseInt(numPlayers)/parseInt(numPoules) < 2 && numPoules > 1){
+        $(document.getElementById('numPlayers')).css('border-color', 'red');
+        $(document.getElementById('numPoules')).css('border-color', 'red');
+
+        document.getElementById('setupErrorSpan').innerHTML = "Eén van de poules heeft maar één speler. Fix dat."
+    }else{
+        $(document.getElementById('numPlayers')).css('border-color', '#414141');
+        $(document.getElementById('numPoules')).css('border-color', '#414141');
+        document.getElementById('setupErrorSpan').innerHTML = "";
+
+        numPlayers = parseInt(numPlayers);
+        numPoules = parseInt(numPoules);
+
+        console.log(`Number of total players: ${numPlayers}`);
+        console.log(`Number of poules: ${numPoules}`);
+
+        //$(document.getElementById('gameSetup')).hide();
+        $(document.getElementById('gameSetup')).hide();
+        $(document.getElementById('playerInputDiv')).show();
+        $(document.getElementById('playerInputSubDiv')).show();
+        $(document.getElementById('controlBtnDiv')).show();
+        $(document.getElementById('returnBtnDiv')).show();
+
+        var playerInputForm = document.getElementById('playerInputForm');
+
+        for(let i = 0; i < numPlayers; i++){
+            //var playerInput = $(`<input type='text' id='player${i}'></input>`).attr(`Speler ${i}`);
+            var playerInput = document.createElement("input");
+            playerInput.setAttribute("id", `player${i}`);
+            playerInput.setAttribute("placeholder", `Speler ${i+1}`);
+            playerInput.setAttribute("class", "playerInput");
+            $(playerInputForm).append(playerInput);
+        }
+
+        makePoulesBtn.onclick = makePoules;
     }
-
-    makePoulesBtn.onclick = makePoules;
 }
 
 function makePoules(){
-    $("div").hide();
-    $(saveBtn).show();
-
-    var poulesDiv = document.getElementById('poulesDiv');
+    var playerEmpty = false;
+    players = [];
 
     for(let i = 0; i < numPlayers; i++){
         var playerName = document.getElementById(`player${i}`).value;
+        console.log(playerName);
         players.push(playerName);
     }
 
-    players.sort(function(a,b){return 0.5 - Math.random()});
-    
-    var PLAYERS_PER_POULE = numPlayers/numPoules;
-
     for(let i = 0; i < numPlayers; i++){
-        if(i < PLAYERS_PER_POULE){
-            var tempArray = [players[i], 0];
-            pouleA.players.push(tempArray);
-        }else if(PLAYERS_PER_POULE <= i && i < (2*PLAYERS_PER_POULE)){
-            var tempArray = [players[i], 0];
-            pouleB.players.push(tempArray);
-        }else if((2*PLAYERS_PER_POULE) <= i && i < (3*PLAYERS_PER_POULE)){
-            var tempArray = [players[i], 0];
-            pouleC.players.push(tempArray);
-        }else if((3*PLAYERS_PER_POULE) <= i && i < (4*PLAYERS_PER_POULE)){
-            var tempArray = [players[i], 0];
-            pouleD.players.push(tempArray);
+        console.log(players[i]);
+        if(players[i] == ""){
+            $(document.getElementById(`player${i}`)).css('border-color', 'red');
+            playerEmpty = true;
+            console.log(`Player${i} leeg!`);
+        }else{
+            $(document.getElementById(`player${i}`)).css('border-color', '#414141');
         }
     }
 
-    if(pouleExists(pouleA)){
-        pouleA.makePoule();
-        pouleA.makeGames();
-    }
+    if(playerEmpty){
+        document.getElementById('playerInputErrorSpan').innerHTML = "Vul voor alle spelers een naam in."
+    }else{
+        $(document.getElementById('playerInputDiv')).hide();
+        //$(document.getElementById('controlBtnDiv')).show();
+        //$(saveBtn).show();
+        $(document.getElementById('saveBtnDiv')).show();
+        $(document.getElementById('exportBtnDiv')).show();
 
-    if(pouleExists(pouleB)){
-        pouleB.makePoule();
-        pouleB.makeGames();
-    }
+        var poulesDiv = document.getElementById('poulesDiv');
 
-    if(pouleExists(pouleC)){
-        pouleC.makePoule();
-        pouleC.makeGames();
-    }
+        document.getElementById('playerInputErrorSpan').innerHTML = "";
 
-    if(pouleExists(pouleD)){
-        pouleD.makePoule();
-        pouleD.makeGames();
+        players.sort(function(a,b){return 0.5 - Math.random()});
+        
+        var PLAYERS_PER_POULE = numPlayers/numPoules;
+        let PLAYERS_PER_POULE_ROUNDED = Math.round(PLAYERS_PER_POULE)
+        console.log(`Players per poule: ${PLAYERS_PER_POULE}`);
+        console.log(`Players per poule rounded: ${PLAYERS_PER_POULE_ROUNDED}`);
+
+        if(PLAYERS_PER_POULE - PLAYERS_PER_POULE_ROUNDED > 0){
+            for(let i = 0; i < numPlayers-1; i++){
+                if(i < PLAYERS_PER_POULE_ROUNDED){
+                    var tempArray = [players[i], 0];
+                    pouleA.players.push(tempArray);
+                }else if(PLAYERS_PER_POULE_ROUNDED <= i && i < (2*PLAYERS_PER_POULE_ROUNDED)){
+                    var tempArray = [players[i], 0];
+                    pouleB.players.push(tempArray);
+                }else if((2*PLAYERS_PER_POULE_ROUNDED) <= i && i < (3*PLAYERS_PER_POULE_ROUNDED)){
+                    var tempArray = [players[i], 0];
+                    pouleC.players.push(tempArray);
+                }else if((3*PLAYERS_PER_POULE_ROUNDED) <= i && i < (4*PLAYERS_PER_POULE_ROUNDED)){
+                    var tempArray = [players[i], 0];
+                    pouleD.players.push(tempArray);
+                }
+            }
+
+            var randomNumber;
+            if(numPoules == 1){
+                randomNumber = 0;
+            }else if(numPoules == 2){
+                randomNumber = Math.floor(Math.random()*2);
+            }else if(numPoules == 3){
+                randomNumber = Math.floor(Math.random()*3);
+            }else if(numPoules == 4){
+                randomNumber = Math.floor(Math.random()*4);
+            }
+            let playerArray = [players[numPlayers-1], 0];
+
+            switch(randomNumber){
+                case 0:
+                    pouleA.players.push(playerArray);
+                    console.log(`Adding ${playerArray} to poule A`);
+                break;
+                case 1:
+                    pouleB.players.push(playerArray);
+                    console.log(`Adding ${playerArray} to poule B`);
+                break;
+                case 2:
+                    pouleC.players.push(playerArray);
+                    console.log(`Adding ${playerArray} to poule C`);
+                break;
+                case 3:
+                    pouleD.players.push(playerArray);
+                    console.log(`Adding ${playerArray} to poule D`);
+                break;
+            }
+        }else{
+            for(let i = 0; i < numPlayers; i++){
+                if(i < PLAYERS_PER_POULE_ROUNDED){
+                    var tempArray = [players[i], 0];
+                    pouleA.players.push(tempArray);
+                }else if(PLAYERS_PER_POULE_ROUNDED <= i && i < (2*PLAYERS_PER_POULE_ROUNDED)){
+                    var tempArray = [players[i], 0];
+                    pouleB.players.push(tempArray);
+                }else if((2*PLAYERS_PER_POULE_ROUNDED) <= i && i < (3*PLAYERS_PER_POULE_ROUNDED)){
+                    var tempArray = [players[i], 0];
+                    pouleC.players.push(tempArray);
+                }else if((3*PLAYERS_PER_POULE_ROUNDED) <= i && i < (4*PLAYERS_PER_POULE_ROUNDED)){
+                    var tempArray = [players[i], 0];
+                    pouleD.players.push(tempArray);
+                }
+            }
+        }
+
+        let shouldBePrinted = document.getElementById('printCheckbox').checked;
+        var filePath
+
+        if(shouldBePrinted){
+            filePath = ipcRenderer.sendSync('selectPDFDirectory');
+        }
+
+        if(pouleExists(pouleA)){
+            pouleA.makePoule();
+            pouleA.makeGames();
+            if(shouldBePrinted){
+                exportPDF(pouleA, filePath);
+            }
+        }
+
+        if(pouleExists(pouleB)){
+            pouleB.makePoule();
+            pouleB.makeGames();
+            if(shouldBePrinted){
+                exportPDF(pouleB, filePath);
+            }
+        }
+
+        if(pouleExists(pouleC)){
+            pouleC.makePoule();
+            pouleC.makeGames();
+            if(shouldBePrinted){
+                exportPDF(pouleC, filePath);
+            }
+        }
+
+        if(pouleExists(pouleD)){
+            pouleD.makePoule();
+            pouleD.makeGames();
+            if(shouldBePrinted){
+                exportPDF(pouleD, filePath);
+            }
+        }
+
+        makeFinals(numPoules);
+        
+        $(poulesDiv).show();
+        //$(saveBtn).show();
+        $(document.getElementById('mainRosterDiv')).show();
+        $(document.getElementById('mainRosterSubDiv')).show();
+        $(document.getElementById('gameDiv')).show();
+        startPoulesSorting();
     }
-    $(poulesDiv).show();
-    $(saveBtn).show();
-    $(document.getElementById('mainRosterDiv')).show();
-    $(document.getElementById('mainRosterSubDiv')).show();
-    $(document.getElementById('gameDiv')).show();
 }
 
+function preparePDFExport(){
+    filepath = ipcRenderer.sendSync('selectPDFDirectory');
+    for(let i = 0; i < numPoules; i++){
+        switch(i){
+            case 0:
+                exportPDF(pouleA, filepath);
+            break;
+            case 1:
+                exportPDF(pouleB, filepath);
+            break;
+            case 2:
+                exportPDF(pouleC, filepath);
+            break;
+            case 3:
+                exportPDF(pouleD, filepath);
+            break;
+        }
+    }
+}
+
+function exportPDF(poule, filePath){  
+    const doc = new jsPDF({
+        orientation: 'portrait',
+    });
+    
+    doc.setFontSize(40);
+    doc.text(`Poule ${poule.pouleNum}`, 105, 20, null, null, "center")
+    doc.setFontSize(30)
+    for(let i = 0; i < pouleA.numGames; i++){
+        let player1 = document.getElementById(`game${poule.pouleNum}${i+1}1Name`).innerHTML;
+        let player2 = document.getElementById(`game${poule.pouleNum}${i+1}2Name`).innerHTML;
+
+        let gameString = player1 + " - " + player2
+
+        doc.text(gameString, 105, 40 + (30*i), null, null, "center")
+    }
+
+    doc.save(filePath + `/poule${poule.pouleNum}.pdf`)
+}
+
+function makeFinals(numberOfPoules){
+    var rosterDiv = document.getElementById('mainRosterSubDiv');
+    numberOfPoules = parseInt(numberOfPoules)
+
+    if(numberOfPoules == 4){
+        let quarters = $('<table class="mainRosterTable"><tr><th colspan="3"><h2>Kwart Finale</h2></th></tr><tr><td><h2 id="M11Name"></h2></td><td><h2>-</h2></td><td><h2 id="M12Name"></h2></td></tr><tr><td><input id="M11Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M12Score" class="gameScore"></td></tr><tr><td><h2 id="M21Name"></h2></td><td><h2>-</h2></td><td><h2 id="M22Name"></h2></td></tr><tr><td><input id="M21Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M22Score" class="gameScore"></td></tr><tr><td><h2 id="M31Name"></h2></td><td><h2>-</h2></td><td><h2 id="M32Name"></h2></td></tr><tr><td><input id="M31Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M32Score" class="gameScore"></td></tr><tr><td><h2 id="M41Name"></h2></td><td><h2>-</h2></td><td><h2 id="M42Name"></h2></td></tr><tr><td><input id="M41Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M42Score" class="gameScore"></td></tr></table>')
+        let halves = $('<table class="mainRosterTable"><tr><th colspan="3"><h2>Halve Finale</h2></th></tr><tr><td><h2 id="M51Name"></h2></td><td><h2>-</h2></td><td><h2 id="M52Name"></h2></td></tr><tr><td><input id="M51Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M52Score" class="gameScore"></td></tr><tr><td><h2 id="M61Name"></h2></td><td><h2>-</h2></td><td><h2 id="M62Name"></h2></td></tr><tr><td><input id="M61Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M62Score" class="gameScore"></td></tr></table>');
+        $(rosterDiv).append(quarters);
+        $(rosterDiv).append(halves);
+    }else if(numberOfPoules == 3){
+        let quarters = $('<table class="mainRosterTable"><tr><th colspan="3"><h2>Kwart Finale</h2></th></tr><tr><td><h2 id="M11Name"></h2></td><td><h2>-</h2></td><td><h2 id="M12Name"></h2></td></tr><tr><td><input id="M11Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M12Score" class="gameScore"></td></tr><tr><td><h2 id="M21Name"></h2></td><td><h2>-</h2></td><td><h2 id="M22Name"></h2></td></tr><tr><td><input id="M21Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M22Score" class="gameScore"></td></tr><tr><td><h2 id="M31Name"></h2></td><td><h2>-</h2></td><td><h2 id="M32Name"></h2></td></tr><tr><td><input id="M31Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M32Score" class="gameScore"></td></tr></table>')
+        let halves = $('<table class="mainRosterTable"><tr><th colspan="3"><h2>Halve Finale</h2></th></tr><tr><td><h2 id="M51Name"></h2></td><td><h2>-</h2></td><td><h2 id="M52Name"></h2></td></tr><tr><td><input id="M51Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M52Score" class="gameScore"></td></tr></table>');
+        $(rosterDiv).append(quarters);
+        $(rosterDiv).append(halves);
+    }
+
+    if(numberOfPoules == 2){
+        let halves = $('<table class="mainRosterTable"><tr><th colspan="3"><h2>Halve Finale</h2></th></tr><tr><td><h2 id="M51Name"></h2></td><td><h2>-</h2></td><td><h2 id="M52Name"></h2></td></tr><tr><td><input id="M51Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M52Score" class="gameScore"></td></tr><tr><td><h2 id="M61Name"></h2></td><td><h2>-</h2></td><td><h2 id="M62Name"></h2></td></tr><tr><td><input id="M61Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M62Score" class="gameScore"></td></tr></table>');
+        $(rosterDiv).append(halves);
+    }
+
+    switch(numberOfPoules){
+        case 4:
+        case 3:
+        case 2:
+        case 1:
+            let finals = $('<table class="mainRosterTable"><tr><th colspan="3"><h2>Finale</h2></th></tr><tr><td><h2 id="M71Name"></h2></td><td><h2>-</h2></td><td><h2 id="M72Name"></h2></td></tr><tr><td><input id="M71Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M72Score" class="gameScore"></td></tr></table>');
+            let winnerTable = $('<table class="mainRosterTable"><tr><td colspan="3"><h2>Winnaar:</h2></td></tr><tr><td colspan="3"><h2 id="M81Name"></h2></td></tr></table>');
+            $(rosterDiv).append(finals);
+            $(rosterDiv).append(winnerTable);
+        break;
+    }
+}
 
 function startPoulesSorting(){
     setInterval(function sortPoules(){
@@ -386,8 +781,16 @@ function startPoulesSorting(){
             pouleA.updatePoints();
 
             if(pouleA.allGamesPlayed()){
-                document.getElementById('M11Name').innerHTML = pouleA.winner;
-                document.getElementById('M22Name').innerHTML = pouleA.secondPlace;
+                if(numPoules >= 3){
+                    document.getElementById('M11Name').innerHTML = pouleA.winner;
+                    document.getElementById('M22Name').innerHTML = pouleA.secondPlace;
+                }else if(numPoules == 2){
+                    document.getElementById('M51Name').innerHTML = pouleA.winner;
+                    document.getElementById('M62Name').innerHTML = pouleA.secondPlace;
+                }else if(numPoules == 1){
+                    document.getElementById('M71Name').innerHTML = pouleA.winner;
+                    document.getElementById('M72Name').innerHTML = pouleA.secondPlace;
+                }
             }
         }
     
@@ -395,8 +798,13 @@ function startPoulesSorting(){
             pouleB.updatePoints();
 
             if(pouleB.allGamesPlayed()){
-                document.getElementById('M21Name').innerHTML = pouleB.winner;
-                document.getElementById('M32Name').innerHTML = pouleB.secondPlace;
+                if(numPoules >= 3){
+                    document.getElementById('M21Name').innerHTML = pouleB.winner;
+                    document.getElementById('M32Name').innerHTML = pouleB.secondPlace;
+                }else if(numPoules == 2){
+                    document.getElementById('M61Name').innerHTML = pouleB.winner;
+                    document.getElementById('M52Name').innerHTML = pouleB.secondPlace;
+                }
             }
         }
     
@@ -404,8 +812,13 @@ function startPoulesSorting(){
             pouleC.updatePoints();
 
             if(pouleC.allGamesPlayed()){
-                document.getElementById('M31Name').innerHTML = pouleC.winner;
-                document.getElementById('M42Name').innerHTML = pouleC.secondPlace;
+                if(numPoules == 4){
+                    document.getElementById('M31Name').innerHTML = pouleC.winner;
+                    document.getElementById('M42Name').innerHTML = pouleC.secondPlace;
+                }else if(numPoules == 3){
+                    document.getElementById('M31Name').innerHTML = pouleC.winner;
+                    document.getElementById('M12Name').innerHTML = pouleC.secondPlace;
+                }
             }
         }
     
@@ -417,7 +830,54 @@ function startPoulesSorting(){
                 document.getElementById('M12Name').innerHTML = pouleD.secondPlace;
             }
         }
+
+        switch(parseInt(numPoules)){
+            case 4:
+                getFinalsWinner("M11", "M12", "M51");
+                getFinalsWinner("M21", "M22", "M52");
+                getFinalsWinner("M31", "M32", "M61");
+                getFinalsWinner("M41", "M42", "M62");
+
+                getFinalsWinner("M51", "M52", "M71");
+                getFinalsWinner("M61", "M62", "M72");
+
+                getFinalsWinner("M71", "M72", "M81");
+            break;
+            case 3:
+                getFinalsWinner("M11", "M12", "M51");
+                getFinalsWinner("M21", "M22", "M52");
+
+                getFinalsWinner("M31", "M32", "M72");
+
+                getFinalsWinner("M51", "M52", "M71");
+                getFinalsWinner("M71", "M72", "M81");
+            break;
+            case 2:
+                getFinalsWinner("M51", "M52", "M71");
+                getFinalsWinner("M61", "M62", "M72");
+
+                getFinalsWinner("M71", "M72", "M81");
+            break;
+            case 1:
+                getFinalsWinner("M71", "M72", "M81");
+            break;
+        }
     }, 500);
+}
+
+function getFinalsWinner(player1, player2, destination){
+    var player1Score = parseInt(document.getElementById(`${player1}Score`).value);
+    var player1Name = document.getElementById(`${player1}Name`).innerHTML;
+    var player2Score = parseInt(document.getElementById(`${player2}Score`).value);
+    var player2Name = document.getElementById(`${player2}Name`).innerHTML;
+
+    if(!isNaN(player1Score) && !isNaN(player2Score)){
+        if(player1Score > player2Score){
+            document.getElementById(`${destination}Name`).innerHTML = player1Name;
+        }else if(player2Score > player1Score){
+            document.getElementById(`${destination}Name`).innerHTML = player2Name;
+        }
+    }
 }
 
 function pouleExists(poule){
@@ -428,8 +888,28 @@ function pouleExists(poule){
     }
 }
 
+function exportFinalsGame(gameNum){
+    let player1Score = parseInt(document.getElementById(`M${gameNum}1Score`).value);
+    let player1Name = document.getElementById(`M${gameNum}1Name`).innerHTML;
+    let player2Score = parseInt(document.getElementById(`M${gameNum}2Score`).value);
+    let player2Name = document.getElementById(`M${gameNum}2Name`).innerHTML;
+
+    return [player1Score, player1Name, player2Score, player2Name];
+}
+
 function exportGameInfo(){
-    var jsonObj = {"poules":[]};
+    var gameFileName = getGameFileName("save");
+
+    if(gameFileName === null){
+        console.log("No file name given")
+        return -1;
+    }
+
+    if(!gameFileName.includes(".darts")){
+        gameFileName = gameFileName + ".darts"
+    }
+
+    var jsonObj = {"poules":[], "games":[]};
 
     if(pouleExists(pouleA)){
         jsonObj["poules"].push({"pouleA":[]})
@@ -439,8 +919,8 @@ function exportGameInfo(){
             console.log(i)
             console.log(jsonObj)
 
-            player = pouleA.players[i][0];
-            points = parseInt(pouleA.players[i][1]);
+            let player = pouleA.players[i][0];
+            let points = parseInt(pouleA.players[i][1]);
 
             if(isNaN(points)){
                 points = 0;
@@ -451,7 +931,7 @@ function exportGameInfo(){
 
         jsonObj["poules"][0]["pouleA"].push({"games":[]});
 
-        for(let i = 0; i < pouleA.numGames(); i++){
+        for(let i = 0; i < pouleA.numGames; i++){
             var player1 = document.getElementById(`gameA${i+1}1Name`).innerHTML;
             var score1 = document.getElementById(`gameA${i+1}1Score`).value;
             var player2 = document.getElementById(`gameA${i+1}2Name`).innerHTML;
@@ -482,8 +962,8 @@ function exportGameInfo(){
             console.log(i)
             console.log(jsonObj)
 
-            player = pouleB.players[i][0];
-            points = parseInt(pouleB.players[i][1]);
+            let player = pouleB.players[i][0];
+            let points = parseInt(pouleB.players[i][1]);
 
             if(isNaN(points)){
                 points = 0;
@@ -494,7 +974,7 @@ function exportGameInfo(){
 
         jsonObj["poules"][1]["pouleB"].push({"games":[]});
 
-        for(let i = 0; i < pouleB.numGames(); i++){
+        for(let i = 0; i < pouleB.numGames; i++){
             var player1 = document.getElementById(`gameB${i+1}1Name`).innerHTML;
             var score1 = document.getElementById(`gameB${i+1}1Score`).value;
             var player2 = document.getElementById(`gameB${i+1}2Name`).innerHTML;
@@ -525,8 +1005,8 @@ function exportGameInfo(){
             console.log(i)
             console.log(jsonObj)
 
-            player = pouleC.players[i][0];
-            points = parseInt(pouleC.players[i][1]);
+            let player = pouleC.players[i][0];
+            let points = parseInt(pouleC.players[i][1]);
 
             if(isNaN(points)){
                 points = 0;
@@ -537,7 +1017,7 @@ function exportGameInfo(){
 
         jsonObj["poules"][2]["pouleC"].push({"games":[]});
 
-        for(let i = 0; i < pouleC.numGames(); i++){
+        for(let i = 0; i < pouleC.numGames; i++){
             var player1 = document.getElementById(`gameC${i+1}1Name`).innerHTML;
             var score1 = document.getElementById(`gameC${i+1}1Score`).value;
             var player2 = document.getElementById(`gameC${i+1}2Name`).innerHTML;
@@ -568,8 +1048,8 @@ function exportGameInfo(){
             console.log(i)
             console.log(jsonObj)
 
-            player = pouleD.players[i][0];
-            points = parseInt(pouleD.players[i][1]);
+            let player = pouleD.players[i][0];
+            let points = parseInt(pouleD.players[i][1]);
 
             if(isNaN(points)){
                 points = 0;
@@ -580,7 +1060,7 @@ function exportGameInfo(){
 
         jsonObj["poules"][3]["pouleD"].push({"games":[]});
 
-        for(let i = 0; i < pouleD.numGames(); i++){
+        for(let i = 0; i < pouleD.numGames; i++){
             var player1 = document.getElementById(`gameD${i+1}1Name`).innerHTML;
             var score1 = document.getElementById(`gameD${i+1}1Score`).value;
             var player2 = document.getElementById(`gameD${i+1}2Name`).innerHTML;
@@ -603,11 +1083,86 @@ function exportGameInfo(){
         console.log(jsonObj);
     }
 
-    fs.writeFile(path.resolve(__dirname, 'game.json'), JSON.stringify(jsonObj, null, 4), function(err){
+    switch(parseInt(numPoules)){
+        case 4:
+            var games = [];
+
+            games.push(exportFinalsGame("1"));
+            games.push(exportFinalsGame("2"));
+            games.push(exportFinalsGame("3"));
+            games.push(exportFinalsGame("4"));
+            games.push(exportFinalsGame("5"));
+            games.push(exportFinalsGame("6"));
+            games.push(exportFinalsGame("7"));
+
+            console.log(games);
+
+            for(let i = 0; i < 7; i++){
+                let game1Name = `M${i+1}1Name`;
+                let game1Score = `M${i+1}1Score`;
+                let game2Name = `M${i+1}2Name`;
+                let game2Score = `M${i+1}2Score`;
+                jsonObj["games"].push({game1Name:games[i][1], game1Score:games[i][0], game2Name:games[i][3], game2Score:games[i][2]});
+            }
+        break;
+        case 3:
+            var games = [];
+
+            games.push(exportFinalsGame("1"));
+            games.push(exportFinalsGame("2"));
+            games.push(exportFinalsGame("3"));
+            games.push(exportFinalsGame("5"));
+            games.push(exportFinalsGame("7"));
+
+            for(let i = 0; i < 5; i++){
+                if(i < 4){
+                    let game1Name = `M${i+1}1Name`;
+                    let game1Score = `M${i+1}1Score`;
+                    let game2Name = `M${i+1}2Name`;
+                    let game2Score = `M${i+1}2Score`;
+                }else{
+                    let game1Name = `M${i+3}1Name`;
+                    let game1Score = `M${i+3}1Score`;
+                    let game2Name = `M${i+3}2Name`;
+                    let game2Score = `M${i+3}2Score`;
+                }
+                jsonObj["games"].push({game1Name:games[i][1], game1Score:games[i][0], game2Name:games[i][3], game2Score:games[i][2]});
+            }
+        break;
+        case 2:
+            var games = [];
+            games.push(exportFinalsGame("5"));
+            games.push(exportFinalsGame("6"));
+            games.push(exportFinalsGame("7"));
+
+            for(let i = 0; i < 3; i++){
+                let game1Name = `M${i+1}1Name`;
+                let game1Score = `M${i+1}1Score`;
+                let game2Name = `M${i+1}2Name`;
+                let game2Score = `M${i+1}2Score`;
+                jsonObj["games"].push({game1Name:games[i][1], game1Score:games[i][0], game2Name:games[i][3], game2Score:games[i][2]});
+            }
+        break;
+        case 1:
+            var games = [];
+
+            games.push(exportFinalsGame("7"));
+
+            for(let i = 0; i < 1; i++){
+                let game1Name = `M${i+1}1Name`;
+                let game1Score = `M${i+1}1Score`;
+                let game2Name = `M${i+1}2Name`;
+                let game2Score = `M${i+1}2Score`;
+                jsonObj["games"].push({game1Name:games[i][1], game1Score:games[i][0], game2Name:games[i][3], game2Score:games[i][2]});
+            }
+        break;
+    }
+
+    fs.writeFile(path.resolve(gameFileName), JSON.stringify(jsonObj, null, 4), function(err){
         if(err){
             console.log(err);
         }else{
-            console.log("JSON save to game.json");
+            console.log(`Game saved to ${gameFileName}.`);
         }
     });
 }
