@@ -2,9 +2,10 @@ let $ = require('jquery');
 let fs = require('fs');
 let path = require('path');
 const { parse } = require('path');
-const {ipcRenderer} = require('electron');
+const {app, ipcRenderer} = require('electron');
 const exp = require('constants');
 const { randomInt } = require('crypto');
+const { default: jsPDF } = require('jspdf');
 
 var numPlayers = 0;
 var numPoules = 0;
@@ -21,6 +22,9 @@ loadGameBtn.onclick = loadGame;
 const subBtn = document.getElementById('subBtn');
 subBtn.onclick = getGameInfo;
 
+const exportBtn = document.getElementById('exportBtn');
+exportBtn.onclick = preparePDFExport;
+
 const saveBtn = document.getElementById('saveBtn');
 saveBtn.onclick = exportGameInfo;
 
@@ -29,13 +33,11 @@ returnBtn.onclick = returnToHome;
 
 const makePoulesBtn = document.getElementById('mkPoulesBtn');
 
-$("div").hide();
-$(document.getElementById('gameOptions')).show();
-$(document.getElementById('gameOptionsWrapper')).show();
-//$(returnBtn).hide();
-//$(saveBtn).hide();
-$(document.getElementById('returnBtnDiv')).hide();
-$(document.getElementById('saveBtnDiv')).hide();
+$(document.getElementById('gameSetup')).hide();
+$(document.getElementById('controlBtnDiv')).hide();
+$(document.getElementById('playerInputDiv')).hide();
+$(document.getElementById('poulesDiv')).hide();
+$(document.getElementById('gameDiv')).hide();
 
 class pouleGames{
     constructor(pouleNum){
@@ -82,6 +84,8 @@ class pouleGames{
         if(numPlayers == 1){
             let singlePlayerDiv = $(`<div id="singlePlayerDiv" class="singlePlayerDiv"><h3>Winnaar:</h3><h4>${this.players[0][0]}!</h4><p1>Leuk geprobeerd, hier heb ik aan gedacht</p1></div>`);
             $(singlePlayerDiv).appendTo(document.body);
+            $(document.getElementById('saveBtnDiv')).hide();
+            $(document.getElementById('exportBtnDiv')).hide();
         }else{
             gamesDiv = document.getElementById('pouleGames');
             var pouleGamesDiv = $(`<div id='poule${this.pouleNum}Games' class='pouleGamesDiv'></div>`);
@@ -225,6 +229,13 @@ function returnToHome(){
     $("#poulesDiv").empty()
     $("#mainRosterSubDiv").empty();
     $("#pouleGames").empty();
+
+    try{
+        $(".singlePlayerDiv").remove();
+    }catch{
+        console.log("Single player div bestaat niet")
+    }
+
     pouleA.reset();
     pouleB.reset();
     pouleC.reset();
@@ -234,22 +245,26 @@ function returnToHome(){
     numPlayers = 0;
     numPoules = 0;
 
-    $("div").hide();
-    $(document.getElementById('gameOptions')).show();
-    $(document.getElementById('gameOptionsWrapper')).show();1
+    $(document.getElementById('gameSetup')).hide();
+    $(document.getElementById('controlBtnDiv')).hide();
+    $(document.getElementById('gameDiv')).hide();
+    $(document.getElementById('poulesDiv')).hide();
+    $(document.getElementById('playerInputDiv')).hide();
+    $(document.getElementById('gameOptionsWrapper')).show();
     //$(returnBtn).hide();
     //$(saveBtn).hide();
 }
 
 function drawSetup(){
     console.log("New game...")
-    $("div").hide();
+    $(document.getElementById('gameOptionsWrapper')).hide();
     $(document.getElementById('gameSetup')).show();
     $(document.getElementById('gameSetupSubDiv')).show();
     //$(document.getElementById('controlBtnDiv')).show();
     //$(returnBtn).show();
     $(document.getElementById('controlBtnDiv')).show();
-    $(document.getElementById('returnBtnDiv')).show();
+    $(document.getElementById('saveBtnDiv')).hide();
+    $(document.getElementById('exportBtnDiv')).hide();
 }
 
 function getGameFileName(action){
@@ -272,13 +287,14 @@ function loadGame(){
         return -1;
     }
 
-    $("div").hide();
+    $(document.getElementById('gameOptionsWrapper')).hide();
     $(poulesDiv).show();
     //$(document.getElementById('controlBtnDiv')).show();
     //$(saveBtn).show();
     //$(returnBtn).show();
     $(document.getElementById('controlBtnDiv')).show();
     $(document.getElementById('saveBtnDiv')).show();
+    $(document.getElementById('exportBtnDiv')).show();
     $(document.getElementById('returnBtnDiv')).show();
     $(document.getElementById('mainRosterDiv')).show();
     $(document.getElementById('mainRosterSubDiv')).show();
@@ -482,6 +498,20 @@ function getGameInfo(){
         $(document.getElementById('numPoules')).css('border-color', '#414141');
 
         document.getElementById('setupErroSpan').innerHTML = "Vul aantal spelers in.";
+    }else if(parseInt(numPlayers)/parseInt(numPoules) > 5){
+        $(document.getElementById('numPlayers')).css('border-color', 'red');
+        $(document.getElementById('numPoules')).css('border-color', 'red');
+
+        /*Spelers per poule moet in het bericht afgerond zijn op twee decimalen, eerst vermeningvuldigen met 100
+          om twee decimalen te bewaren, dan afronden (gaat automatisch naar 0 decimalen), dan weer delen door 100
+          om de twee decimalen terug te halen*/
+        let currPlayersPerPoule = Math.round((parseInt(numPlayers)/parseInt(numPoules)) * 100) /100
+        document.getElementById('setupErrorSpan').innerHTML = `Aantal spelers per poule mag maximaal 5 zijn. Het is nu ${currPlayersPerPoule}.`;
+    }else if(parseInt(numPlayers)/parseInt(numPoules) < 2 && numPoules > 1){
+        $(document.getElementById('numPlayers')).css('border-color', 'red');
+        $(document.getElementById('numPoules')).css('border-color', 'red');
+
+        document.getElementById('setupErrorSpan').innerHTML = "Eén van de poules heeft maar één speler. Fix dat."
     }else{
         $(document.getElementById('numPlayers')).css('border-color', '#414141');
         $(document.getElementById('numPoules')).css('border-color', '#414141');
@@ -494,7 +524,7 @@ function getGameInfo(){
         console.log(`Number of poules: ${numPoules}`);
 
         //$(document.getElementById('gameSetup')).hide();
-        $("div").hide();
+        $(document.getElementById('gameSetup')).hide();
         $(document.getElementById('playerInputDiv')).show();
         $(document.getElementById('playerInputSubDiv')).show();
         $(document.getElementById('controlBtnDiv')).show();
@@ -512,7 +542,6 @@ function getGameInfo(){
         }
 
         makePoulesBtn.onclick = makePoules;
-        startPoulesSorting();
     }
 }
 
@@ -540,12 +569,11 @@ function makePoules(){
     if(playerEmpty){
         document.getElementById('playerInputErrorSpan').innerHTML = "Vul voor alle spelers een naam in."
     }else{
-        $("div").hide();
+        $(document.getElementById('playerInputDiv')).hide();
         //$(document.getElementById('controlBtnDiv')).show();
         //$(saveBtn).show();
-        $(document.getElementById('controlBtnDiv')).show();
         $(document.getElementById('saveBtnDiv')).show();
-        $(document.getElementById('returnBtnDiv')).show();
+        $(document.getElementById('exportBtnDiv')).show();
 
         var poulesDiv = document.getElementById('poulesDiv');
 
@@ -623,24 +651,43 @@ function makePoules(){
             }
         }
 
+        let shouldBePrinted = document.getElementById('printCheckbox').checked;
+        var filePath
+
+        if(shouldBePrinted){
+            filePath = ipcRenderer.sendSync('selectPDFDirectory');
+        }
+
         if(pouleExists(pouleA)){
             pouleA.makePoule();
             pouleA.makeGames();
+            if(shouldBePrinted){
+                exportPDF(pouleA, filePath);
+            }
         }
 
         if(pouleExists(pouleB)){
             pouleB.makePoule();
             pouleB.makeGames();
+            if(shouldBePrinted){
+                exportPDF(pouleB, filePath);
+            }
         }
 
         if(pouleExists(pouleC)){
             pouleC.makePoule();
             pouleC.makeGames();
+            if(shouldBePrinted){
+                exportPDF(pouleC, filePath);
+            }
         }
 
         if(pouleExists(pouleD)){
             pouleD.makePoule();
             pouleD.makeGames();
+            if(shouldBePrinted){
+                exportPDF(pouleD, filePath);
+            }
         }
 
         makeFinals(numPoules);
@@ -650,7 +697,48 @@ function makePoules(){
         $(document.getElementById('mainRosterDiv')).show();
         $(document.getElementById('mainRosterSubDiv')).show();
         $(document.getElementById('gameDiv')).show();
+        startPoulesSorting();
     }
+}
+
+function preparePDFExport(){
+    filepath = ipcRenderer.sendSync('selectPDFDirectory');
+    for(let i = 0; i < numPoules; i++){
+        switch(i){
+            case 0:
+                exportPDF(pouleA, filepath);
+            break;
+            case 1:
+                exportPDF(pouleB, filepath);
+            break;
+            case 2:
+                exportPDF(pouleC, filepath);
+            break;
+            case 3:
+                exportPDF(pouleD, filepath);
+            break;
+        }
+    }
+}
+
+function exportPDF(poule, filePath){  
+    const doc = new jsPDF({
+        orientation: 'portrait',
+    });
+    
+    doc.setFontSize(40);
+    doc.text(`Poule ${poule.pouleNum}`, 105, 20, null, null, "center")
+    doc.setFontSize(30)
+    for(let i = 0; i < pouleA.numGames; i++){
+        let player1 = document.getElementById(`game${poule.pouleNum}${i+1}1Name`).innerHTML;
+        let player2 = document.getElementById(`game${poule.pouleNum}${i+1}2Name`).innerHTML;
+
+        let gameString = player1 + " - " + player2
+
+        doc.text(gameString, 105, 40 + (30*i), null, null, "center")
+    }
+
+    doc.save(filePath + `/poule${poule.pouleNum}.pdf`)
 }
 
 function makeFinals(numberOfPoules){

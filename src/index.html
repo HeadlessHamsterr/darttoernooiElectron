@@ -17,8 +17,11 @@
       <div id='saveBtnDiv' style='position: absolute; top: 5px; right: 120px;'>
         <button id="saveBtn" class="saveBtn">Opslaan</button>
       </div>
+      <div id='exportBtnDiv' style='position: absolute; top: 5px; right: 230px;'>
+        <button id="exportBtn" class="exportBtn">Export naar PDF</button>
+      </div>
     </div>
-
+    
     <div id='gameOptionsWrapper' class='startDivWrapper'>
       <div id="gameOptions" class="startDiv">
         <h1 class="startScreenLabel">Nieuw spel of spel laden?</h1>
@@ -30,9 +33,9 @@
     <div id='gameSetup' class='cardSetup'>
       <div id='gameSetupSubDiv' class='setupSubDiv'>
         <form id='numPlayersForm'>
-          <label for='numPlayers'>Aantal spelers:</label><br>
+          <label for='numPlayers' class="setupLabel">Aantal spelers:</label><br>
           <input id='numPlayers' type="number" name="numPlayers"><br>
-          <label for='numPoules'>Aantal poules:</label><br>
+          <label for='numPoules' class="setupLabel">Aantal poules:</label><br>
           <input id='numPoules' type='number' name="numPoules"><br>
         </form>
         <button id="subBtn" onclick="" class='sendBtn'>Versturen</button><br>
@@ -45,6 +48,8 @@
         <form id='playerInputForm'>
         
         </form>
+        <input type="checkbox" id="printCheckbox" name="printCheckbox">
+        <label for="printCheckbox" class="checkboxLabel"><p1>Poules exporteren naar PDF</p1></label><br>
         <button id='mkPoulesBtn' class='sendBtn'>Versturen</button><br>
         <span id='playerInputErrorSpan' style="color: red;"></span>
       </div>

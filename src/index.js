@@ -24,6 +24,15 @@ ipcMain.on('selectSaveFile', async(event) =>{
   }
 });
 
+ipcMain.on('selectPDFDirectory', async(event) =>{
+  const result = await showOpenDialog();
+  if(result["canceled"]){
+    event.returnValue = null;
+  }else{
+    event.returnValue = result["filePaths"];
+  }
+})
+
 function showLoadDialog(){
   var filePath = app.getPath("documents");
   return new Promise((resolve, reject)=>{
@@ -71,6 +80,28 @@ function showSaveDialog(){
     });
   });
 }
+
+function showOpenDialog(){
+  var filePath = app.getPath("documents");
+  return new Promise((resolve, reject) => {
+    dialog.showOpenDialog({
+      buttonLabel: "Locatie selecteren",
+      properties: [
+        'openDirectory',
+        'createDirectory'
+      ],
+      defaultPath: filePath
+    }).then(fileNames=>{
+      if(fileNames === undefined){
+        console.log("Failed to open directory.");
+        reject("No directory selected");
+      }else{
+        resolve(fileNames);
+      }
+    });
+  });
+}
+
 const createWindow = () => {
   // Create the browser window.
 
@@ -79,10 +110,11 @@ const createWindow = () => {
     height: 800,
     webPreferences:{
       nodeIntegration: true,
-      contextIsolation: false,
+      contextIsolation: false
     },
     autoHideMenuBar: true,
-    icon: path.join(__dirname, 'icons/appIcon.ico')
+    icon: path.join(__dirname, 'icons/appIcon.ico'),
+    frame: true
   });
 
   // and load the index.html of the app.
