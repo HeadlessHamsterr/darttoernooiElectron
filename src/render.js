@@ -6,6 +6,32 @@ const {app, ipcRenderer} = require('electron');
 const exp = require('constants');
 const { randomInt } = require('crypto');
 const { default: jsPDF } = require('jspdf');
+const {address} = require('ip');
+const { PassThrough } = require('stream');
+const httpServer = require('http').createServer();
+const io = require('socket.io')(httpServer, {
+    cors: {
+        methods: ["GET", "POST"],
+        transports: ['websocket', 'polling']
+    },
+    allowEIO3: true
+});
+
+io.on('connection', (socket) => {
+  console.log("Websocket connection astablished");
+  socket.emit('welcome-message', "Wattup bitch!");
+  if(pouleExists(pouleA) || pouleExists(pouleB) || pouleExists(pouleC) || pouleExists(pouleD)){
+    socket.emit('pouleInfo', exportGameInfo(false));
+  }else{
+      socket.emit('pouleInfo', "No active game");
+  }
+});
+
+const PORT = process.env.PORT || 3000;
+
+httpServer.listen(PORT, () => {
+  console.log(`server listening at http://${address()}:${PORT}`);
+});
 
 var numPlayers = 0;
 var numPoules = 0;
@@ -53,11 +79,15 @@ class pouleGames{
         this.numTiedGames;
         this.gameFormat;
         this.tiedGameFormat;
+        this.rankings = [];
+        this.lastRankings = [];
     }
 
     reset(){
         this.players = [];
         this.tiedPlayers = [];
+        this.rankings = [];
+        this.lastRankings = [];
         this.winner = "";
         this.secondPlace = "";
         this.numGames;
@@ -159,9 +189,9 @@ class pouleGames{
     }
 
     sort(){
-        var playersCopy = []
-        Array.prototype.push.apply(playersCopy, this.players);
-        playersCopy.sort(function(a,b){return(b[1]-a[1])});
+        this.rankings = []
+        Array.prototype.push.apply(this.rankings, this.players);
+        this.rankings.sort(function(a,b){return(b[1]-a[1])});
 
         var pouleTable = document.getElementById(`poule${this.pouleNum}Table`);
         var pouleTableHeader = $('<tr><th>Speler</th><th>Score</th></tr>');
@@ -169,13 +199,31 @@ class pouleGames{
         $(pouleTable).empty();
         $(pouleTable).append(pouleTableHeader);
 
-        for(let i in playersCopy){
-            if(typeof playersCopy[i][1] == 'undefined'){
-                playersCopy[i][1] = 0;
+        for(let i in this.rankings){
+            if(typeof this.rankings[i][1] == 'undefined'){
+                this.rankings[i][1] = 0;
             }
 
-            var tableEntry = $(`<tr><td>${playersCopy[i][0]}</td><td>${playersCopy[i][1]}</td></tr>`);
+            var tableEntry = $(`<tr><td>${this.rankings[i][0]}</td><td>${this.rankings[i][1]}</td></tr>`);
             $(pouleTable).append(tableEntry);
+        }
+    
+
+        /*for(let i = 0; i < this.rankings.length; i++){
+            if(this.rankings[i] == this.lastRankings[i]){
+                console.log(`Rankings: ${this.rankings}`);
+                console.log(`Last rankings: ${this.lastRankings}`);
+                continue;
+            }else{
+                io.emit(`poule${this.pouleNum}Ranks`, this.rankings);
+                this.lastRankings = JSON.parse(JSON.stringify(this.rankings));
+                break;
+            }
+        }*/
+        if(JSON.stringify(this.rankings) != JSON.stringify(this.lastRankings)){
+            console.log(this.rankings);
+            io.emit(`poule${this.pouleNum}Ranks`, this.rankings);
+            this.lastRankings = JSON.parse(JSON.stringify(this.rankings));
         }
     }
 
@@ -588,6 +636,7 @@ function loadGame(){
     }
 
     startPoulesSorting();
+    document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
 }
 
 function loadPoulGames(pouleLetter, jsonObj){
@@ -856,6 +905,7 @@ function makePoules(){
         $(document.getElementById('mainRosterSubDiv')).show();
         $(document.getElementById('gameDiv')).show();
         startPoulesSorting();
+        document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
     }
 }
 
@@ -1055,16 +1105,19 @@ function exportFinalsGame(gameNum){
     return [player1Score, player1Name, player2Score, player2Name];
 }
 
-function exportGameInfo(){
-    var gameFileName = getGameFileName("save");
+function exportGameInfo(writeToFile = true){
+    var gameFileName;
+    if(writeToFile){
+        gameFileName = getGameFileName("save");
 
-    if(gameFileName === null){
-        console.log("No file name given")
-        return -1;
-    }
+        if(gameFileName === null){
+            console.log("No file name given")
+            return -1;
+        }
 
-    if(!gameFileName.includes(".darts")){
-        gameFileName = gameFileName + ".darts"
+        if(!gameFileName.includes(".darts")){
+            gameFileName = gameFileName + ".darts"
+        }
     }
 
     var jsonObj = {"poules":[], "games":[]};
@@ -1316,11 +1369,15 @@ function exportGameInfo(){
         break;
     }
 
-    fs.writeFile(path.resolve(gameFileName), JSON.stringify(jsonObj, null, 4), function(err){
-        if(err){
-            console.log(err);
-        }else{
-            console.log(`Game saved to ${gameFileName}.`);
-        }
-    });
+    if(writeToFile){
+        fs.writeFile(path.resolve(gameFileName), JSON.stringify(jsonObj, null, 4), function(err){
+            if(err){
+                console.log(err);
+            }else{
+                console.log(`Game saved to ${gameFileName}.`);
+            }
+        });
+    }
+
+    return jsonObj;
 }
