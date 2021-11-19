@@ -28,16 +28,20 @@ io.on('connection', (socket) => {
     socket.on('pouleAInfoRequest', (data) => {
           console.log(`Poule A Info request: ${data}`);
           if(pouleExists(pouleA)){
-            socket.emit('pouleARanks', pouleA.rankings);
+                var msg = [pouleA.rankings, pouleA.sendPouleGames()];
+                console.log(msg);
+                socket.emit('pouleARanks', msg);
           }else{
-            let msg = [["No active", "game"]];
-            socket.emit('pouleARanks', msg);
+                let msg = [["No active", "game"]];
+                socket.emit('pouleARanks', msg);
           }
     });
     socket.on('pouleBInfoRequest', (data) => {
           console.log(`Poule B Info request: ${data}`);
           if(pouleExists(pouleB)){
-            socket.emit('pouleBRanks', pouleB.rankings);
+            var msg = [pouleB.rankings, pouleB.sendPouleGames()];
+            console.log(msg);
+            socket.emit('pouleBRanks', msg);
           }else{
             let msg = [["No active", "game"]];
             socket.emit('pouleBRanks', msg);
@@ -46,7 +50,9 @@ io.on('connection', (socket) => {
     socket.on('pouleCInfoRequest', (data) => {
         console.log(`Poule C Info request: ${data}`);
         if(pouleExists(pouleC)){
-          socket.emit('pouleCRanks', pouleC.rankings);
+            var msg = [pouleC.rankings, pouleC.sendPouleGames()];
+            console.log(msg);
+            socket.emit('pouleCRanks', msg);
         }else{
           let msg = [["No active", "game"]];
           socket.emit('pouleCRanks', msg);
@@ -55,7 +61,9 @@ io.on('connection', (socket) => {
     socket.on('pouleDInfoRequest', (data) => {
         console.log(`Poule D Info request: ${data}`);
         if(pouleExists(pouleD)){
-            socket.emit('pouleDRanks', pouleD.rankings);
+            var msg = [pouleD.rankings, pouleD.sendPouleGames()];
+            console.log(msg);
+            socket.emit('pouleDRanks', msg);
         }else{
             let msg = [["No active", "game"]];
             socket.emit('pouleDRanks', msg);
@@ -258,9 +266,28 @@ class pouleGames{
         }*/
         if(JSON.stringify(this.rankings) != JSON.stringify(this.lastRankings)){
             console.log(this.rankings);
-            io.emit(`poule${this.pouleNum}Ranks`, this.rankings);
+            io.emit(`poule${this.pouleNum}Ranks`, [this.rankings, this.sendPouleGames()]);
             this.lastRankings = JSON.parse(JSON.stringify(this.rankings));
         }
+    }
+
+    sendPouleGames(){
+        var games = [];
+        for(let i = 0; i < this.numGames; i++){
+            let player1 = document.getElementById(`game${this.pouleNum}${i+1}1Name`).innerHTML;
+            let player2 = document.getElementById(`game${this.pouleNum}${i+1}2Name`).innerHTML;
+            let score1 = document.getElementById(`game${this.pouleNum}${i+1}1Score`).value;
+            let score2 = document.getElementById(`game${this.pouleNum}${i+1}2Score`).value;
+    
+            var gamePlayed = true;
+            if(!score1 && !score2){
+                gamePlayed = false;
+            }
+    
+            var tempArray = [player1, player2, gamePlayed];
+            games.push(tempArray);
+        }
+        return games;
     }
 
     updatePoints(){
@@ -967,24 +994,36 @@ function preparePDFExport(){
     }
 }
 
-function exportPDF(poule, filePath){  
+function exportPDF(poule, filePath, exportToPDF){  
     const doc = new jsPDF({
         orientation: 'portrait',
     });
     
     doc.setFontSize(40);
-    doc.text(`Poule ${poule.pouleNum}`, 105, 20, null, null, "center")
-    doc.setFontSize(30)
+    doc.text(`Poule ${poule.pouleNum}`, 105, 20, null, null, "center");
+    doc.setFontSize(30);
+    if(!exportToPDF){
+        var games = [];
+    }
     for(let i = 0; i < pouleA.numGames; i++){
         let player1 = document.getElementById(`game${poule.pouleNum}${i+1}1Name`).innerHTML;
         let player2 = document.getElementById(`game${poule.pouleNum}${i+1}2Name`).innerHTML;
 
-        let gameString = player1 + " - " + player2
+        let gameString = player1 + " - " + player2;
+        
+        if(!exportToPDF){
+            var tempArray = [player1, player2];
+            games.push(tempArray);
+        }
 
-        doc.text(gameString, 105, 40 + (30*i), null, null, "center")
+        doc.text(gameString, 105, 40 + (30*i), null, null, "center");
     }
 
-    doc.save(filePath + `/poule${poule.pouleNum}.pdf`)
+    if(exportToPDF){
+        doc.save(filePath + `/poule${poule.pouleNum}.pdf`);
+    }else{
+        return games;
+    }
 }
 
 function makeFinals(numberOfPoules){
