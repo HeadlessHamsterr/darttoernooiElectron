@@ -18,13 +18,49 @@ const io = require('socket.io')(httpServer, {
 });
 
 io.on('connection', (socket) => {
-  console.log("Websocket connection astablished");
-  socket.emit('welcome-message', "Wattup bitch!");
-  if(pouleExists(pouleA) || pouleExists(pouleB) || pouleExists(pouleC) || pouleExists(pouleD)){
-    socket.emit('pouleInfo', exportGameInfo(false));
-  }else{
-      socket.emit('pouleInfo', "No active game");
-  }
+    console.log("Websocket connection astablished");
+    socket.emit('welcome-message', "Wattup bitch!");
+    if(pouleExists(pouleA) || pouleExists(pouleB) || pouleExists(pouleC) || pouleExists(pouleD)){
+        socket.emit('pouleInfo', exportGameInfo(false));
+    }else{
+        socket.emit('pouleInfo', "No active game");
+    }
+    socket.on('pouleAInfoRequest', (data) => {
+          console.log(`Poule A Info request: ${data}`);
+          if(pouleExists(pouleA)){
+            socket.emit('pouleARanks', pouleA.rankings);
+          }else{
+            let msg = [["No active", "game"]];
+            socket.emit('pouleARanks', msg);
+          }
+    });
+    socket.on('pouleBInfoRequest', (data) => {
+          console.log(`Poule B Info request: ${data}`);
+          if(pouleExists(pouleB)){
+            socket.emit('pouleBRanks', pouleB.rankings);
+          }else{
+            let msg = [["No active", "game"]];
+            socket.emit('pouleBRanks', msg);
+          }
+    });
+    socket.on('pouleCInfoRequest', (data) => {
+        console.log(`Poule C Info request: ${data}`);
+        if(pouleExists(pouleC)){
+          socket.emit('pouleCRanks', pouleC.rankings);
+        }else{
+          let msg = [["No active", "game"]];
+          socket.emit('pouleCRanks', msg);
+        }
+    });
+    socket.on('pouleDInfoRequest', (data) => {
+        console.log(`Poule D Info request: ${data}`);
+        if(pouleExists(pouleD)){
+            socket.emit('pouleDRanks', pouleD.rankings);
+        }else{
+            let msg = [["No active", "game"]];
+            socket.emit('pouleDRanks', msg);
+        }
+    });
 });
 
 const PORT = process.env.PORT || 3000;
@@ -637,6 +673,7 @@ function loadGame(){
 
     startPoulesSorting();
     document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
+    io.emit('pouleInfo', exportFinalsGame(false));
 }
 
 function loadPoulGames(pouleLetter, jsonObj){
@@ -906,6 +943,7 @@ function makePoules(){
         $(document.getElementById('gameDiv')).show();
         startPoulesSorting();
         document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
+        io.emit('pouleInfo', exportGameInfo(false));
     }
 }
 
