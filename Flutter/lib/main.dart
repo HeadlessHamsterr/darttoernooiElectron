@@ -34,6 +34,14 @@ class PouleGames {
       required this.gamePlayed});
 }
 
+Widget getPouleName(pouleName) {
+  if (pouleName == 'Finales') {
+    return Text(pouleName);
+  } else {
+    return Text('Poule $pouleName');
+  }
+}
+
 class StartScreen extends StatelessWidget {
   StartScreen({Key? key}) : super(key: key);
 
@@ -192,7 +200,7 @@ class _PoulesOverviewState extends State<PoulesOverview> {
       home: Builder(builder: (context) {
         return Scaffold(
           appBar: AppBar(
-            title: const Text('Darttoernooi companion'),
+            title: const Text('Poules'),
             backgroundColor: const Color(0xFF4A0000),
             leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
@@ -204,13 +212,14 @@ class _PoulesOverviewState extends State<PoulesOverview> {
             child: Column(
               children: pouleNames.map((String data) {
                 return ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      primary: const Color(0xFF4A0000),
-                    ),
-                    onPressed: () {
-                      pouleBtnPress(data, context);
-                    },
-                    child: Text('Poule $data'));
+                  style: ElevatedButton.styleFrom(
+                    primary: const Color(0xFF4A0000),
+                  ),
+                  onPressed: () {
+                    pouleBtnPress(data, context);
+                  },
+                  child: getPouleName(data),
+                );
               }).toList(),
             ),
           ),
@@ -257,6 +266,11 @@ class _PouleScreenState extends State<PouleScreen> {
     setState(() {});
   }
 
+  void gamePressed(PouleGames game, context) {
+    Navigator.of(context).push(MaterialPageRoute(
+        builder: (BuildContext context) => PouleGame(game: game)));
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -267,7 +281,7 @@ class _PouleScreenState extends State<PouleScreen> {
         builder: (context) {
           return Scaffold(
             appBar: AppBar(
-              title: const Text('Darttoernooi companion'),
+              title: getPouleName(activePoule),
               backgroundColor: const Color(0xFF4A0000),
               leading: IconButton(
                   icon: const Icon(Icons.arrow_back),
@@ -282,24 +296,31 @@ class _PouleScreenState extends State<PouleScreen> {
             body: Center(
               child: Column(
                 children: [
-                  Column(
+                  Table(
+                    border: const TableBorder(
+                        horizontalInside: BorderSide(color: Color(0xFFE46800)),
+                        verticalInside: BorderSide(color: Color(0xFFE46800))),
+                    //defaultColumnWidth: const FixedColumnWidth(100),
+                    columnWidths: const {
+                      0: FixedColumnWidth(100),
+                      1: FixedColumnWidth(50),
+                    },
                     children: rankings.map((currentPlayer) {
-                      return Container(
-                        margin: const EdgeInsets.all(5),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: <Widget>[
-                            Text(
+                      return TableRow(
+                        children: <Widget>[
+                          Center(
+                            child: Text(
                               currentPlayer.playerName,
                               style: const TextStyle(color: Colors.white),
                             ),
-                            const SizedBox(width: 50),
-                            Text(
+                          ),
+                          Center(
+                            child: Text(
                               currentPlayer.points,
                               style: const TextStyle(color: Colors.white),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       );
                     }).toList(),
                   ),
@@ -310,7 +331,7 @@ class _PouleScreenState extends State<PouleScreen> {
                         child: Container(
                           width: 200,
                           height: 60,
-                          padding: EdgeInsets.fromLTRB(0, 10, 0, 0),
+                          padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
                           child: ElevatedButton(
                               style: ElevatedButton.styleFrom(
                                 primary: currentGame.gamePlayed
@@ -321,12 +342,16 @@ class _PouleScreenState extends State<PouleScreen> {
                                 if (currentGame.gamePlayed) {
                                   print('${currentGame.gameID} al gespeeld');
                                 } else {
-                                  print(currentGame.gameID);
+                                  gamePressed(currentGame, context);
                                 }
                               },
                               child: Text(
                                   '${currentGame.player1} - ${currentGame.player2}',
-                                  style: TextStyle(color: currentGame.gamePlayed? Colors.grey : Colors.white, fontSize: 20))),
+                                  style: TextStyle(
+                                      color: currentGame.gamePlayed
+                                          ? Colors.grey
+                                          : Colors.white,
+                                      fontSize: 20))),
                         ),
                       );
                     }).toList(),
@@ -338,5 +363,39 @@ class _PouleScreenState extends State<PouleScreen> {
         },
       ),
     );
+  }
+}
+
+class PouleGame extends StatefulWidget {
+  final PouleGames game;
+  const PouleGame({Key? key, required this.game}) : super(key: key);
+
+  @override
+  _PouleGameState createState() => _PouleGameState();
+}
+
+class _PouleGameState extends State<PouleGame> {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+        theme: ThemeData(
+          scaffoldBackgroundColor: const Color(0xFF181818),
+        ),
+        home: Builder(builder: (context) {
+          return Scaffold(
+            appBar: AppBar(
+                title: Text('${widget.game.player1} - ${widget.game.player2}'),
+                backgroundColor: const Color(0xFF4A0000),
+                leading: IconButton(
+                    icon: const Icon(Icons.arrow_back),
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                            builder: (BuildContext context) =>
+                                const PouleScreen()),
+                      );
+                    })),
+          );
+        }));
   }
 }

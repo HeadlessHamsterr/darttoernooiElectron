@@ -1076,6 +1076,17 @@ function startPoulesSorting(){
                     document.getElementById('M71Name').innerHTML = pouleA.winner;
                     document.getElementById('M72Name').innerHTML = pouleA.secondPlace;
                 }
+            }else{
+                if(numPoules >= 3){
+                    document.getElementById('M11Name').innerHTML = "";
+                    document.getElementById('M22Name').innerHTML = "";
+                }else if(numPoules == 2){
+                    document.getElementById('M51Name').innerHTML = "";
+                    document.getElementById('M62Name').innerHTML = "";
+                }else if(numPoules == 1){
+                    document.getElementById('M71Name').innerHTML = "";
+                    document.getElementById('M72Name').innerHTML = "";
+                }
             }
         }
     
@@ -1089,6 +1100,14 @@ function startPoulesSorting(){
                 }else if(numPoules == 2){
                     document.getElementById('M61Name').innerHTML = pouleB.winner;
                     document.getElementById('M52Name').innerHTML = pouleB.secondPlace;
+                }
+            }else{
+                if(numPoules >= 3){
+                    document.getElementById('M21Name').innerHTML = "";
+                    document.getElementById('M32Name').innerHTML = "";
+                }else if(numPoules == 2){
+                    document.getElementById('M61Name').innerHTML = "";
+                    document.getElementById('M52Name').innerHTML = "";
                 }
             }
         }
@@ -1104,6 +1123,14 @@ function startPoulesSorting(){
                     document.getElementById('M31Name').innerHTML = pouleC.winner;
                     document.getElementById('M12Name').innerHTML = pouleC.secondPlace;
                 }
+            }else{
+                if(numPoules == 4){
+                    document.getElementById('M31Name').innerHTML = "";
+                    document.getElementById('M42Name').innerHTML = "";
+                }else if(numPoules == 3){
+                    document.getElementById('M31Name').innerHTML = "";
+                    document.getElementById('M12Name').innerHTML = "";
+                }
             }
         }
     
@@ -1113,6 +1140,9 @@ function startPoulesSorting(){
             if(pouleD.allGamesPlayed()){
                 document.getElementById('M41Name').innerHTML = pouleD.winner;
                 document.getElementById('M12Name').innerHTML = pouleD.secondPlace;
+            }else{
+                document.getElementById('M41Name').innerHTML = "";
+                document.getElementById('M12Name').innerHTML = "";
             }
         }
 
