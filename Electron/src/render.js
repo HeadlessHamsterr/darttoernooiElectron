@@ -25,6 +25,27 @@ io.on('connection', (socket) => {
     }else{
         socket.emit('pouleInfo', "No active game");
     }
+    var msg = [];
+    var pouleTempArray = [];
+
+    if(pouleExists(pouleA)){
+        pouleTempArray.push('pouleA');
+    }
+    if(pouleExists(pouleB)){
+        pouleTempArray.push('pouleB');
+    }
+    if(pouleExists(pouleC)){
+        pouleTempArray.push('pouleC');
+    }
+    if(pouleExists(pouleD)){
+        pouleTempArray.push('pouleD');
+    }
+
+    msg.push(pouleTempArray);
+    msg.push([301, 1, 1]);
+    msg.push([501, 3, 1]);
+    socket.emit('pouleInfo', msg);
+
     socket.on('pouleAInfoRequest', (data) => {
           console.log(`Poule A Info request: ${data}`);
           if(pouleExists(pouleA)){
@@ -534,6 +555,7 @@ function drawSetup(){
     $(document.getElementById('controlBtnDiv')).show();
     $(document.getElementById('saveBtnDiv')).hide();
     $(document.getElementById('exportBtnDiv')).hide();
+    $(document.getElementById('ipAddressDiv')).hide();
 }
 
 function getGameFileName(action){
@@ -565,6 +587,7 @@ function loadGame(){
     $(document.getElementById('saveBtnDiv')).show();
     $(document.getElementById('exportBtnDiv')).show();
     $(document.getElementById('returnBtnDiv')).show();
+    $(document.getElementById('ipAddressDiv')).show();
     $(document.getElementById('mainRosterDiv')).show();
     $(document.getElementById('mainRosterSubDiv')).show();
     $(document.getElementById('gameDiv')).show();
@@ -845,6 +868,7 @@ function makePoules(){
         //$(saveBtn).show();
         $(document.getElementById('saveBtnDiv')).show();
         $(document.getElementById('exportBtnDiv')).show();
+        $(document.getElementById('ipAddressDiv')).show();
 
         var poulesDiv = document.getElementById('poulesDiv');
 

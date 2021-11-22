@@ -143,8 +143,9 @@ class _PoulesOverviewState extends State<PoulesOverview> {
 
   void updatePouleInfo(data) {
     pouleNames = [];
+    print(data);
     try {
-      numPoules = data['poules'].length;
+      numPoules = data[0].length;
       print("Number of poules: $numPoules");
       for (var i = 0; i < numPoules; i++) {
         switch (i) {
