@@ -25,7 +25,7 @@ enum ChosenPlayerEnum { player1, player2, undefined }
 List activeGameInfo = [];
 ChosenPlayerEnum activeStartingPlayer = ChosenPlayerEnum.undefined;
 double numBtnWidth = 100;
-double numBtnHeigth = 80;
+double numBtnHeigth = 70;
 
 List<String> possibleOuts = [
   'T20 T20 BULL',
@@ -231,10 +231,33 @@ var okBtnStyle = ElevatedButton.styleFrom(
   ),
   primary: const Color(0xFF014D05),
 );
-
+var numPadFontSize = 30;
 void main() {
   runApp(StartScreen());
 }
+
+class GameInfoClass {
+  int pouleScore;
+  int pouleLegs;
+  int quartScore;
+  int quartLegs;
+  int halfScore;
+  int halfLegs;
+  int finalScore;
+  int finalLegs;
+
+  GameInfoClass(
+      {this.pouleScore = 0,
+      this.pouleLegs = 0,
+      this.quartScore = 0,
+      this.quartLegs = 0,
+      this.halfScore = 0,
+      this.halfLegs = 0,
+      this.finalScore = 0,
+      this.finalLegs = 0});
+}
+
+GameInfoClass gameInfoClass = GameInfoClass();
 
 class PouleRanking {
   final String playerName;
@@ -248,12 +271,21 @@ class PouleGames {
   final String player1;
   final String player2;
   final bool gamePlayed;
+  final String gameType;
+  /*final int startingScore;
+  final int legsToPlay;
+  final int setsToPlay;*/
 
-  PouleGames(
-      {required this.gameID,
-      required this.player1,
-      required this.player2,
-      required this.gamePlayed});
+  PouleGames({
+    required this.gameID,
+    required this.player1,
+    required this.player2,
+    required this.gamePlayed,
+    required this.gameType,
+  }); /*
+      required this.startingScore,
+      required this.legsToPlay,
+      required this.setsToPlay});*/
 }
 
 Widget getPouleName(pouleName) {
@@ -362,7 +394,8 @@ class _PoulesOverviewState extends State<PoulesOverview> {
   }
 
   void updatePouleInfo(data) {
-    pouleNames = [];
+    pouleNames.clear();
+    gameInfo.clear();
     try {
       numPoules = data[0].length;
       for (var i = 0; i < numPoules; i++) {
@@ -383,9 +416,15 @@ class _PoulesOverviewState extends State<PoulesOverview> {
       }
       pouleNames.add("Finales");
 
-      gameInfo.addAll(data[1]);
-      gameInfo.addAll(data[2]);
-
+      //gameInfo.addAll(data[1]);
+      gameInfoClass.pouleScore = int.parse(data[1][0]);
+      gameInfoClass.pouleLegs = int.parse(data[1][1]);
+      gameInfoClass.quartScore = int.parse(data[1][2]);
+      gameInfoClass.quartLegs = int.parse(data[1][3]);
+      gameInfoClass.halfScore = int.parse(data[1][4]);
+      gameInfoClass.halfLegs = int.parse(data[1][5]);
+      gameInfoClass.finalScore = int.parse(data[1][6]);
+      gameInfoClass.finalLegs = int.parse(data[1][7]);
       setState(() {
         pouleNames = pouleNames;
       });
@@ -465,11 +504,12 @@ class _PouleScreenState extends State<PouleScreen> {
   @override
   void initState() {
     super.initState();
-    socket.on('poule${activePoule}Ranks', (data) => updateRanks(data));
     socket.emit('poule${activePoule}InfoRequest', 'plsGeef');
+    socket.on('poule${activePoule}Ranks', (data) => updateRanks(data));
   }
 
   void updateRanks(data) {
+    print(data);
     rankings.clear();
     for (var i = 0; i < data[0].length; i++) {
       rankings.add(PouleRanking(
@@ -484,7 +524,8 @@ class _PouleScreenState extends State<PouleScreen> {
           gameID: gameID,
           player1: data[1][i][0],
           player2: data[1][i][1],
-          gamePlayed: data[1][i][2]));
+          gamePlayed: data[1][i][2],
+          gameType: data[2]));
     }
     setState(() {});
   }
@@ -631,12 +672,17 @@ class PouleGameBody extends StatefulWidget {
 
 class _PouleGameBodyState extends State<PouleGameBody> {
   var specialBtnStyle = cBtnStyle;
+  bool gameStarted = false;
   ChosenPlayerEnum chosenPlayer = activeStartingPlayer;
   var player1Turn = true;
-  final player1Controller = TextEditingController();
-  final player2Controller = TextEditingController();
   int player1CurrentScore = 0;
+  int player1LegsWon = 0;
+  int player1SetsWon = 0;
   int player2CurrentScore = 0;
+  int player2LegsWon = 0;
+  int player2SetsWon = 0;
+  int setsToPlay = 0;
+  int legsToPlay = 0;
   String player1PossibleOut = '';
   String player2PossibleOut = '';
   String player1ThrownScore = '';
@@ -658,20 +704,44 @@ class _PouleGameBodyState extends State<PouleGameBody> {
     if (newGame) {
       activeGameInfo.clear();
       activeGameInfo.add(widget.game.gameID);
-      if (widget.game.gameID[0] != 'M') {
-        player1CurrentScore = 301;
-        player2CurrentScore = 301;
+      if (widget.game.gameType == 'poule') {
+        player2CurrentScore = player1CurrentScore = gameInfoClass.pouleScore;
+        activeGameInfo.add(gameInfoClass.pouleScore);
+        legsToPlay = gameInfoClass.pouleLegs;
+      } else if (widget.game.gameType == 'quart') {
+        player2CurrentScore = player1CurrentScore = gameInfoClass.quartScore;
+        activeGameInfo.add(gameInfoClass.quartScore);
+        legsToPlay = gameInfoClass.quartLegs;
+      } else if (widget.game.gameType == 'half') {
+        player2CurrentScore = player1CurrentScore = gameInfoClass.halfScore;
+        activeGameInfo.add(gameInfoClass.halfScore);
+        legsToPlay = gameInfoClass.halfLegs;
       } else {
-        player1CurrentScore = 501;
-        player2CurrentScore = 501;
+        player2CurrentScore = player1CurrentScore = gameInfoClass.finalScore;
+        activeGameInfo.add(gameInfoClass.finalScore);
+        legsToPlay = gameInfoClass.finalLegs;
       }
       activeGameInfo.add(player1CurrentScore);
       activeGameInfo.add(player2CurrentScore);
+      activeGameInfo.add(player1LegsWon);
+      activeGameInfo.add(player1SetsWon);
+      activeGameInfo.add(player2LegsWon);
+      activeGameInfo.add(player2SetsWon);
+      activeGameInfo.add(legsToPlay);
+      activeGameInfo.add(setsToPlay);
       activeStartingPlayer = ChosenPlayerEnum.undefined;
       chosenPlayer = activeStartingPlayer;
     } else {
-      player1CurrentScore = activeGameInfo[1];
-      player2CurrentScore = activeGameInfo[2];
+      player1CurrentScore = activeGameInfo[2];
+      player2CurrentScore = activeGameInfo[3];
+
+      player1LegsWon = activeGameInfo[4];
+      player1SetsWon = activeGameInfo[5];
+      player2LegsWon = activeGameInfo[6];
+      player2SetsWon = activeGameInfo[7];
+
+      legsToPlay = activeGameInfo[8];
+      setsToPlay = activeGameInfo[9];
     }
   }
 
@@ -697,6 +767,25 @@ class _PouleGameBodyState extends State<PouleGameBody> {
               player1Turn = false;
               player2ThrownScore = '';
             }
+
+            if (player1CurrentScore == 0) {
+              player1LegsWon++;
+              if (player1LegsWon > (legsToPlay - player1LegsWon)) {
+                player1SetsWon++;
+                if (player1SetsWon > (setsToPlay - player1SetsWon)) {
+                  print("Alle sets gespeeld");
+                  endGame(widget.game.player1);
+                } else {
+                  resetGame();
+                }
+              } else {
+                resetGame();
+              }
+            } else if (170 - player1CurrentScore >= 0) {
+              player1PossibleOut = possibleOuts[170 - player1CurrentScore];
+            } else {
+              player1PossibleOut = '';
+            }
           }
         } else {
           if (player2ThrownScore == '') {
@@ -716,6 +805,25 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             } else {
               player1Turn = true;
               player1ThrownScore = '';
+            }
+
+            if (player2CurrentScore == 0) {
+              player2LegsWon++;
+              if (player2LegsWon > (legsToPlay - player2LegsWon)) {
+                player2SetsWon++;
+                if (player2SetsWon > (setsToPlay - player2SetsWon)) {
+                  print("Alle sets gespeeld");
+                  endGame(widget.game.player2);
+                } else {
+                  resetGame();
+                }
+              } else {
+                resetGame();
+              }
+            } else if (170 - player2CurrentScore >= 0) {
+              player2PossibleOut = possibleOuts[170 - player2CurrentScore];
+            } else {
+              player2PossibleOut = '';
             }
           }
         }
@@ -763,25 +871,84 @@ class _PouleGameBodyState extends State<PouleGameBody> {
         break;
     }
     setState(() {
-      if (170 - player2CurrentScore >= 0) {
-        player2PossibleOut = possibleOuts[170 - player2CurrentScore];
-      }
-
-      if (170 - player1CurrentScore >= 0) {
-        player1PossibleOut = possibleOuts[170 - player1CurrentScore];
-      }
+      null;
     });
+  }
+
+  void endGame(String winner) {
+    showDialog<String>(
+      context: widget.context,
+      builder: (BuildContext context) => AlertDialog(
+        title: Text("Heeft $winner de wedstrijd gewonnen?"),
+        content: Text("$winner heeft de wedstrijd in 69 darts uitgegooid."),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () {
+              print("Geanulleerd.");
+              Navigator.pop(context, 'Cancel');
+            },
+            child: const Text("Annuleren"),
+          ),
+          TextButton(
+            onPressed: () {
+              String msg =
+                  "${widget.game.gameID},${player1LegsWon.toString()},${player2LegsWon.toString()}";
+              socket.emit('gamePlayed', msg);
+              Navigator.pop(context, 'Bevestigd');
+              Navigator.of(widget.context).push(
+                MaterialPageRoute(
+                    builder: (BuildContext context) => const PouleScreen()),
+              );
+            },
+            child: const Text("Bevestigen"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void resetGame() {
+    player1CurrentScore = activeGameInfo[1];
+    player1PossibleOut = '';
+    player1ThrownScore = '';
+    player2CurrentScore = activeGameInfo[1];
+    player2PossibleOut = '';
+    player2ThrownScore = '';
+
+    int legsPlayed = player1LegsWon + player2LegsWon;
+
+    if (legsPlayed % 2 == 0) {
+      if (chosenPlayer == ChosenPlayerEnum.player1) {
+        player1Turn = true;
+      } else {
+        player1Turn = false;
+      }
+    } else {
+      if (chosenPlayer == ChosenPlayerEnum.player1) {
+        player1Turn = false;
+      } else {
+        player1Turn = true;
+      }
+    }
   }
 
   Widget bodyContainer() {
     activeStartingPlayer = chosenPlayer;
-    switch (chosenPlayer) {
-      case ChosenPlayerEnum.player1:
-        return playerChosen(widget.game.player1);
-      case ChosenPlayerEnum.player2:
-        return playerChosen(widget.game.player2);
-      case ChosenPlayerEnum.undefined:
-        return defaultLayout();
+    if (!gameStarted) {
+      switch (chosenPlayer) {
+        case ChosenPlayerEnum.player1:
+          player1Turn = true;
+          gameStarted = true;
+          return playerChosen(widget.game.player1);
+        case ChosenPlayerEnum.player2:
+          player1Turn = false;
+          gameStarted = true;
+          return playerChosen(widget.game.player2);
+        case ChosenPlayerEnum.undefined:
+          return defaultLayout();
+      }
+    } else {
+      return playerChosen(widget.game.player1);
     }
   }
 
@@ -789,6 +956,86 @@ class _PouleGameBodyState extends State<PouleGameBody> {
     return Center(
       child: Column(
         children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                widget.game.player1,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                ),
+              ),
+              Table(
+                defaultColumnWidth: const FixedColumnWidth(50),
+                children: [
+                  TableRow(children: <Widget>[
+                    Center(
+                      child: Text(
+                        player1SetsWon.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                        ),
+                      ),
+                    ),
+                    const Center(
+                      child: Text(
+                        "Sets",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                        ),
+                      ),
+                    ),
+                    Center(
+                      child: Text(
+                        player2SetsWon.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                        ),
+                      ),
+                    ),
+                  ]),
+                  TableRow(children: <Widget>[
+                    Center(
+                      child: Text(
+                        player1LegsWon.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                        ),
+                      ),
+                    ),
+                    const Center(
+                      child: Text(
+                        "Legs",
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                        ),
+                      ),
+                    ),
+                    Center(
+                      child: Text(
+                        player2LegsWon.toString(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                        ),
+                      ),
+                    ),
+                  ])
+                ],
+              ),
+              Text(widget.game.player2,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                  )),
+            ],
+          ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
@@ -877,7 +1124,10 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                     onPressed: () {
                       btnPress('1');
                     },
-                    child: const Text('1')),
+                    child: const Text(
+                      '1',
+                      style: TextStyle(fontSize: 20),
+                    )),
               ),
               SizedBox(
                 width: numBtnWidth,
@@ -887,7 +1137,10 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                     onPressed: () {
                       btnPress('2');
                     },
-                    child: const Text('2')),
+                    child: const Text(
+                      '2',
+                      style: TextStyle(fontSize: 20),
+                    )),
               ),
               SizedBox(
                 width: numBtnWidth,
@@ -897,7 +1150,10 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                     onPressed: () {
                       btnPress('3');
                     },
-                    child: const Text('3')),
+                    child: const Text(
+                      '3',
+                      style: TextStyle(fontSize: 20),
+                    )),
               ),
             ],
           ),
@@ -915,7 +1171,10 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                     onPressed: () {
                       btnPress('4');
                     },
-                    child: const Text('4')),
+                    child: const Text(
+                      '4',
+                      style: TextStyle(fontSize: 20),
+                    )),
               ),
               SizedBox(
                 width: numBtnWidth,
@@ -925,7 +1184,10 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                     onPressed: () {
                       btnPress('5');
                     },
-                    child: const Text('5')),
+                    child: const Text(
+                      '5',
+                      style: TextStyle(fontSize: 20),
+                    )),
               ),
               SizedBox(
                 width: numBtnWidth,
@@ -935,7 +1197,10 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                     onPressed: () {
                       btnPress('6');
                     },
-                    child: const Text('6')),
+                    child: const Text(
+                      '6',
+                      style: TextStyle(fontSize: 20),
+                    )),
               ),
             ],
           ),
@@ -953,7 +1218,10 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                     onPressed: () {
                       btnPress('7');
                     },
-                    child: const Text('7')),
+                    child: const Text(
+                      '7',
+                      style: TextStyle(fontSize: 20),
+                    )),
               ),
               SizedBox(
                 width: numBtnWidth,
@@ -963,7 +1231,10 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                     onPressed: () {
                       btnPress('8');
                     },
-                    child: const Text('8')),
+                    child: const Text(
+                      '8',
+                      style: TextStyle(fontSize: 20),
+                    )),
               ),
               SizedBox(
                 width: numBtnWidth,
@@ -973,7 +1244,10 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                     onPressed: () {
                       btnPress('9');
                     },
-                    child: const Text('9')),
+                    child: const Text(
+                      '9',
+                      style: TextStyle(fontSize: 20),
+                    )),
               ),
             ],
           ),
@@ -991,7 +1265,10 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                     onPressed: () {
                       btnPress(specialBtnText);
                     },
-                    child: Text(specialBtnText)),
+                    child: Text(
+                      specialBtnText,
+                      style: const TextStyle(fontSize: 20),
+                    )),
               ),
               SizedBox(
                 width: numBtnWidth,
@@ -1001,7 +1278,10 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                     onPressed: () {
                       btnPress('0');
                     },
-                    child: const Text('0')),
+                    child: const Text(
+                      '0',
+                      style: TextStyle(fontSize: 20),
+                    )),
               ),
               SizedBox(
                 width: numBtnWidth,
@@ -1011,7 +1291,10 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                     onPressed: () {
                       btnPress('OK');
                     },
-                    child: const Text('OK')),
+                    child: const Text(
+                      'OK',
+                      style: TextStyle(fontSize: 20),
+                    )),
               ),
             ],
           ),
