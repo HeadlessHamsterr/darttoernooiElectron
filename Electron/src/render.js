@@ -17,6 +17,8 @@ const io = require('socket.io')(httpServer, {
     allowEIO3: true
 });
 
+var numPlayers = 0;
+var numPoules = 0;
 var appSettings = [];
 
 io.on('connection', (socket) => {
@@ -96,7 +98,8 @@ io.on('connection', (socket) => {
             socket.emit('pouleDRanks', msg);
         }
     });
-
+    socket.on('finalsInfoRequest', (data) => {
+    })
     socket.on('gamePlayed', (data) => {
         var dataArray = data.split(',');
         console.log(`Game played: ${dataArray}`);
@@ -112,9 +115,6 @@ const PORT = process.env.PORT || 3000;
 httpServer.listen(PORT, () => {
   console.log(`server listening at http://${address()}:${PORT}`);
 });
-
-var numPlayers = 0;
-var numPoules = 0;
 
 var players = [];
 
@@ -737,7 +737,6 @@ function loadGame(){
 
     startPoulesSorting();
     document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
-    io.emit('pouleInfo', exportFinalsGame(false));
 }
 
 function loadPoulGames(pouleLetter, jsonObj){
