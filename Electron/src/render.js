@@ -17,14 +17,15 @@ const io = require('socket.io')(httpServer, {
     allowEIO3: true
 });
 
+var appSettings = [];
+
 io.on('connection', (socket) => {
     console.log("Websocket connection astablished");
-    socket.emit('welcome-message', "Wattup bitch!");
-    if(pouleExists(pouleA) || pouleExists(pouleB) || pouleExists(pouleC) || pouleExists(pouleD)){
+    /*if(pouleExists(pouleA) || pouleExists(pouleB) || pouleExists(pouleC) || pouleExists(pouleD)){
         socket.emit('pouleInfo', exportGameInfo(false));
     }else{
         socket.emit('pouleInfo', "No active game");
-    }
+    }*/
     var msg = [];
     var pouleTempArray = [];
 
@@ -42,16 +43,18 @@ io.on('connection', (socket) => {
     }
 
     msg.push(pouleTempArray);
-    msg.push([301, 1, 1]);
-    msg.push([501, 3, 1]);
+    msg.push(appSettings);
+    console.log(`Pouleinfo msg: ${msg}`);
+    console.log(appSettings);
     socket.emit('pouleInfo', msg);
 
     socket.on('pouleAInfoRequest', (data) => {
           console.log(`Poule A Info request: ${data}`);
           if(pouleExists(pouleA)){
-                var msg = [pouleA.rankings, pouleA.sendPouleGames()];
-                console.log(msg);
+                pouleA.updatePoints();
+                let msg = [pouleA.rankings, pouleA.sendPouleGames(), 'poule'];
                 socket.emit('pouleARanks', msg);
+                console.log(msg);
           }else{
                 let msg = [["No active", "game"]];
                 socket.emit('pouleARanks', msg);
@@ -60,7 +63,8 @@ io.on('connection', (socket) => {
     socket.on('pouleBInfoRequest', (data) => {
           console.log(`Poule B Info request: ${data}`);
           if(pouleExists(pouleB)){
-            var msg = [pouleB.rankings, pouleB.sendPouleGames()];
+            pouleB.updatePoints();
+            var msg = [pouleB.rankings, pouleB.sendPouleGames(), 'poule'];
             console.log(msg);
             socket.emit('pouleBRanks', msg);
           }else{
@@ -71,7 +75,8 @@ io.on('connection', (socket) => {
     socket.on('pouleCInfoRequest', (data) => {
         console.log(`Poule C Info request: ${data}`);
         if(pouleExists(pouleC)){
-            var msg = [pouleC.rankings, pouleC.sendPouleGames()];
+            pouleC.updatePoints();
+            var msg = [pouleC.rankings, pouleC.sendPouleGames(), 'poule'];
             console.log(msg);
             socket.emit('pouleCRanks', msg);
         }else{
@@ -82,13 +87,23 @@ io.on('connection', (socket) => {
     socket.on('pouleDInfoRequest', (data) => {
         console.log(`Poule D Info request: ${data}`);
         if(pouleExists(pouleD)){
-            var msg = [pouleD.rankings, pouleD.sendPouleGames()];
+            pouleD.updatePoints();
+            var msg = [pouleD.rankings, pouleD.sendPouleGames(), 'poule'];
             console.log(msg);
             socket.emit('pouleDRanks', msg);
         }else{
             let msg = [["No active", "game"]];
             socket.emit('pouleDRanks', msg);
         }
+    });
+
+    socket.on('gamePlayed', (data) => {
+        var dataArray = data.split(',');
+        console.log(`Game played: ${dataArray}`);
+        console.log(dataArray[1]);
+        console.log(typeof(dataArray));
+        document.getElementById(`game${dataArray[0]}1Score`).value = dataArray[1];
+        document.getElementById(`game${dataArray[0]}2Score`).value = dataArray[2];
     });
 });
 
@@ -286,8 +301,6 @@ class pouleGames{
             }
         }*/
         if(JSON.stringify(this.rankings) != JSON.stringify(this.lastRankings)){
-            console.log(this.rankings);
-            io.emit(`poule${this.pouleNum}Ranks`, [this.rankings, this.sendPouleGames()]);
             this.lastRankings = JSON.parse(JSON.stringify(this.rankings));
         }
     }
@@ -532,6 +545,7 @@ function returnToHome(){
     pouleD.reset();
 
     players = [];
+    appSettings = [];
     numPlayers = 0;
     numPoules = 0;
 
@@ -816,6 +830,16 @@ function getGameInfo(){
 
         console.log(`Number of total players: ${numPlayers}`);
         console.log(`Number of poules: ${numPoules}`);
+        
+        appSettings.push(document.getElementById('pouleScoreSelect').value);
+        console.log(`PouleScoreSelect: ${document.getElementById('pouleScoreSelect').value}`);
+        appSettings.push(document.getElementById('pouleLegSelect').value);
+        appSettings.push(document.getElementById('quartScoreSelect').value);
+        appSettings.push(document.getElementById('quartLegSelect').value);
+        appSettings.push(document.getElementById('halfScoreSelect').value);
+        appSettings.push(document.getElementById('halfLegSelect').value);
+        appSettings.push(document.getElementById('finalScoreSelect').value);
+        appSettings.push(document.getElementById('finalLegSelect').value);
 
         //$(document.getElementById('gameSetup')).hide();
         $(document.getElementById('gameSetup')).hide();
@@ -823,6 +847,7 @@ function getGameInfo(){
         $(document.getElementById('playerInputSubDiv')).show();
         $(document.getElementById('controlBtnDiv')).show();
         $(document.getElementById('returnBtnDiv')).show();
+
 
         var playerInputForm = document.getElementById('playerInputForm');
 
