@@ -9,6 +9,7 @@ const { default: jsPDF } = require('jspdf');
 const {address} = require('ip');
 const { PassThrough } = require('stream');
 const httpServer = require('http').createServer();
+const {createHttpTerminator} = require('http-terminator');
 const io = require('socket.io')(httpServer, {
     cors: {
         methods: ["GET", "POST"],
@@ -17,39 +18,42 @@ const io = require('socket.io')(httpServer, {
     allowEIO3: true
 });
 
+const sockets = new Set();
 var numPlayers = 0;
 var numPoules = 0;
 var appSettings = [];
 
 io.on('connection', (socket) => {
+    sockets.add(socket);
     console.log("Websocket connection astablished");
     /*if(pouleExists(pouleA) || pouleExists(pouleB) || pouleExists(pouleC) || pouleExists(pouleD)){
         socket.emit('pouleInfo', exportGameInfo(false));
     }else{
         socket.emit('pouleInfo', "No active game");
     }*/
-    var msg = [];
-    var pouleTempArray = [];
-
-    if(pouleExists(pouleA)){
-        pouleTempArray.push('pouleA');
-    }
-    if(pouleExists(pouleB)){
-        pouleTempArray.push('pouleB');
-    }
-    if(pouleExists(pouleC)){
-        pouleTempArray.push('pouleC');
-    }
-    if(pouleExists(pouleD)){
-        pouleTempArray.push('pouleD');
-    }
-
-    msg.push(pouleTempArray);
-    msg.push(appSettings);
-    console.log(`Pouleinfo msg: ${msg}`);
-    console.log(appSettings);
-    socket.emit('pouleInfo', msg);
-
+    socket.on('allPouleInfoRequest', (data) => {
+        var msg = [];
+        var pouleTempArray = [];
+        
+        if(pouleExists(pouleA)){
+            pouleTempArray.push('pouleA');
+        }
+        if(pouleExists(pouleB)){
+            pouleTempArray.push('pouleB');
+        }
+        if(pouleExists(pouleC)){
+            pouleTempArray.push('pouleC');
+        }
+        if(pouleExists(pouleD)){
+            pouleTempArray.push('pouleD');
+        }
+    
+        msg.push(pouleTempArray);
+        msg.push(appSettings);
+        console.log(`Pouleinfo msg: ${msg}`);
+        console.log(appSettings);
+        socket.emit('pouleInfo', msg);
+    })
     socket.on('pouleAInfoRequest', (data) => {
           console.log(`Poule A Info request: ${data}`);
           if(pouleExists(pouleA)){
@@ -99,22 +103,61 @@ io.on('connection', (socket) => {
         }
     });
     socket.on('finalsInfoRequest', (data) => {
+        var finalsMsg = [];
+        switch(numPoules){
+            case 4:
+                for(let i = 0; i < 7; i++){
+                    var gameType = '';
+
+                    if(4 < i < 0){
+                        gameType = 'quart';
+                    }else if(6 < i < 3){
+                        gameType = 'half';
+                    }else{
+                        gameType = 'final';
+                    }
+
+                    finalsMsg.push(finalsGameToApp(i+1, gameType));
+                }
+                break;
+            case 3:
+                finalsMsg.push(finalsGameToApp(1, 'quart'));
+                finalsMsg.push(finalsGameToApp(2, 'quart'));
+                finalsMsg.push(finalsGameToApp(3, 'quart'));
+                finalsMsg.push(finalsGameToApp(5, 'half'));
+                finalsMsg.push(finalsGameToApp(7, 'final'));
+                break;
+            case 2:
+                finalsMsg.push(finalsGameToApp(5, 'half'));
+                finalsMsg.push(finalsGameToApp(6, 'half'));
+                finalsMsg.push(finalsGameToApp(7, 'final'));
+                break;
+            case 1:
+                finalsMsg.push(finalsGameToApp(7, 'final'));
+                break;
+        }
+        socket.emit('finalsInfo', finalsMsg);
     })
     socket.on('gamePlayed', (data) => {
         var dataArray = data.split(',');
         console.log(`Game played: ${dataArray}`);
         console.log(dataArray[1]);
         console.log(typeof(dataArray));
-        document.getElementById(`game${dataArray[0]}1Score`).value = dataArray[1];
-        document.getElementById(`game${dataArray[0]}2Score`).value = dataArray[2];
+        if(dataArray[0][0] == 'M'){
+            document.getElementById(`${dataArray[0]}1Score`).value = dataArray[1];
+            document.getElementById(`${dataArray[0]}2Score`).value = dataArray[2];
+        }else{
+            document.getElementById(`game${dataArray[0]}1Score`).value = dataArray[1];
+            document.getElementById(`game${dataArray[0]}2Score`).value = dataArray[2];
+        }
     });
 });
 
 const PORT = process.env.PORT || 3000;
 
-httpServer.listen(PORT, () => {
+/*httpServer.listen(PORT, () => {
   console.log(`server listening at http://${address()}:${PORT}`);
-});
+});*/
 
 var players = [];
 
@@ -302,6 +345,9 @@ class pouleGames{
         }*/
         if(JSON.stringify(this.rankings) != JSON.stringify(this.lastRankings)){
             this.lastRankings = JSON.parse(JSON.stringify(this.rankings));
+            let msg = [this.rankings, this.sendPouleGames(), 'poule'];
+            console.log(`Sending message: ${msg}`);
+            io.emit(`poule${this.pouleNum}Ranks`, msg);
         }
     }
 
@@ -526,6 +572,12 @@ let pouleC = new pouleGames("C");
 let pouleD = new pouleGames("D");
 
 function returnToHome(){
+    for(const socket in sockets){
+        socket.destroy();
+        sockets.delete(socket);
+    }
+    httpServer.close();
+
     document.getElementById('numPlayers').value = null;
     document.getElementById('numPoules').value = null;
     $("#playerInputForm").empty();
@@ -1018,6 +1070,9 @@ function makePoules(){
         $(document.getElementById('gameDiv')).show();
         startPoulesSorting();
         document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
+        httpServer.listen(PORT, () => {
+            console.log(`Server listening on http://${address()}:${PORT}`);
+        });
         io.emit('pouleInfo', exportGameInfo(false));
     }
 }
@@ -1249,6 +1304,28 @@ function pouleExists(poule){
     }else{
         return false;
     }
+}
+
+function finalsGameToApp(gameNum, gameType){
+    var tempArray = [];
+    var gamePlayed = false;
+    let player1Name = document.getElementById(`M${gameNum}1Name`).innerHTML;
+    let player2Name = document.getElementById(`M${gameNum}2Name`).innerHTML;
+
+    let player1Score = parseInt(document.getElementById(`M${gameNum}1Score`).value);
+    let player2Score = parseInt(document.getElementById(`M${gameNum}2Score`).value);
+
+    if(!isNaN(player1Score) || !isNaN(player2Score)){
+        gamePlayed = true;
+    }
+
+    tempArray.push(`M${gameNum}`);
+    tempArray.push(player1Name);
+    tempArray.push(player2Name);
+    tempArray.push(gamePlayed);
+    tempArray.push(gameType);
+
+    return tempArray;
 }
 
 function exportFinalsGame(gameNum){

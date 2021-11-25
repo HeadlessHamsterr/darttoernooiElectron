@@ -309,11 +309,17 @@ class StartScreen extends StatelessWidget {
       'autoConnect': false
     });
     socket.connect();
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('Verbinding maken...'),
+      duration: Duration(days: 365),
+    ));
     socket.onConnect((_) {
       socket.emit('clientGreeting', 'yoBitch');
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      Navigator.of(context).push(MaterialPageRoute(
+          builder: (BuildContext context) =>
+              PoulesOverview(serverIP: serverIP)));
     });
-    Navigator.of(context).push(MaterialPageRoute(
-        builder: (BuildContext context) => PoulesOverview(serverIP: serverIP)));
   }
 
   @override
@@ -391,6 +397,7 @@ class _PoulesOverviewState extends State<PoulesOverview> {
 
   void connectWebsocket() {
     socket.on('pouleInfo', (data) => updatePouleInfo(data));
+    socket.emit('allPouleInfoRequest', 'plsGeef');
   }
 
   void updatePouleInfo(data) {
@@ -504,12 +511,16 @@ class _PouleScreenState extends State<PouleScreen> {
   @override
   void initState() {
     super.initState();
-    socket.emit('poule${activePoule}InfoRequest', 'plsGeef');
+    if (activePoule != 'Finales') {
+      socket.emit('poule${activePoule}InfoRequest', 'plsGeef');
+    } else {
+      socket.emit('finalsInfoRequest', 'plsGeef');
+    }
     socket.on('poule${activePoule}Ranks', (data) => updateRanks(data));
+    socket.on('finalsInfo', (data) => updateFinals(data));
   }
 
   void updateRanks(data) {
-    print(data);
     rankings.clear();
     for (var i = 0; i < data[0].length; i++) {
       rankings.add(PouleRanking(
@@ -526,6 +537,22 @@ class _PouleScreenState extends State<PouleScreen> {
           player2: data[1][i][1],
           gamePlayed: data[1][i][2],
           gameType: data[2]));
+    }
+    setState(() {});
+  }
+
+  void updateFinals(data) {
+    games.clear();
+    for (var i = 0; i < data.length; i++) {
+      String gameID = data[i][0];
+      games.add(
+        PouleGames(
+            gameID: gameID,
+            player1: data[i][1],
+            player2: data[i][2],
+            gamePlayed: data[i][3],
+            gameType: data[i][4]),
+      );
     }
     setState(() {});
   }
@@ -773,7 +800,6 @@ class _PouleGameBodyState extends State<PouleGameBody> {
               if (player1LegsWon > (legsToPlay - player1LegsWon)) {
                 player1SetsWon++;
                 if (player1SetsWon > (setsToPlay - player1SetsWon)) {
-                  print("Alle sets gespeeld");
                   endGame(widget.game.player1);
                 } else {
                   resetGame();
@@ -812,7 +838,6 @@ class _PouleGameBodyState extends State<PouleGameBody> {
               if (player2LegsWon > (legsToPlay - player2LegsWon)) {
                 player2SetsWon++;
                 if (player2SetsWon > (setsToPlay - player2SetsWon)) {
-                  print("Alle sets gespeeld");
                   endGame(widget.game.player2);
                 } else {
                   resetGame();
@@ -848,7 +873,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
         break;
       default:
         if (player1Turn) {
-          if (player1ThrownScore.toString().length == 3) {
+          if ((player1ThrownScore+btnType).toString().length > 3) {
             break;
           } else {
             if (player1ThrownScore == '0') {
@@ -858,7 +883,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             }
           }
         } else {
-          if (player2ThrownScore.toString().length == 3) {
+          if ((player2ThrownScore+btnType).toString().length > 3) {
             break;
           } else {
             if (player2ThrownScore == '0') {
@@ -884,7 +909,6 @@ class _PouleGameBodyState extends State<PouleGameBody> {
         actions: <Widget>[
           TextButton(
             onPressed: () {
-              print("Geanulleerd.");
               Navigator.pop(context, 'Cancel');
             },
             child: const Text("Annuleren"),
@@ -1306,12 +1330,16 @@ class _PouleGameBodyState extends State<PouleGameBody> {
               ),
               SizedBox(
                 width: 300,
+                height: 60,
                 child: ElevatedButton(
                   style: numBtnStyle,
                   onPressed: () {
                     btnPress('26');
                   },
-                  child: const Text("Standaard"),
+                  child: const Text(
+                    "Standaard", 
+                    style: TextStyle(fontSize: 20,),
+                  ),
                 ),
               ),
             ],
