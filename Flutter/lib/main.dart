@@ -678,6 +678,33 @@ class PouleGame extends StatelessWidget {
   final PouleGames game;
   const PouleGame({Key? key, required this.game}) : super(key: key);
 
+  void backPressed(context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: const Text("Wedstrijd sluiten"),
+        content: const Text("Weet je zeker dat je de wedstrijd wil sluiten?\nAlle voortgang wordt verwijderd."),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context, 'Cancel');
+            },
+            child: const Text("Annuleren"),
+          ),
+          TextButton(
+            onPressed: (){
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (BuildContext context) => const PouleScreen()),
+              );
+            }, 
+          child: const Text("Wedstrijd sluiten"),
+          ),
+        ],
+      ),
+    );
+    
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -693,10 +720,7 @@ class PouleGame extends StatelessWidget {
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                        builder: (BuildContext context) => const PouleScreen()),
-                  );
+                  backPressed(context);
                 },
               ),
             ),
@@ -730,57 +754,35 @@ class _PouleGameBodyState extends State<PouleGameBody> {
   @override
   void initState() {
     super.initState();
-    bool newGame = false;
-    try {
-      if (widget.game.gameID != activeGameInfo[0]) {
-        newGame = true;
-      }
-    } catch (e) {
-      newGame = true;
-    }
-
-    if (newGame) {
-      activeGameInfo.clear();
-      activeGameInfo.add(widget.game.gameID);
-      if (widget.game.gameType == 'poule') {
-        player2.currentScore = player1.currentScore = gameInfoClass.pouleScore;
-        activeGameInfo.add(gameInfoClass.pouleScore);
-        legsToPlay = gameInfoClass.pouleLegs;
-      } else if (widget.game.gameType == 'quart') {
-        player2.currentScore = player1.currentScore = gameInfoClass.quartScore;
-        activeGameInfo.add(gameInfoClass.quartScore);
-        legsToPlay = gameInfoClass.quartLegs;
-      } else if (widget.game.gameType == 'half') {
-        player2.currentScore = player1.currentScore = gameInfoClass.halfScore;
-        activeGameInfo.add(gameInfoClass.halfScore);
-        legsToPlay = gameInfoClass.halfLegs;
-      } else {
-        player2.currentScore = player1.currentScore = gameInfoClass.finalScore;
-        activeGameInfo.add(gameInfoClass.finalScore);
-        legsToPlay = gameInfoClass.finalLegs;
-      }
-      activeGameInfo.add(player1.currentScore);
-      activeGameInfo.add(player2.currentScore);
-      activeGameInfo.add(player1.legsWon);
-      activeGameInfo.add(player1.setsWon);
-      activeGameInfo.add(player2.legsWon);
-      activeGameInfo.add(player2.setsWon);
-      activeGameInfo.add(legsToPlay);
-      activeGameInfo.add(setsToPlay);
-      activeStartingPlayer = ChosenPlayerEnum.undefined;
-      chosenPlayer = activeStartingPlayer;
+    activeGameInfo.clear();
+    activeGameInfo.add(widget.game.gameID);
+    if (widget.game.gameType == 'poule') {
+      player2.currentScore = player1.currentScore = gameInfoClass.pouleScore;
+      activeGameInfo.add(gameInfoClass.pouleScore);
+      legsToPlay = gameInfoClass.pouleLegs;
+    } else if (widget.game.gameType == 'quart') {
+      player2.currentScore = player1.currentScore = gameInfoClass.quartScore;
+      activeGameInfo.add(gameInfoClass.quartScore);
+      legsToPlay = gameInfoClass.quartLegs;
+    } else if (widget.game.gameType == 'half') {
+      player2.currentScore = player1.currentScore = gameInfoClass.halfScore;
+      activeGameInfo.add(gameInfoClass.halfScore);
+      legsToPlay = gameInfoClass.halfLegs;
     } else {
-      player1.currentScore = activeGameInfo[2];
-      player2.currentScore = activeGameInfo[3];
-
-      player1.legsWon = activeGameInfo[4];
-      player1.setsWon = activeGameInfo[5];
-      player2.legsWon = activeGameInfo[6];
-      player2.setsWon = activeGameInfo[7];
-
-      legsToPlay = activeGameInfo[8];
-      setsToPlay = activeGameInfo[9];
+      player2.currentScore = player1.currentScore = gameInfoClass.finalScore;
+      activeGameInfo.add(gameInfoClass.finalScore);
+      legsToPlay = gameInfoClass.finalLegs;
     }
+    activeGameInfo.add(player1.currentScore);
+    activeGameInfo.add(player2.currentScore);
+    activeGameInfo.add(player1.legsWon);
+    activeGameInfo.add(player1.setsWon);
+    activeGameInfo.add(player2.legsWon);
+    activeGameInfo.add(player2.setsWon);
+    activeGameInfo.add(legsToPlay);
+    activeGameInfo.add(setsToPlay);
+    activeStartingPlayer = ChosenPlayerEnum.undefined;
+    chosenPlayer = activeStartingPlayer;
   }
 
   void btnPress(String btnType) {
