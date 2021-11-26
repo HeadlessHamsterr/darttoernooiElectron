@@ -671,6 +671,9 @@ function loadGame(){
     });
     let jsonObj = JSON.parse(jsonString);
 
+    appSettings = jsonObj['appSettings'][0];
+    console.log(appSettings);
+
     numPoules = jsonObj["poules"].length;
 
     numPlayers = 0;
@@ -789,6 +792,10 @@ function loadGame(){
 
     startPoulesSorting();
     document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
+    httpServer.listen(PORT, () => {
+        console.log(`Server listening on http://${address()}:${PORT}`);
+    });
+    io.emit('pouleInfo', exportGameInfo(false));
 }
 
 function loadPoulGames(pouleLetter, jsonObj){
@@ -1317,6 +1324,8 @@ function finalsGameToApp(gameNum, gameType){
 
     if(!isNaN(player1Score) || !isNaN(player2Score)){
         gamePlayed = true;
+    }else if(player1Name == "" || player2Name == ""){
+        gamePlayed = true;
     }
 
     tempArray.push(`M${gameNum}`);
@@ -1352,7 +1361,7 @@ function exportGameInfo(writeToFile = true){
         }
     }
 
-    var jsonObj = {"poules":[], "games":[]};
+    var jsonObj = {"poules":[], "games":[], "appSettings":[]};
 
     if(pouleExists(pouleA)){
         jsonObj["poules"].push({"pouleA":[]})
@@ -1600,6 +1609,8 @@ function exportGameInfo(writeToFile = true){
             }
         break;
     }
+
+    jsonObj['appSettings'].push(appSettings);
 
     if(writeToFile){
         fs.writeFile(path.resolve(gameFileName), JSON.stringify(jsonObj, null, 4), function(err){
