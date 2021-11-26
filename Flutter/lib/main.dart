@@ -14,6 +14,7 @@ import 'package:flutter/rendering.dart';
 // ignore: library_prefixes
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:test/constants.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 
 String serverIP = '192.168.1.14';
 String activePoule = '';
@@ -259,6 +260,23 @@ class GameInfoClass {
 
 GameInfoClass gameInfoClass = GameInfoClass();
 
+class PlayerClass {
+  bool myTurn;
+  int currentScore;
+  int legsWon;
+  int setsWon;
+  String possibleOut;
+  String thrownScore;
+
+  PlayerClass(
+      {this.myTurn = false,
+      this.currentScore = 0,
+      this.legsWon = 0,
+      this.setsWon = 0,
+      this.thrownScore = '',
+      this.possibleOut = ''});
+}
+
 class PouleRanking {
   final String playerName;
   final String points;
@@ -303,7 +321,7 @@ class StartScreen extends StatelessWidget {
 
   void enterIP(context) {
     serverIP = ipAddressController.text;
-    socket = IO.io('http://$serverIP:3000', <String, dynamic>{
+    socket = IO.io('ws://$serverIP:3000', <String, dynamic>{
       'transports': ['websocket'],
       'force new connection': true,
       'autoConnect': false
@@ -634,8 +652,9 @@ class _PouleScreenState extends State<PouleScreen> {
                                   gamePressed(currentGame, context);
                                 }
                               },
-                              child: Text(
+                              child: AutoSizeText(
                                   '${currentGame.player1} - ${currentGame.player2}',
+                                  maxLines: 1,
                                   style: TextStyle(
                                       color: currentGame.gamePlayed
                                           ? Colors.grey
@@ -698,22 +717,14 @@ class PouleGameBody extends StatefulWidget {
 }
 
 class _PouleGameBodyState extends State<PouleGameBody> {
+  PlayerClass player1 = PlayerClass();
+  PlayerClass player2 = PlayerClass();
+  ChosenPlayerEnum chosenPlayer = activeStartingPlayer;
+
   var specialBtnStyle = cBtnStyle;
   bool gameStarted = false;
-  ChosenPlayerEnum chosenPlayer = activeStartingPlayer;
-  var player1Turn = true;
-  int player1CurrentScore = 0;
-  int player1LegsWon = 0;
-  int player1SetsWon = 0;
-  int player2CurrentScore = 0;
-  int player2LegsWon = 0;
-  int player2SetsWon = 0;
   int setsToPlay = 0;
   int legsToPlay = 0;
-  String player1PossibleOut = '';
-  String player2PossibleOut = '';
-  String player1ThrownScore = '';
-  String player2ThrownScore = '';
   String specialBtnText = 'C';
 
   @override
@@ -732,40 +743,40 @@ class _PouleGameBodyState extends State<PouleGameBody> {
       activeGameInfo.clear();
       activeGameInfo.add(widget.game.gameID);
       if (widget.game.gameType == 'poule') {
-        player2CurrentScore = player1CurrentScore = gameInfoClass.pouleScore;
+        player2.currentScore = player1.currentScore = gameInfoClass.pouleScore;
         activeGameInfo.add(gameInfoClass.pouleScore);
         legsToPlay = gameInfoClass.pouleLegs;
       } else if (widget.game.gameType == 'quart') {
-        player2CurrentScore = player1CurrentScore = gameInfoClass.quartScore;
+        player2.currentScore = player1.currentScore = gameInfoClass.quartScore;
         activeGameInfo.add(gameInfoClass.quartScore);
         legsToPlay = gameInfoClass.quartLegs;
       } else if (widget.game.gameType == 'half') {
-        player2CurrentScore = player1CurrentScore = gameInfoClass.halfScore;
+        player2.currentScore = player1.currentScore = gameInfoClass.halfScore;
         activeGameInfo.add(gameInfoClass.halfScore);
         legsToPlay = gameInfoClass.halfLegs;
       } else {
-        player2CurrentScore = player1CurrentScore = gameInfoClass.finalScore;
+        player2.currentScore = player1.currentScore = gameInfoClass.finalScore;
         activeGameInfo.add(gameInfoClass.finalScore);
         legsToPlay = gameInfoClass.finalLegs;
       }
-      activeGameInfo.add(player1CurrentScore);
-      activeGameInfo.add(player2CurrentScore);
-      activeGameInfo.add(player1LegsWon);
-      activeGameInfo.add(player1SetsWon);
-      activeGameInfo.add(player2LegsWon);
-      activeGameInfo.add(player2SetsWon);
+      activeGameInfo.add(player1.currentScore);
+      activeGameInfo.add(player2.currentScore);
+      activeGameInfo.add(player1.legsWon);
+      activeGameInfo.add(player1.setsWon);
+      activeGameInfo.add(player2.legsWon);
+      activeGameInfo.add(player2.setsWon);
       activeGameInfo.add(legsToPlay);
       activeGameInfo.add(setsToPlay);
       activeStartingPlayer = ChosenPlayerEnum.undefined;
       chosenPlayer = activeStartingPlayer;
     } else {
-      player1CurrentScore = activeGameInfo[2];
-      player2CurrentScore = activeGameInfo[3];
+      player1.currentScore = activeGameInfo[2];
+      player2.currentScore = activeGameInfo[3];
 
-      player1LegsWon = activeGameInfo[4];
-      player1SetsWon = activeGameInfo[5];
-      player2LegsWon = activeGameInfo[6];
-      player2SetsWon = activeGameInfo[7];
+      player1.legsWon = activeGameInfo[4];
+      player1.setsWon = activeGameInfo[5];
+      player2.legsWon = activeGameInfo[6];
+      player2.setsWon = activeGameInfo[7];
 
       legsToPlay = activeGameInfo[8];
       setsToPlay = activeGameInfo[9];
@@ -775,31 +786,31 @@ class _PouleGameBodyState extends State<PouleGameBody> {
   void btnPress(String btnType) {
     switch (btnType) {
       case 'OK':
-        if (player1Turn) {
-          if (player1ThrownScore == '') {
+        if (player1.myTurn) {
+          if (player1.thrownScore == '') {
             ScaffoldMessenger.of(widget.context).showSnackBar(
               const SnackBar(content: Text("Geen score ingevuld")),
             );
           } else {
-            if (int.parse(player1ThrownScore) > 180 ||
-                int.parse(player1ThrownScore) > player1CurrentScore) {
+            if (int.parse(player1.thrownScore) > 180 ||
+                int.parse(player1.thrownScore) > player1.currentScore) {
               ScaffoldMessenger.of(widget.context).showSnackBar(
-                SnackBar(content: Text(player1ThrownScore + ' is te hoog')),
+                SnackBar(content: Text(player1.thrownScore + ' is te hoog')),
               );
-            } else if (player1ThrownScore != '0') {
-              player1CurrentScore -= int.parse(player1ThrownScore);
-              player1Turn = false;
-              player2ThrownScore = '';
+            } else if (player1.thrownScore != '0') {
+              player1.currentScore -= int.parse(player1.thrownScore);
+              player1.myTurn = false;
+              player2.thrownScore = '';
             } else {
-              player1Turn = false;
-              player2ThrownScore = '';
+              player1.myTurn = false;
+              player2.thrownScore = '';
             }
 
-            if (player1CurrentScore == 0) {
-              player1LegsWon++;
-              if (player1LegsWon > (legsToPlay - player1LegsWon)) {
-                player1SetsWon++;
-                if (player1SetsWon > (setsToPlay - player1SetsWon)) {
+            if (player1.currentScore == 0) {
+              player1.legsWon++;
+              if (player1.legsWon > (legsToPlay - player1.legsWon)) {
+                player1.setsWon++;
+                if (player1.setsWon > (setsToPlay - player1.setsWon)) {
                   endGame(widget.game.player1);
                 } else {
                   resetGame();
@@ -807,37 +818,37 @@ class _PouleGameBodyState extends State<PouleGameBody> {
               } else {
                 resetGame();
               }
-            } else if (170 - player1CurrentScore >= 0) {
-              player1PossibleOut = possibleOuts[170 - player1CurrentScore];
+            } else if (170 - player1.currentScore >= 0) {
+              player1.possibleOut = possibleOuts[170 - player1.currentScore];
             } else {
-              player1PossibleOut = '';
+              player1.possibleOut = '';
             }
           }
         } else {
-          if (player2ThrownScore == '') {
+          if (player2.thrownScore == '') {
             ScaffoldMessenger.of(widget.context).showSnackBar(
               const SnackBar(content: Text("Geen score ingevuld")),
             );
           } else {
-            if (int.parse(player2ThrownScore) > 180 ||
-                int.parse(player2ThrownScore) > player2CurrentScore) {
+            if (int.parse(player2.thrownScore) > 180 ||
+                int.parse(player2.thrownScore) > player2.currentScore) {
               ScaffoldMessenger.of(widget.context).showSnackBar(
-                SnackBar(content: Text(player2ThrownScore + ' is te hoog')),
+                SnackBar(content: Text(player2.thrownScore + ' is te hoog')),
               );
-            } else if (player2ThrownScore != '0') {
-              player2CurrentScore -= int.parse(player2ThrownScore);
-              player1Turn = true;
-              player1ThrownScore = '';
+            } else if (player2.thrownScore != '0') {
+              player2.currentScore -= int.parse(player2.thrownScore);
+              player1.myTurn = true;
+              player1.thrownScore = '';
             } else {
-              player1Turn = true;
-              player1ThrownScore = '';
+              player1.myTurn = true;
+              player1.thrownScore = '';
             }
 
-            if (player2CurrentScore == 0) {
-              player2LegsWon++;
-              if (player2LegsWon > (legsToPlay - player2LegsWon)) {
-                player2SetsWon++;
-                if (player2SetsWon > (setsToPlay - player2SetsWon)) {
+            if (player2.currentScore == 0) {
+              player2.legsWon++;
+              if (player2.legsWon > (legsToPlay - player2.legsWon)) {
+                player2.setsWon++;
+                if (player2.setsWon > (setsToPlay - player2.setsWon)) {
                   endGame(widget.game.player2);
                 } else {
                   resetGame();
@@ -845,51 +856,51 @@ class _PouleGameBodyState extends State<PouleGameBody> {
               } else {
                 resetGame();
               }
-            } else if (170 - player2CurrentScore >= 0) {
-              player2PossibleOut = possibleOuts[170 - player2CurrentScore];
+            } else if (170 - player2.currentScore >= 0) {
+              player2.possibleOut = possibleOuts[170 - player2.currentScore];
             } else {
-              player2PossibleOut = '';
+              player2.possibleOut = '';
             }
           }
         }
         break;
       case 'C':
-        if (player1Turn) {
-          player1ThrownScore = '';
+        if (player1.myTurn) {
+          player1.thrownScore = '';
         } else {
-          player2ThrownScore = '';
+          player2.thrownScore = '';
         }
         break;
       case 'BUST':
-        if (player1Turn) {
-          player1ThrownScore = 'BUST';
-          player2ThrownScore = '';
-          player1Turn = false;
+        if (player1.myTurn) {
+          player1.thrownScore = 'BUST';
+          player2.thrownScore = '';
+          player1.myTurn = false;
         } else {
-          player2ThrownScore = 'BUST';
-          player1ThrownScore = '';
-          player1Turn = true;
+          player2.thrownScore = 'BUST';
+          player1.thrownScore = '';
+          player1.myTurn = true;
         }
         break;
       default:
-        if (player1Turn) {
-          if ((player1ThrownScore+btnType).toString().length > 3) {
+        if (player1.myTurn) {
+          if ((player1.thrownScore + btnType).toString().length > 3) {
             break;
           } else {
-            if (player1ThrownScore == '0') {
-              player1ThrownScore == btnType;
+            if (player1.thrownScore == '0') {
+              player1.thrownScore == btnType;
             } else {
-              player1ThrownScore = player1ThrownScore + btnType;
+              player1.thrownScore = player1.thrownScore + btnType;
             }
           }
         } else {
-          if ((player2ThrownScore+btnType).toString().length > 3) {
+          if ((player2.thrownScore + btnType).toString().length > 3) {
             break;
           } else {
-            if (player2ThrownScore == '0') {
-              player2ThrownScore == btnType;
+            if (player2.thrownScore == '0') {
+              player2.thrownScore == btnType;
             } else {
-              player2ThrownScore = player2ThrownScore + btnType;
+              player2.thrownScore = player2.thrownScore + btnType;
             }
           }
         }
@@ -916,7 +927,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
           TextButton(
             onPressed: () {
               String msg =
-                  "${widget.game.gameID},${player1LegsWon.toString()},${player2LegsWon.toString()}";
+                  "${widget.game.gameID},${player1.legsWon.toString()},${player2.legsWon.toString()}";
               socket.emit('gamePlayed', msg);
               Navigator.pop(context, 'Bevestigd');
               Navigator.of(widget.context).push(
@@ -932,26 +943,26 @@ class _PouleGameBodyState extends State<PouleGameBody> {
   }
 
   void resetGame() {
-    player1CurrentScore = activeGameInfo[1];
-    player1PossibleOut = '';
-    player1ThrownScore = '';
-    player2CurrentScore = activeGameInfo[1];
-    player2PossibleOut = '';
-    player2ThrownScore = '';
+    player1.currentScore = activeGameInfo[1];
+    player1.possibleOut = '';
+    player1.thrownScore = '';
+    player2.currentScore = activeGameInfo[1];
+    player2.possibleOut = '';
+    player2.thrownScore = '';
 
-    int legsPlayed = player1LegsWon + player2LegsWon;
+    int legsPlayed = player1.legsWon + player2.legsWon;
 
     if (legsPlayed % 2 == 0) {
       if (chosenPlayer == ChosenPlayerEnum.player1) {
-        player1Turn = true;
+        player1.myTurn = true;
       } else {
-        player1Turn = false;
+        player1.myTurn = false;
       }
     } else {
       if (chosenPlayer == ChosenPlayerEnum.player1) {
-        player1Turn = false;
+        player1.myTurn = false;
       } else {
-        player1Turn = true;
+        player1.myTurn = true;
       }
     }
   }
@@ -961,11 +972,11 @@ class _PouleGameBodyState extends State<PouleGameBody> {
     if (!gameStarted) {
       switch (chosenPlayer) {
         case ChosenPlayerEnum.player1:
-          player1Turn = true;
+          player1.myTurn = true;
           gameStarted = true;
           return playerChosen(widget.game.player1);
         case ChosenPlayerEnum.player2:
-          player1Turn = false;
+          player1.myTurn = false;
           gameStarted = true;
           return playerChosen(widget.game.player2);
         case ChosenPlayerEnum.undefined:
@@ -996,7 +1007,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                   TableRow(children: <Widget>[
                     Center(
                       child: Text(
-                        player1SetsWon.toString(),
+                        player1.setsWon.toString(),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 20,
@@ -1014,7 +1025,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                     ),
                     Center(
                       child: Text(
-                        player2SetsWon.toString(),
+                        player2.setsWon.toString(),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 20,
@@ -1025,7 +1036,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                   TableRow(children: <Widget>[
                     Center(
                       child: Text(
-                        player1LegsWon.toString(),
+                        player1.legsWon.toString(),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 20,
@@ -1043,7 +1054,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                     ),
                     Center(
                       child: Text(
-                        player2LegsWon.toString(),
+                        player2.legsWon.toString(),
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 20,
@@ -1064,11 +1075,11 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               Text(
-                player1CurrentScore.toString(),
+                player1.currentScore.toString(),
                 style: const TextStyle(color: Colors.white, fontSize: 80),
               ),
               Text(
-                player2CurrentScore.toString(),
+                player2.currentScore.toString(),
                 style: const TextStyle(color: Colors.white, fontSize: 80),
               )
             ],
@@ -1080,11 +1091,11 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               Text(
-                player1PossibleOut,
+                player1.possibleOut,
                 style: const TextStyle(color: Colors.white, fontSize: 20),
               ),
               Text(
-                player2PossibleOut,
+                player2.possibleOut,
                 style: const TextStyle(color: Colors.white, fontSize: 20),
               )
             ],
@@ -1099,13 +1110,14 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                 width: 150,
                 height: 50,
                 child: Container(
-                  color: player1Turn ? Colors.white : const Color(0xFF303030),
+                  color:
+                      player1.myTurn ? Colors.white : const Color(0xFF303030),
                   alignment: Alignment.center,
                   child: Center(
                     child: Text(
-                      player1ThrownScore,
+                      player1.thrownScore,
                       style: TextStyle(
-                        color: player1Turn ? Colors.black : Colors.black38,
+                        color: player1.myTurn ? Colors.black : Colors.black38,
                         fontSize: 30,
                       ),
                     ),
@@ -1116,13 +1128,14 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                 width: 150,
                 height: 50,
                 child: Container(
-                  color: player1Turn ? const Color(0xFF303030) : Colors.white,
+                  color:
+                      player1.myTurn ? const Color(0xFF303030) : Colors.white,
                   alignment: Alignment.center,
                   child: Center(
                     child: Text(
-                      player2ThrownScore,
+                      player2.thrownScore,
                       style: TextStyle(
-                        color: player1Turn ? Colors.black38 : Colors.black,
+                        color: player1.myTurn ? Colors.black38 : Colors.black,
                         fontSize: 30,
                       ),
                     ),
@@ -1337,8 +1350,10 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                     btnPress('26');
                   },
                   child: const Text(
-                    "Standaard", 
-                    style: TextStyle(fontSize: 20,),
+                    "Standaard",
+                    style: TextStyle(
+                      fontSize: 20,
+                    ),
                   ),
                 ),
               ),
@@ -1414,12 +1429,12 @@ class _PouleGameBodyState extends State<PouleGameBody> {
 
   @override
   Widget build(BuildContext context) {
-    if ((player1Turn &&
-            player1CurrentScore <= 180 &&
-            player1ThrownScore == '') ||
-        (!player1Turn &&
-            player2CurrentScore < 180 &&
-            player2ThrownScore == '')) {
+    if ((player1.myTurn &&
+            player1.currentScore <= 180 &&
+            player1.thrownScore == '') ||
+        (!player1.myTurn &&
+            player2.currentScore < 180 &&
+            player2.thrownScore == '')) {
       specialBtnText = 'BUST';
       specialBtnStyle = bustBtnSytle;
     } else {
