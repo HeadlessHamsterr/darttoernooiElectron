@@ -10,9 +10,11 @@
     "make": "electron-forge make",
     "publish": "electron-forge publish",
     "lint": "echo \"No linting configured\"",
-    "build-installer-windows": "electron-builder --windows nsis:x64"
+    "build-installer-windows": "electron-builder --windows nsis:x64",
+    "build-linux": "electron-builder --linux"
   },
   "build": {
+    "asar": false,
     "appId": "Darttoernooi",
     "win": {
       "target": [
@@ -66,7 +68,11 @@
     "custom-electron-titlebar": "^3.2.7",
     "electron-squirrel-startup": "^1.0.0",
     "jquery": "^3.6.0",
-    "jspdf": "^2.4.0"
+    "jspdf": "^2.4.0",
+    "http-terminator": "^3.0.3",
+    "ip": "^1.1.5",
+    "monitor.io": "^0.1.0",
+    "socket.io": "^4.3.2"
   },
   "devDependencies": {
     "@electron-forge/cli": "^6.0.0-beta.60",
@@ -82,6 +88,7 @@
     "electron-json-storage": "^4.5.0",
     "electron-prebuilt-compile": "8.2.0",
     "http-terminator": "^3.0.3",
+    "ip": "^1.1.5",
     "monitor.io": "^0.1.0",
     "socket.io": "^4.3.2"
   }
