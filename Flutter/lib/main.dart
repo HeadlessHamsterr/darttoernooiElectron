@@ -13,7 +13,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 // ignore: library_prefixes
 import 'package:socket_io_client/socket_io_client.dart' as IO;
-import 'package:test/constants.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 
 String serverIP = '192.168.1.14';
@@ -683,7 +682,8 @@ class PouleGame extends StatelessWidget {
       context: context,
       builder: (BuildContext context) => AlertDialog(
         title: const Text("Wedstrijd sluiten"),
-        content: const Text("Weet je zeker dat je de wedstrijd wil sluiten?\nAlle voortgang wordt verwijderd."),
+        content: const Text(
+            "Weet je zeker dat je de wedstrijd wil sluiten?\nAlle voortgang wordt verwijderd."),
         actions: <Widget>[
           TextButton(
             onPressed: () {
@@ -692,17 +692,17 @@ class PouleGame extends StatelessWidget {
             child: const Text("Annuleren"),
           ),
           TextButton(
-            onPressed: (){
+            onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(builder: (BuildContext context) => const PouleScreen()),
+                MaterialPageRoute(
+                    builder: (BuildContext context) => const PouleScreen()),
               );
-            }, 
-          child: const Text("Wedstrijd sluiten"),
+            },
+            child: const Text("Wedstrijd sluiten"),
           ),
         ],
       ),
     );
-    
   }
 
   @override
@@ -714,7 +714,7 @@ class PouleGame extends StatelessWidget {
         home: Builder(builder: (context) {
           return Scaffold(
             appBar: AppBar(
-              title: Text('${game.player1} - ${game.player2}'),
+              title: const Text('Wedstrijd'),
               centerTitle: true,
               backgroundColor: const Color(0xFF4A0000),
               leading: IconButton(
@@ -993,157 +993,196 @@ class _PouleGameBodyState extends State<PouleGameBody> {
     return Center(
       child: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                widget.game.player1,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 20,
-                ),
-              ),
-              Table(
-                defaultColumnWidth: const FixedColumnWidth(50),
-                children: [
-                  TableRow(children: <Widget>[
-                    Center(
-                      child: Text(
-                        player1.setsWon.toString(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                        ),
+          Table(
+            defaultColumnWidth: const FlexColumnWidth(),
+            defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+            children:[
+              TableRow(children: <Widget>[
+                  Center(
+                    child: Text(
+                      widget.game.player1,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
                       ),
                     ),
-                    const Center(
-                      child: Text(
-                        "Sets",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
+                  ),
+                  Table(
+                    defaultColumnWidth: const FixedColumnWidth(50),
+                    children: [
+                      TableRow(children: <Widget>[
+                        Center(
+                          child: Text(
+                            player1.setsWon.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                            ),
+                          ),
                         ),
+                        const Center(
+                          child: Text(
+                            "Sets",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                            ),
+                          ),
+                        ),
+                        Center(
+                          child: Text(
+                            player2.setsWon.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                            ),
+                          ),
+                        ),
+                      ]),
+                      TableRow(children: <Widget>[
+                        Center(
+                          child: Text(
+                            player1.legsWon.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                            ),
+                          ),
+                        ),
+                        const Center(
+                          child: Text(
+                            "Legs",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                            ),
+                          ),
+                        ),
+                        Center(
+                          child: Text(
+                            player2.legsWon.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                            ),
+                          ),
+                        ),
+                      ]),
+                    ],
+                  ),
+                  Center(
+                    child: Text(widget.game.player2,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
                       ),
                     ),
-                    Center(
-                      child: Text(
-                        player2.setsWon.toString(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                        ),
-                      ),
-                    ),
-                  ]),
-                  TableRow(children: <Widget>[
-                    Center(
-                      child: Text(
-                        player1.legsWon.toString(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                        ),
-                      ),
-                    ),
-                    const Center(
-                      child: Text(
-                        "Legs",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                        ),
-                      ),
-                    ),
-                    Center(
-                      child: Text(
-                        player2.legsWon.toString(),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 20,
-                        ),
-                      ),
-                    ),
-                  ])
+                  ),
                 ],
               ),
-              Text(widget.game.player2,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                  )),
             ],
           ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          Table(
+            defaultColumnWidth: const FlexColumnWidth(),
             children: [
-              Text(
-                player1.currentScore.toString(),
-                style: const TextStyle(color: Colors.white, fontSize: 80),
-              ),
-              Text(
-                player2.currentScore.toString(),
-                style: const TextStyle(color: Colors.white, fontSize: 80),
-              )
-            ],
-          ),
-          const SizedBox(
-            height: 30,
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              Text(
-                player1.possibleOut,
-                style: const TextStyle(color: Colors.white, fontSize: 20),
-              ),
-              Text(
-                player2.possibleOut,
-                style: const TextStyle(color: Colors.white, fontSize: 20),
-              )
-            ],
-          ),
-          const SizedBox(
-            height: 30,
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              SizedBox(
-                width: 150,
-                height: 50,
-                child: Container(
-                  color:
-                      player1.myTurn ? Colors.white : const Color(0xFF303030),
-                  alignment: Alignment.center,
-                  child: Center(
-                    child: Text(
-                      player1.thrownScore,
-                      style: TextStyle(
-                        color: player1.myTurn ? Colors.black : Colors.black38,
-                        fontSize: 30,
+              TableRow(children: <Widget>[
+                Center(
+                  child: Text(
+                    player1.currentScore.toString(), 
+                    style: const TextStyle(
+                      color: Colors.white, 
+                      fontSize: 80
+                    ),
+                  ),
+                ),
+                Center(
+                  child: Text(
+                    player2.currentScore.toString(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 80
+                    ),
+                  ),
+                ),
+              ]),
+              const TableRow(children: <Widget>[
+                Center(child:
+                  SizedBox(
+                    height: 30,
+                  )
+                ),
+                Center(child:
+                  SizedBox(
+                    height: 30,
+                  )
+                ),
+              ]),
+              TableRow(children: <Widget>[
+                Center(
+                  child: Text(
+                    player1.possibleOut,
+                    style: const TextStyle(color: Colors.white, fontSize: 20),
+                  ),
+                ),
+                Center(
+                  child: Text(
+                    player2.possibleOut,
+                    style: const TextStyle(color: Colors.white, fontSize: 20),
+                  ),
+                ),
+              ]),
+              const TableRow(children: <Widget>[
+                Center(child:
+                  SizedBox(
+                    height: 30,
+                  )
+                ),
+                Center(child:
+                  SizedBox(
+                    height: 30,
+                  )
+                ),
+              ]),
+              TableRow(children: <Widget>[
+                Center(
+                  child: SizedBox(
+                    width: 150,
+                    height: 50,
+                    child: Container(
+                      color: player1.myTurn ? Colors.white : const Color(0xFF303030),
+                      alignment: Alignment.center,
+                      child: Center(
+                        child: Text(
+                          player1.thrownScore,
+                          style: TextStyle(
+                            color: player1.myTurn ? Colors.black: Colors.black38,
+                            fontSize: 30,
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-              SizedBox(
-                width: 150,
-                height: 50,
-                child: Container(
-                  color:
-                      player1.myTurn ? const Color(0xFF303030) : Colors.white,
-                  alignment: Alignment.center,
-                  child: Center(
-                    child: Text(
-                      player2.thrownScore,
-                      style: TextStyle(
-                        color: player1.myTurn ? Colors.black38 : Colors.black,
-                        fontSize: 30,
+                Center(
+                  child: SizedBox(
+                    width: 150,
+                    height: 50,
+                    child: Container(
+                      color: player1.myTurn ? const Color(0xFF303030) : Colors.white,
+                      alignment: Alignment.center,
+                      child: Center(
+                        child: Text(
+                          player2.thrownScore,
+                          style: TextStyle(
+                            color: player1.myTurn ? Colors.black38 : Colors.black,
+                            fontSize: 30,
+                          ),
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
+              ]),
             ],
           ),
           const SizedBox(
