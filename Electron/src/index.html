@@ -8,20 +8,18 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400&display=swap" rel="stylesheet"> 
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Icons+Outlined" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Icons+Round" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Icons+Sharp" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Icons+Two+Tone" rel="stylesheet">
+    <script src="https://code.iconify.design/2/2.1.0/iconify.min.js"></script>
   </head>
   <body>
     <div id='controlBtnDiv' style='position: relative'>
-      <div id='returnBtnDiv' style='position: absolute; top: 5px; right: 10px;'>
-        <button id="returnBtn" class="returnBtn">Terug</button>
-      </div>
-      <div id='saveBtnDiv' style='position: absolute; top: 5px; right: 120px;'>
-        <button id="saveBtn" class="saveBtn">Opslaan</button>
-      </div>
-      <div id='exportBtnDiv' style='position: absolute; top: 5px; right: 230px;'>
-        <button id="exportBtn" class="exportBtn">Export naar PDF</button>
-      </div>
-      <div id='ipAddressDiv' style='position: absolute; top: 5px; right: 380px;'>
-        <span id='ipAddress' style='color: white'></span>
+      <div id='menuBtnDiv' class="menuBtnDiv">
+        <!--<button id="menuBtn" class="menuBtn" onclick="openNav()">Menu</button>-->
+        <a onclick="openNav()" id="menu" class="material-icons md-36">menu</a>
       </div>
     </div>
     
@@ -247,6 +245,45 @@
         <div id="mainRosterSubDiv" class="mainRosterSubDiv">
         </div>
       </div>
+    </div>
+
+    <div id="sideNav" class="sideNav">
+      <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+      <div id="menuBtns" class="menuBtns">
+        <table class="iconTable">
+          <tbody>
+            <tr>
+              <td>
+                <a class="material-icons md-36" id="returnBtn">home</a>
+              </td>
+              <td>
+                <a class="material-icons md-36" id="saveBtn">save</a>
+              </td>  
+              <td>
+                <a class="material-icons md-36" id="exportBtn">picture_as_pdf</a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+        <form style="text-align: center;" onkeypress="handle(event)">
+          <label for="pouleScoreInput" class="settingsLabel">Poule score</label></br>
+          <input id="pouleScoreInput" class="settingInput" type="number" value="0"></br>
+          <label for="pouleLegsInput" class="settingsLabel">Poule best of</label></br>
+          <input id="pouleLegsInput" class="settingInput" type="number" value="1"></br>
+          <label for="quartScoreInput" class="settingsLabel">Kwartfinale score</label></br>
+          <input id="quartScoreInput" class="settingInput" type="number" value="0"></br>
+          <label for="quartLegsInput" class="settingsLabel">Kwartfinale best of</label></br>
+          <input id="quartLegsInput" class="settingInput" type="number" value="1"></br>
+          <label for="halfScoreInput" class="settingsLabel">Halve finale score</label></br>
+          <input id="halfScoreInput" class="settingInput" type="number" value="0"></br>
+          <label for="halfLegsInput" class="settingsLabel">Halve finale best of</label></br>
+          <input id="halfLegsInput" class="settingInput" type="number" value="1"></br>
+          <label for="finalScoreInput" class="settingsLabel">Finale score</label></br>
+          <input id="finalScoreInput" class="settingInput" type="number" value="0"></br>
+          <label for="finalLegsInput" class="settingsLabel">Finale best of</label></br>
+          <input id="finalLegsInput" class="settingInput" type="number" value="1"></br>
+        </form>
     </div>
   </body>
 

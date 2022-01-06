@@ -6,7 +6,7 @@
   --input-border: #414141;
   --default-font: 'Poppins', sans-serif;
   --btn-color: #4a0000;
-  --btn-color-hover: #3e0505;
+  --btn-color-hover: #330303;
 }
 
 body {
@@ -24,71 +24,6 @@ body {
 
 input:focus{
   outline: none;
-}
-
-.exportBtn{
-  position: absolute;
-  right: 10%;
-  background-color: var(--btn-color);
-  border: none;
-  height: 40px;
-  width: 120px;
-  font-size: 14px;
-  color: white;
-  font-family: var(--default-font);
-  border-radius: 4px;
-}
-
-.exportBtn:hover{
-  background-color: #3e0505;
-  color: white
-}
-
-.exportBtn:active{
-  transform: scale(0.95);
-}
-
-.saveBtn{
-  position: absolute;
-  right: 5.5%;
-  background-color: var(--btn-color);
-  border: none;
-  height: 40px;
-  width: 100px;
-  font-size: 17px;
-  color: white;
-  font-family: var(--default-font);
-  border-radius: 4px
-}
-
-.saveBtn:hover{
-  background: #3e0505;
-  color: #FFF;
-}
-
-.saveBtn:active{
-  transform: scale(0.95);
-}
-
-.returnBtn{
-  position: absolute;
-  right: 1%;
-  background-color: var(--btn-color);
-  border: none;
-  height: 40px;
-  width: 100px;
-  border-radius: 4px;
-  color: white;
-  font-family: var(--default-font);
-  font-size: 17px;
-}
-
-.returnBtn:hover{
-  background: #3E0505;
-}
-
-.returnBtn:active{
-  transform: scale(0.95)
 }
       
 .playerInputCard{
@@ -131,7 +66,6 @@ input:focus{
   bottom: 50%;
   right: 50%;
   height: 500px;
-  widht: 1000px;
 }
 
 .startDiv{
@@ -222,7 +156,7 @@ input::-webkit-inner-spin-button{
   border-radius: 6px;
   height: 50px;
   width: 130px;
-  background: #4a0000;
+  background: var(--btn-color);
   font-family: var(--default-font);
   font-size: 20px;
   color: #FFF;
@@ -230,7 +164,7 @@ input::-webkit-inner-spin-button{
 }
 
 .sendBtn:hover{
-  background: #3e0505;
+  background: var(--btn-color-hover);
   color: #FFF;
 }
 
@@ -523,4 +457,181 @@ button:focus{
 
 .gameOptionsSelector:focus{
   border: none;
+}
+
+.sideNav {
+  height: 100%;
+  width: 250px;
+  position: fixed;
+  z-index: 1;
+  top: 0;
+  right: -250px;
+  background-color: #111;
+  overflow-x: hidden;
+  transition: 0.5s;
+  padding-top: 60px;
+}
+
+.menuBtn{
+  position: absolute;
+  right: 1px;
+  background-color: var(--btn-color);
+  border: none;
+  height: 40px;
+  width: 90px;
+  font-size: 17px;
+  color: white;
+  font-family: var(--default-font);
+  border-radius: 4px;
+}
+
+.menuBtn:hover{
+  color: #FFF;
+}
+
+.menuBtn:active{
+  transform: scale(0.95);
+}
+
+.sideNav button{
+  position: absolute;
+  right: 60px;
+  background-color: var(--btn-color);
+  border: none;
+  height: 40px;
+  width: 150px;
+  font-size: 17px;
+  color: white;
+  font-family: var(--default-font);
+  border-radius: 4px
+}
+
+.sideNav a {
+  text-decoration: none;
+  font-size: 25px;
+  color: #818181;
+  display: block;
+  transition: 0.1s;
+}
+
+.sideNav a:hover {
+  transform: scale(1.1);
+  color: #f1f1f1;
+}
+
+.sideNav .closebtn {
+  position: absolute;
+  top: 0;
+  right: 25px;
+  font-size: 36px;
+  margin-left: 50px;
+}
+
+@media screen and (max-height: 450px) {
+  .sideNav {padding-top: 15px;}
+  .sideNav a {font-size: 18px;}
+}
+
+.saveBtn:hover{
+  background: var(--btn-color-hover);
+  color: #FFF;
+}
+
+.saveBtn:active{
+  transform: scale(0.95);
+}
+
+.sideNav .returnBtn:hover{
+  background: var(--btn-color-hover);
+}
+
+.sideNav .returnBtn:active{
+  transform: scale(0.95)
+}
+
+.sideNav .exportBtn:hover{
+  background-color: var(--btn-color-hover);
+  color: white
+}
+
+.sideNav .exportBtn:active{
+  transform: scale(0.95);
+}
+
+.material-icons.md-light{ 
+  color: rgba(255, 255, 255, 1);
+}
+
+.material-icons-outlined.md-light{
+  color: rgba(255, 255, 255, 1);
+}
+
+.material-icons.md-36{
+  font-size: 36px;
+}
+
+.material-icons-outlined.md-36{
+  font-size: 36px;
+}
+
+.material-icons.md-48{
+  font-size: 48px;
+}
+
+.material-icons-outlined.md-48{
+  font-size: 48px;
+}
+
+.material-icons{
+  cursor: pointer;
+}
+
+.material-icons-outlined{
+  cursor: pointer;
+}
+
+button{
+  cursor: pointer;
+}
+
+.iconTable{
+  border-collapse: collapse;
+  margin: 0 auto;
+}
+
+.iconTable td{
+  border: none;
+  padding: 0px 20px 40px 20px;
+}
+
+.menuBtnDiv a{
+  position: absolute; 
+  top: 5px;
+  right: 10px;
+  transition: 0.1s;
+  color: #acacac
+}
+
+.menuBtnDiv a:hover{
+  transform: scale(1.1);
+  color:white;
+}
+
+.settingsLabel{
+  color: white;
+  font-family: var(--default-font);
+  font-size: 18px;
+}
+
+input.settingInput{
+  text-align: center;
+  border: solid 2px var(--input-border);
+  border-radius: 3px;
+  height: 35px;
+  width: 95px;
+  font-family: var(--default-font);
+  font-size: 18px;
+  background: var(--input-background);
+  color: #C0C0C0;
+  margin-bottom: 20px;
 }
