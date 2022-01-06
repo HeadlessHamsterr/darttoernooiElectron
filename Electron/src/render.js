@@ -22,6 +22,7 @@ const sockets = new Set();
 var numPlayers = 0;
 var numPoules = 0;
 var appSettings = [];
+var appOptions = ["pouleScore", "pouleLegs", "quartScore", "quartLegs", "halfScore", "halfLegs", "finalScore", "finalLegs"];
 
 io.on('connection', (socket) => {
     sockets.add(socket);
@@ -572,6 +573,7 @@ let pouleC = new pouleGames("C");
 let pouleD = new pouleGames("D");
 
 function returnToHome(){
+    closeNav();
     for(const socket in sockets){
         socket.destroy();
         sockets.delete(socket);
@@ -760,7 +762,6 @@ function loadGame(){
                     document.getElementById(`M${i+3}2Name`).innerHTML = player2Name;
                     document.getElementById(`M${i+3}2Score`).value = player2Score;
                 }
-                console.log("wtf");
             }
         break;
         case 2:
@@ -791,7 +792,7 @@ function loadGame(){
     }
 
     startPoulesSorting();
-    document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
+    //document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
     httpServer.listen(PORT, () => {
         console.log(`Server listening on http://${address()}:${PORT}`);
     });
@@ -1623,4 +1624,33 @@ function exportGameInfo(writeToFile = true){
     }
 
     return jsonObj;
+}
+
+function openNav(){
+    for(let i=0; i<appSettings.length; i++){
+        document.getElementById(appOptions[i]+"Input").value = appSettings[i];
+    }
+
+    document.getElementById("sideNav").style.right = "0px";
+}
+
+function closeNav(){
+    document.getElementById("sideNav").style.right = "-250px";
+    updateSettings();
+}
+
+function handle(e){
+    key = e.keyCode || e.which;
+    if(key == 13){
+        e.preventDefault();
+        updateSettings();
+    }
+}
+
+function updateSettings(){
+    for(let i=0; i<appSettings.length; i++){
+        appSettings[i] = document.getElementById(appOptions[i]+"Input").value;
+    }
+    console.log(appSettings);
+    io.emit("settingsUpdate", appSettings);
 }
