@@ -1,13 +1,6 @@
 /*TODO:
-  - Te hoge ingevoerde score geeft pop-up met waarschuwing
-  - Row waarin de out wordt afgebeeld veranderen naar table 
-    (misschien alles met scores omzetten naar table)
-  - Aantal gewonnen legs/sets per speler weergeven
-  - Numpad knoppen verkleinen
   - Undo knop voor ingevoerde scores
-  - Als de wedstrijd klaar is, terugkoppeling geven aan de server
 */
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -15,7 +8,7 @@ import 'package:flutter/rendering.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:auto_size_text/auto_size_text.dart';
 
-String serverIP = '192.168.1.14';
+String serverIP = '';
 String activePoule = '';
 List<String> pouleNames = [];
 List gameInfo = [];
@@ -26,6 +19,10 @@ List activeGameInfo = [];
 ChosenPlayerEnum activeStartingPlayer = ChosenPlayerEnum.undefined;
 double numBtnWidth = 100;
 double numBtnHeigth = 70;
+double sideBtnWidth = 68;
+double sideBtnHeigth = 70;
+const DEFAULT_BTN_COLOR = 0xFF4A0000;
+const BACKGROUND_COLOR = 0xFF181818;
 
 List<String> possibleOuts = [
   'T20 T20 BULL',
@@ -199,13 +196,21 @@ List<String> possibleOuts = [
   'D1'
 ];
 
+var sideBtnStyle = ElevatedButton.styleFrom(
+  shape: const RoundedRectangleBorder(
+    borderRadius: BorderRadius.all(Radius.zero),
+  ),
+  elevation: 0,
+  shadowColor: Colors.transparent,
+  primary: Colors.grey[850],
+);
 var numBtnStyle = ElevatedButton.styleFrom(
   side: const BorderSide(
       color: Colors.black, width: 2.0, style: BorderStyle.solid),
   shape: const RoundedRectangleBorder(
     borderRadius: BorderRadius.all(Radius.zero),
   ),
-  primary: const Color(0xFF4A0000),
+  primary: Color(DEFAULT_BTN_COLOR),
 );
 var cBtnStyle = ElevatedButton.styleFrom(
   side: const BorderSide(
@@ -266,6 +271,9 @@ class PlayerClass {
   int setsWon;
   String possibleOut;
   String thrownScore;
+  int dartsThrown;
+  List<int> scoresThrownHistory = [];
+  List<int> dartsThrownHistory = [];
 
   PlayerClass(
       {this.myTurn = false,
@@ -273,7 +281,8 @@ class PlayerClass {
       this.legsWon = 0,
       this.setsWon = 0,
       this.thrownScore = '',
-      this.possibleOut = ''});
+      this.possibleOut = '',
+      this.dartsThrown = 0});
 }
 
 class PouleRanking {
@@ -349,7 +358,7 @@ class StartScreen extends StatelessWidget {
         return Scaffold(
           appBar: AppBar(
             title: const Text('Darttoernooi companion'),
-            backgroundColor: const Color(0xFF4A0000),
+            backgroundColor: const Color(DEFAULT_BTN_COLOR),
           ),
           body: ListView(
             children: [
@@ -377,9 +386,9 @@ class StartScreen extends StatelessWidget {
                       ),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          primary: const Color(0xFF4A0000),
+                          primary: const Color(DEFAULT_BTN_COLOR),
                         ),
-                        child: const Text('Versturen'),
+                        child: const Text('Verbinden'),
                         onPressed: () {
                           enterIP(context);
                         },
@@ -414,6 +423,7 @@ class _PoulesOverviewState extends State<PoulesOverview> {
 
   void connectWebsocket() {
     socket.on('pouleInfo', (data) => updatePouleInfo(data));
+    socket.on('settingsUpdate', (data) => updateSettings(data));
     socket.emit('allPouleInfoRequest', 'plsGeef');
   }
 
@@ -458,6 +468,18 @@ class _PoulesOverviewState extends State<PoulesOverview> {
     }
   }
 
+  void updateSettings(data) {
+    gameInfoClass.pouleScore = int.parse(data[0]);
+    gameInfoClass.pouleLegs = int.parse(data[1]);
+    gameInfoClass.quartScore = int.parse(data[2]);
+    gameInfoClass.quartLegs = int.parse(data[3]);
+    gameInfoClass.halfScore = int.parse(data[4]);
+    gameInfoClass.halfLegs = int.parse(data[5]);
+    gameInfoClass.finalScore = int.parse(data[6]);
+    gameInfoClass.finalLegs = int.parse(data[7]);
+    print(gameInfoClass);
+  }
+
   void pouleBtnPress(pouleNum, context) {
     activePoule = pouleNum;
     //socket.clearListeners();
@@ -487,7 +509,7 @@ class _PoulesOverviewState extends State<PoulesOverview> {
         return Scaffold(
           appBar: AppBar(
             title: const Text('Poules'),
-            backgroundColor: const Color(0xFF4A0000),
+            backgroundColor: Color(DEFAULT_BTN_COLOR),
             leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () {
@@ -499,7 +521,7 @@ class _PoulesOverviewState extends State<PoulesOverview> {
               children: pouleNames.map((String data) {
                 return ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    primary: const Color(0xFF4A0000),
+                    primary: Color(DEFAULT_BTN_COLOR),
                   ),
                   onPressed: () {
                     pouleBtnPress(data, context);
@@ -590,7 +612,7 @@ class _PouleScreenState extends State<PouleScreen> {
           return Scaffold(
             appBar: AppBar(
               title: getPouleName(activePoule),
-              backgroundColor: const Color(0xFF4A0000),
+              backgroundColor: Color(DEFAULT_BTN_COLOR),
               leading: IconButton(
                   icon: const Icon(Icons.arrow_back),
                   onPressed: () {
@@ -644,7 +666,7 @@ class _PouleScreenState extends State<PouleScreen> {
                               style: ElevatedButton.styleFrom(
                                 primary: currentGame.gamePlayed
                                     ? const Color(0xFF202020)
-                                    : const Color(0xFF4A0000),
+                                    : Color(DEFAULT_BTN_COLOR),
                               ),
                               onPressed: () {
                                 if (!currentGame.gamePlayed) {
@@ -716,7 +738,7 @@ class PouleGame extends StatelessWidget {
             appBar: AppBar(
               title: const Text('Wedstrijd'),
               centerTitle: true,
-              backgroundColor: const Color(0xFF4A0000),
+              backgroundColor: Color(DEFAULT_BTN_COLOR),
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () {
@@ -750,6 +772,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
   int setsToPlay = 0;
   int legsToPlay = 0;
   String specialBtnText = 'C';
+  int numDarts = 3;
 
   @override
   void initState() {
@@ -797,29 +820,35 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             if (int.parse(player1.thrownScore) > 180 ||
                 int.parse(player1.thrownScore) > player1.currentScore) {
               ScaffoldMessenger.of(widget.context).showSnackBar(
-                SnackBar(content: Text(player1.thrownScore + ' is te hoog')),
+                SnackBar(content: Text(player1.thrownScore + ' is te hoog'),
+                duration: const Duration(seconds: 5),),
+              );
+            } else if (int.parse(player1.thrownScore) / numDarts > 60) {
+              ScaffoldMessenger.of(widget.context).showSnackBar(
+                SnackBar(
+                    content: Text(
+                      (numDarts == 1) ?
+                        '${player1.thrownScore} kan niet met $numDarts pijl gegooid worden.' :
+                        '${player1.thrownScore} kan niet met $numDarts pijlen gegooid worden.'),
+                    duration: const Duration(seconds: 5),),
               );
             } else if (player1.thrownScore != '0') {
               player1.currentScore -= int.parse(player1.thrownScore);
+              player1.scoresThrownHistory.add(int.parse(player1.thrownScore));
               player1.myTurn = false;
+              player1.dartsThrown += numDarts;
+              player1.dartsThrownHistory.add(numDarts);
               player2.thrownScore = '';
             } else {
               player1.myTurn = false;
+              player1.scoresThrownHistory.add(int.parse(player1.thrownScore));
+              player1.dartsThrown += numDarts;
+              player1.dartsThrownHistory.add(numDarts);
               player2.thrownScore = '';
             }
 
             if (player1.currentScore == 0) {
-              player1.legsWon++;
-              if (player1.legsWon > (legsToPlay - player1.legsWon)) {
-                player1.setsWon++;
-                if (player1.setsWon > (setsToPlay - player1.setsWon)) {
-                  endGame(widget.game.player1);
-                } else {
-                  resetGame();
-                }
-              } else {
-                resetGame();
-              }
+              endLeg(widget.game.player1, player1);
             } else if (170 - player1.currentScore >= 0) {
               player1.possibleOut = possibleOuts[170 - player1.currentScore];
             } else {
@@ -837,27 +866,32 @@ class _PouleGameBodyState extends State<PouleGameBody> {
               ScaffoldMessenger.of(widget.context).showSnackBar(
                 SnackBar(content: Text(player2.thrownScore + ' is te hoog')),
               );
+            } else if (int.parse(player2.thrownScore) / numDarts > 60) {
+              ScaffoldMessenger.of(widget.context).showSnackBar(
+                SnackBar(
+                    content: Text(
+                      (numDarts == 1) ?
+                        '${player2.thrownScore} kan niet met $numDarts pijl gegooid worden.' :
+                        '${player2.thrownScore} kan niet met $numDarts pijlen gegooid worden.'),
+                    duration: const Duration(seconds: 5),),
+              );
             } else if (player2.thrownScore != '0') {
               player2.currentScore -= int.parse(player2.thrownScore);
+              player2.scoresThrownHistory.add(int.parse(player2.thrownScore));
+              player2.dartsThrown += numDarts;
+              player2.dartsThrownHistory.add(numDarts);
               player1.myTurn = true;
               player1.thrownScore = '';
             } else {
+              player2.scoresThrownHistory.add(int.parse(player2.thrownScore));
+              player2.dartsThrown += numDarts;
+              player2.dartsThrownHistory.add(numDarts);
               player1.myTurn = true;
               player1.thrownScore = '';
             }
 
             if (player2.currentScore == 0) {
-              player2.legsWon++;
-              if (player2.legsWon > (legsToPlay - player2.legsWon)) {
-                player2.setsWon++;
-                if (player2.setsWon > (setsToPlay - player2.setsWon)) {
-                  endGame(widget.game.player2);
-                } else {
-                  resetGame();
-                }
-              } else {
-                resetGame();
-              }
+              endLeg(widget.game.player2, player2);
             } else if (170 - player2.currentScore >= 0) {
               player2.possibleOut = possibleOuts[170 - player2.currentScore];
             } else {
@@ -865,6 +899,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             }
           }
         }
+        numDarts = 3;
         break;
       case 'C':
         if (player1.myTurn) {
@@ -876,10 +911,14 @@ class _PouleGameBodyState extends State<PouleGameBody> {
       case 'BUST':
         if (player1.myTurn) {
           player1.thrownScore = 'BUST';
+          player1.dartsThrown += numDarts;
+          player1.scoresThrownHistory.add(0);
           player2.thrownScore = '';
           player1.myTurn = false;
         } else {
           player2.thrownScore = 'BUST';
+          player2.dartsThrown += numDarts;
+          player2.scoresThrownHistory.add(0);
           player1.thrownScore = '';
           player1.myTurn = true;
         }
@@ -918,7 +957,6 @@ class _PouleGameBodyState extends State<PouleGameBody> {
       context: widget.context,
       builder: (BuildContext context) => AlertDialog(
         title: Text("Heeft $winner de wedstrijd gewonnen?"),
-        content: Text("$winner heeft de wedstrijd in 69 darts uitgegooid."),
         actions: <Widget>[
           TextButton(
             onPressed: () {
@@ -944,13 +982,55 @@ class _PouleGameBodyState extends State<PouleGameBody> {
     );
   }
 
+  void endLeg(String winnerName, PlayerClass winnerType) {
+    showDialog<String>(
+      context: widget.context,
+      builder: (BuildContext context) => AlertDialog(
+        title: Text("Heeft $winnerName de leg gewonnen?"),
+        content: Text(
+            "$winnerName heeft de leg in ${winnerType.dartsThrown.toString()} darts uitgegooid."),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () {
+              resetLastScore(winnerType);
+              Navigator.pop(context, 'Cancel');
+            },
+            child: const Text("Annuleren"),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context, 'Bevestigd');
+              winnerType.legsWon++;
+              if (winnerType.legsWon > (legsToPlay - winnerType.legsWon)) {
+                winnerType.setsWon++;
+                if (winnerType.setsWon > (setsToPlay - winnerType.setsWon)) {
+                  endGame(winnerName);
+                } else {
+                  resetGame();
+                }
+              } else {
+                resetGame();
+              }
+            },
+            child: const Text("Bevestigen"),
+          ),
+        ],
+      ),
+    );
+  }
+
   void resetGame() {
     player1.currentScore = activeGameInfo[1];
     player1.possibleOut = '';
     player1.thrownScore = '';
+    player1.dartsThrown = 0;
+    player1.scoresThrownHistory.clear();
     player2.currentScore = activeGameInfo[1];
     player2.possibleOut = '';
     player2.thrownScore = '';
+    player2.dartsThrown = 0;
+    player2.scoresThrownHistory.clear();
+    numDarts = 3;
 
     int legsPlayed = player1.legsWon + player2.legsWon;
 
@@ -967,6 +1047,29 @@ class _PouleGameBodyState extends State<PouleGameBody> {
         player1.myTurn = true;
       }
     }
+    setState(() {
+      null;
+    });
+  }
+
+  void resetLastScore(PlayerClass player) {
+    if (player.scoresThrownHistory.isNotEmpty) {
+      player.currentScore += player.scoresThrownHistory.removeLast();
+      player.dartsThrown -= player.dartsThrownHistory.removeLast();
+      player.thrownScore = '';
+      if (170 - player.currentScore >= 0) {
+        player.possibleOut = possibleOuts[170 - player.currentScore];
+      } else {
+        player.possibleOut = '';
+      }
+      numDarts = 3;
+      player1.myTurn = false; //onbekend welke speler gereset wordt, dus beide
+      player2.myTurn = false; //spelers niet de beurt geven om vervolgens
+      player.myTurn = true; //de juiste speler wel de beurt te geven.
+    }
+    setState(() {
+      null;
+    });
   }
 
   Widget bodyContainer() {
@@ -996,11 +1099,13 @@ class _PouleGameBodyState extends State<PouleGameBody> {
           Table(
             defaultColumnWidth: const FlexColumnWidth(),
             defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-            children:[
-              TableRow(children: <Widget>[
+            children: [
+              TableRow(
+                children: <Widget>[
                   Center(
                     child: Text(
-                      widget.game.player1,
+                      widget.game.player1 +
+                          ' (${player1.dartsThrown.toString()})',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
@@ -1071,7 +1176,9 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                     ],
                   ),
                   Center(
-                    child: Text(widget.game.player2,
+                    child: Text(
+                      widget.game.player2 +
+                          ' (${player2.dartsThrown.toString()})',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
@@ -1087,35 +1194,29 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             children: [
               TableRow(children: <Widget>[
                 Center(
-                  child: Text(
-                    player1.currentScore.toString(), 
-                    style: const TextStyle(
-                      color: Colors.white, 
-                      fontSize: 80
-                    ),
+                  child: AutoSizeText(
+                    player1.currentScore.toString(),
+                    maxLines: 1,
+                    style: const TextStyle(color: Colors.white, fontSize: 80),
                   ),
                 ),
                 Center(
-                  child: Text(
+                  child: AutoSizeText(
                     player2.currentScore.toString(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 80
-                    ),
+                    maxLines: 1,
+                    style: const TextStyle(color: Colors.white, fontSize: 80),
                   ),
                 ),
               ]),
               const TableRow(children: <Widget>[
-                Center(child:
-                  SizedBox(
-                    height: 30,
-                  )
-                ),
-                Center(child:
-                  SizedBox(
-                    height: 30,
-                  )
-                ),
+                Center(
+                    child: SizedBox(
+                  height: 30,
+                )),
+                Center(
+                    child: SizedBox(
+                  height: 30,
+                )),
               ]),
               TableRow(children: <Widget>[
                 Center(
@@ -1132,16 +1233,14 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                 ),
               ]),
               const TableRow(children: <Widget>[
-                Center(child:
-                  SizedBox(
-                    height: 30,
-                  )
-                ),
-                Center(child:
-                  SizedBox(
-                    height: 30,
-                  )
-                ),
+                Center(
+                    child: SizedBox(
+                  height: 30,
+                )),
+                Center(
+                    child: SizedBox(
+                  height: 30,
+                )),
               ]),
               TableRow(children: <Widget>[
                 Center(
@@ -1149,13 +1248,16 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                     width: 150,
                     height: 50,
                     child: Container(
-                      color: player1.myTurn ? Colors.white : const Color(0xFF303030),
+                      color: player1.myTurn
+                          ? Colors.white
+                          : const Color(0xFF303030),
                       alignment: Alignment.center,
                       child: Center(
                         child: Text(
                           player1.thrownScore,
                           style: TextStyle(
-                            color: player1.myTurn ? Colors.black: Colors.black38,
+                            color:
+                                player1.myTurn ? Colors.black : Colors.black38,
                             fontSize: 30,
                           ),
                         ),
@@ -1168,13 +1270,16 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                     width: 150,
                     height: 50,
                     child: Container(
-                      color: player1.myTurn ? const Color(0xFF303030) : Colors.white,
+                      color: player1.myTurn
+                          ? const Color(0xFF303030)
+                          : Colors.white,
                       alignment: Alignment.center,
                       child: Center(
                         child: Text(
                           player2.thrownScore,
                           style: TextStyle(
-                            color: player1.myTurn ? Colors.black38 : Colors.black,
+                            color:
+                                player1.myTurn ? Colors.black38 : Colors.black,
                             fontSize: 30,
                           ),
                         ),
@@ -1233,6 +1338,21 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                       style: TextStyle(fontSize: 20),
                     )),
               ),
+              SizedBox(
+                width: sideBtnWidth,
+                height: sideBtnHeigth,
+                child: ElevatedButton(
+                  style: sideBtnStyle,
+                  onPressed: () {
+                    if (player1.myTurn) {
+                      resetLastScore(player2);
+                    } else {
+                      resetLastScore(player1);
+                    }
+                  },
+                  child: const Icon(Icons.replay_outlined),
+                ),
+              ),
             ],
           ),
           Row(
@@ -1279,6 +1399,27 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                       '6',
                       style: TextStyle(fontSize: 20),
                     )),
+              ),
+              SizedBox(
+                width: sideBtnWidth,
+                height: sideBtnHeigth,
+                child: IgnorePointer(
+                  ignoring: true,
+                  child: ElevatedButton(
+                    style: sideBtnStyle,
+                    onPressed: () {
+                      null;
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.all(0.0),
+                      child: AutoSizeText(
+                        "Darts",
+                        maxLines: 2,
+                        minFontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
@@ -1327,6 +1468,35 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                       style: TextStyle(fontSize: 20),
                     )),
               ),
+              SizedBox(
+                width: sideBtnWidth,
+                height: sideBtnHeigth,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.all(Radius.zero),
+                    ),
+                    elevation: 0,
+                    shadowColor: Colors.transparent,
+                    primary:
+                        (numDarts == 1) ? Colors.grey[700] : Colors.grey[850],
+                  ),
+                  onPressed: () {
+                    numDarts = 1;
+                    setState(() {
+                      null;
+                    });
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.all(0.0),
+                    child: AutoSizeText(
+                      "1",
+                      maxLines: 2,
+                      minFontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
           Row(
@@ -1374,6 +1544,35 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                       style: TextStyle(fontSize: 20),
                     )),
               ),
+              SizedBox(
+                width: sideBtnWidth,
+                height: sideBtnHeigth,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.all(Radius.zero),
+                    ),
+                    elevation: 0,
+                    shadowColor: Colors.transparent,
+                    primary:
+                        (numDarts == 2) ? Colors.grey[700] : Colors.grey[850],
+                  ),
+                  onPressed: () {
+                    numDarts = 2;
+                    setState(() {
+                      null;
+                    });
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.all(0.0),
+                    child: AutoSizeText(
+                      "2",
+                      maxLines: 2,
+                      minFontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
           Row(
@@ -1394,6 +1593,35 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                     "Standaard",
                     style: TextStyle(
                       fontSize: 20,
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: sideBtnWidth,
+                height: sideBtnHeigth,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.all(Radius.zero),
+                    ),
+                    elevation: 0,
+                    shadowColor: Colors.transparent,
+                    primary:
+                        (numDarts == 3) ? Colors.grey[700] : Colors.grey[850],
+                  ),
+                  onPressed: () {
+                    numDarts = 3;
+                    setState(() {
+                      null;
+                    });
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.all(0.0),
+                    child: AutoSizeText(
+                      "3",
+                      maxLines: 2,
+                      minFontSize: 14,
                     ),
                   ),
                 ),
@@ -1436,7 +1664,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                     style: const TextStyle(fontSize: 20),
                   ),
                   style: ElevatedButton.styleFrom(
-                    primary: const Color(0xFF4A0000),
+                    primary: Color(DEFAULT_BTN_COLOR),
                   ),
                 ),
               ),
@@ -1457,7 +1685,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                     style: const TextStyle(fontSize: 20),
                   ),
                   style: ElevatedButton.styleFrom(
-                    primary: const Color(0xFF4A0000),
+                    primary: Color(DEFAULT_BTN_COLOR),
                   ),
                 ),
               ),
