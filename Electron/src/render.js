@@ -154,7 +154,7 @@ io.on('connection', (socket) => {
     });
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 11520;
 
 /*httpServer.listen(PORT, () => {
   console.log(`server listening at http://${address()}:${PORT}`);
@@ -792,7 +792,7 @@ function loadGame(){
     }
 
     startPoulesSorting();
-    //document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
+    document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
     httpServer.listen(PORT, () => {
         console.log(`Server listening on http://${address()}:${PORT}`);
     });

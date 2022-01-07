@@ -55,7 +55,7 @@ input:focus{
 
 .cardSetup{
   position: absolute;
-  bottom: 50%;
+  bottom: 30%;
   right: 50%;
   height: auto;
   width: auto;
@@ -615,6 +615,13 @@ button{
 .menuBtnDiv a:hover{
   transform: scale(1.1);
   color:white;
+}
+
+.menuBtnDiv span{
+  position: absolute;
+  top: 5px;
+  right: 50px;
+  color: white;
 }
 
 .settingsLabel{
