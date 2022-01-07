@@ -1,7 +1,7 @@
 {
   "name": "darttoernooi",
   "productName": "Darttoernooi",
-  "version": "1.6.6",
+  "version": "1.7.0",
   "description": "Speelschema voor darttoernooien (of een ander toernooi met poules).",
   "main": "src/index.js",
   "scripts": {
@@ -10,9 +10,11 @@
     "make": "electron-forge make",
     "publish": "electron-forge publish",
     "lint": "echo \"No linting configured\"",
-    "build-installer-windows": "electron-builder --windows nsis:x64"
+    "build-installer-windows": "electron-builder --windows nsis:x64",
+    "build-linux": "electron-builder --linux"
   },
   "build": {
+    "asar": false,
     "appId": "Darttoernooi",
     "win": {
       "target": [
@@ -63,22 +65,32 @@
     }
   },
   "dependencies": {
+    "@mdi/react": "^1.5.0",
     "custom-electron-titlebar": "^3.2.7",
     "electron-squirrel-startup": "^1.0.0",
+    "http-terminator": "^3.0.3",
+    "ip": "^1.1.5",
     "jquery": "^3.6.0",
-    "jspdf": "^2.4.0"
+    "jspdf": "^2.4.0",
+    "monitor.io": "^0.1.0",
+    "socket.io": "^4.3.2"
   },
   "devDependencies": {
-    "electron-builder": "22.10.5",
     "@electron-forge/cli": "^6.0.0-beta.60",
     "@electron-forge/maker-deb": "^6.0.0-beta.60",
     "@electron-forge/maker-rpm": "^6.0.0-beta.60",
     "@electron-forge/maker-squirrel": "^6.0.0-beta.60",
     "@electron-forge/maker-zip": "^6.0.0-beta.60",
+    "@socket.io/sticky": "^1.0.1",
     "electron": "14.0.0",
+    "electron-builder": "22.10.5",
     "electron-compile": "^6.4.4",
     "electron-forge": "^5.2.4",
     "electron-json-storage": "^4.5.0",
-    "electron-prebuilt-compile": "8.2.0"
+    "electron-prebuilt-compile": "8.2.0",
+    "http-terminator": "^3.0.3",
+    "ip": "^1.1.5",
+    "monitor.io": "^0.1.0",
+    "socket.io": "^4.3.2"
   }
 }

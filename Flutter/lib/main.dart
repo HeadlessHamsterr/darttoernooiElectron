@@ -1,0 +1,1717 @@
+/*TODO:
+  - Undo knop voor ingevoerde scores
+*/
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+// ignore: library_prefixes
+import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:auto_size_text/auto_size_text.dart';
+
+String serverIP = '';
+String activePoule = '';
+List<String> pouleNames = [];
+List gameInfo = [];
+late int numPoules;
+late IO.Socket socket;
+enum ChosenPlayerEnum { player1, player2, undefined }
+List activeGameInfo = [];
+ChosenPlayerEnum activeStartingPlayer = ChosenPlayerEnum.undefined;
+double numBtnWidth = 100;
+double numBtnHeigth = 70;
+double sideBtnWidth = 68;
+double sideBtnHeigth = 70;
+const DEFAULT_BTN_COLOR = 0xFF4A0000;
+const BACKGROUND_COLOR = 0xFF181818;
+
+List<String> possibleOuts = [
+  'T20 T20 BULL',
+  '',
+  '',
+  'T20 T19 BULL',
+  '',
+  '',
+  'T20 T18 BULL',
+  '',
+  '',
+  'T20 T17 BULL',
+  'T20 T20 D20',
+  '',
+  'T20 T20 D19',
+  'T20 T19 D20',
+  'T20 T20 D18',
+  'T20 T19 D19',
+  'T20 T18 D20',
+  'T20 T19 D18',
+  'T20 T20 D16',
+  'T20 T17 D20',
+  'T20 T18 D18',
+  'T20 T19 D16',
+  'T20 T16 D20',
+  'T20 T17 D18',
+  'T20 T18 D16',
+  'T20 T15 D20',
+  'T20 T20 D12',
+  'T20 T17 D16',
+  'T20 T14 D20',
+  'T20 T19 D12',
+  'T20 T16 D16',
+  'T19 T14 D20',
+  'T20 T18 D12',
+  'T19 T16 D16',
+  'T20 T20 D8',
+  'T20 T17 D12',
+  'T20 T14 D16',
+  'T20 T19 D8',
+  'BULL T14 D20',
+  'T20 T13 D16',
+  'T20 T20 D5',
+  'T19 T20 D6',
+  'T18 T14 D16',
+  'T20 T17 D8',
+  'T19 T19 D6',
+  '25 T20 D20',
+  'T20 T14 D11',
+  'T19 T16 D9',
+  'T18 T18 D7',
+  'T20 T11 D14',
+  'T20 20 D20',
+  'T19 T12 D13',
+  'T20 18 D20',
+  'T20 17 D20',
+  'T20 16 D20',
+  'T20 15 D20',
+  'T20 14 D20',
+  'T20 13 D20',
+  'T20 12 D20',
+  'T20 11 D20',
+  'T20 10 D20',
+  'T19 12 D20',
+  'T20 16 D16',
+  'T19 10 D20',
+  'T20 10 D18',
+  'T20 13 D16',
+  'T20 12 D16',
+  'T19 10 D18',
+  'T20 10 D16',
+  'T17 10 D20',
+  'T20 D20',
+  'T19 10 D16',
+  'T20 D19',
+  'T19 D20',
+  'T20 D18',
+  'T19 D19',
+  'T18 D20',
+  'T19 D18',
+  'T20 D16',
+  'T17 D20',
+  'T20 D15',
+  'T19 D16',
+  'T20 D14',
+  'T17 D18',
+  'T18 D16',
+  'T15 D20',
+  'T16 D18',
+  'T17 D16',
+  'T14 D20',
+  'T15 D18',
+  'T20 D10',
+  'T13 D20',
+  'T18 D12',
+  'T15 D16',
+  'T20 D8',
+  'T13 D18',
+  'T14 D16',
+  'T19 D8',
+  'T16 D12',
+  'T13 D16',
+  'T18 D8',
+  'T19 D6',
+  'T20 D4',
+  'T17 D8',
+  'T10 D18',
+  'T19 D4',
+  'T16 D8',
+  'T13 D12',
+  'T10 D16',
+  'T15 D8',
+  '20 D20',
+  '19 D20',
+  '18 D20',
+  '17 D20',
+  '16 D20',
+  '15 D20',
+  '14 D20',
+  '13 D20',
+  '12 D20',
+  '19 D16',
+  '10 D20',
+  '17 D16',
+  '16 D16',
+  '15 D16',
+  '6 D20',
+  '13 D16',
+  '12 D16',
+  '3 D20',
+  '10 D16',
+  '9 D16',
+  'D20',
+  '7 D16',
+  'D19',
+  '5 D16',
+  'D18',
+  '3 D16',
+  'D17',
+  '1 D16',
+  'D16',
+  '15 D8',
+  'D15',
+  '13 D8',
+  'D14',
+  '19 D4',
+  'D13',
+  '9 D8',
+  'D12',
+  '7 D8',
+  'D11',
+  '5 D8',
+  'D10',
+  '3 D8',
+  'D9',
+  '9 D4',
+  'D8',
+  '7 D4',
+  'D7',
+  '5 D4',
+  'D6',
+  '3 D4',
+  'D5',
+  '1 D4',
+  'D4',
+  '3 D2',
+  'D3',
+  '1 D2',
+  'D2',
+  '1 D1',
+  'D1'
+];
+
+var sideBtnStyle = ElevatedButton.styleFrom(
+  shape: const RoundedRectangleBorder(
+    borderRadius: BorderRadius.all(Radius.zero),
+  ),
+  elevation: 0,
+  shadowColor: Colors.transparent,
+  primary: Colors.grey[850],
+);
+var numBtnStyle = ElevatedButton.styleFrom(
+  side: const BorderSide(
+      color: Colors.black, width: 2.0, style: BorderStyle.solid),
+  shape: const RoundedRectangleBorder(
+    borderRadius: BorderRadius.all(Radius.zero),
+  ),
+  primary: Color(DEFAULT_BTN_COLOR),
+);
+var cBtnStyle = ElevatedButton.styleFrom(
+  side: const BorderSide(
+      color: Colors.black, width: 2.0, style: BorderStyle.solid),
+  shape: const RoundedRectangleBorder(
+    borderRadius: BorderRadius.all(Radius.zero),
+  ),
+  primary: const Color(0xFFC40000),
+);
+var bustBtnSytle = ElevatedButton.styleFrom(
+  side: const BorderSide(
+      color: Colors.black, width: 2.0, style: BorderStyle.solid),
+  shape: const RoundedRectangleBorder(
+    borderRadius: BorderRadius.all(Radius.zero),
+  ),
+  primary: const Color(0xFF9E5905),
+);
+var okBtnStyle = ElevatedButton.styleFrom(
+  side: const BorderSide(
+      color: Colors.black, width: 2.0, style: BorderStyle.solid),
+  shape: const RoundedRectangleBorder(
+    borderRadius: BorderRadius.all(Radius.zero),
+  ),
+  primary: const Color(0xFF014D05),
+);
+var numPadFontSize = 30;
+void main() {
+  runApp(StartScreen());
+}
+
+class GameInfoClass {
+  int pouleScore;
+  int pouleLegs;
+  int quartScore;
+  int quartLegs;
+  int halfScore;
+  int halfLegs;
+  int finalScore;
+  int finalLegs;
+
+  GameInfoClass(
+      {this.pouleScore = 0,
+      this.pouleLegs = 0,
+      this.quartScore = 0,
+      this.quartLegs = 0,
+      this.halfScore = 0,
+      this.halfLegs = 0,
+      this.finalScore = 0,
+      this.finalLegs = 0});
+}
+
+GameInfoClass gameInfoClass = GameInfoClass();
+
+class PlayerClass {
+  bool myTurn;
+  int currentScore;
+  int legsWon;
+  int setsWon;
+  String possibleOut;
+  String thrownScore;
+  int dartsThrown;
+  List<int> scoresThrownHistory = [];
+  List<int> dartsThrownHistory = [];
+
+  PlayerClass(
+      {this.myTurn = false,
+      this.currentScore = 0,
+      this.legsWon = 0,
+      this.setsWon = 0,
+      this.thrownScore = '',
+      this.possibleOut = '',
+      this.dartsThrown = 0});
+}
+
+class PouleRanking {
+  final String playerName;
+  final String points;
+
+  PouleRanking({required this.playerName, required this.points});
+}
+
+class PouleGames {
+  final String gameID;
+  final String player1;
+  final String player2;
+  final bool gamePlayed;
+  final String gameType;
+  /*final int startingScore;
+  final int legsToPlay;
+  final int setsToPlay;*/
+
+  PouleGames({
+    required this.gameID,
+    required this.player1,
+    required this.player2,
+    required this.gamePlayed,
+    required this.gameType,
+  }); /*
+      required this.startingScore,
+      required this.legsToPlay,
+      required this.setsToPlay});*/
+}
+
+Widget getPouleName(pouleName) {
+  if (pouleName == 'Finales') {
+    return Text(pouleName);
+  } else {
+    return Text('Poule $pouleName');
+  }
+}
+
+class StartScreen extends StatelessWidget {
+  StartScreen({Key? key}) : super(key: key);
+
+  final ipAddressController = TextEditingController(text: serverIP);
+
+  void enterIP(context) {
+    serverIP = ipAddressController.text;
+    socket = IO.io('ws://$serverIP:11520', <String, dynamic>{
+      'transports': ['websocket'],
+      'force new connection': true,
+      'autoConnect': false
+    });
+    socket.connect();
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('Verbinding maken...'),
+      duration: Duration(days: 365),
+    ));
+    socket.onConnect((_) {
+      socket.emit('clientGreeting', 'yoBitch');
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      Navigator.of(context).push(MaterialPageRoute(
+          builder: (BuildContext context) =>
+              PoulesOverview(serverIP: serverIP)));
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      theme: ThemeData(
+        scaffoldBackgroundColor: const Color(0xFF181818),
+      ),
+      home: Builder(builder: (context) {
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Darttoernooi companion'),
+            backgroundColor: const Color(DEFAULT_BTN_COLOR),
+          ),
+          body: ListView(
+            children: [
+              Container(
+                  child: Column(
+                    //mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      TextField(
+                        controller: ipAddressController,
+                        decoration: InputDecoration(
+                          labelText: 'IP adres',
+                          labelStyle: const TextStyle(color: Colors.white),
+                          enabledBorder: const OutlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFF505050)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide:
+                                const BorderSide(color: Color(0xFF505050)),
+                            borderRadius: BorderRadius.circular(10.0),
+                          ),
+                        ),
+                        style: const TextStyle(color: Colors.white),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          primary: const Color(DEFAULT_BTN_COLOR),
+                        ),
+                        child: const Text('Verbinden'),
+                        onPressed: () {
+                          enterIP(context);
+                        },
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.fromLTRB(50, 200, 50, 200)),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+}
+
+class PoulesOverview extends StatefulWidget {
+  final String serverIP;
+  const PoulesOverview({Key? key, required this.serverIP}) : super(key: key);
+
+  @override
+  _PoulesOverviewState createState() => _PoulesOverviewState();
+}
+
+class _PoulesOverviewState extends State<PoulesOverview> {
+  String serverAddressObj = '';
+
+  @override
+  void initState() {
+    super.initState();
+    connectWebsocket();
+  }
+
+  void connectWebsocket() {
+    socket.on('pouleInfo', (data) => updatePouleInfo(data));
+    socket.on('settingsUpdate', (data) => updateSettings(data));
+    socket.emit('allPouleInfoRequest', 'plsGeef');
+  }
+
+  void updatePouleInfo(data) {
+    pouleNames.clear();
+    gameInfo.clear();
+    try {
+      numPoules = data[0].length;
+      for (var i = 0; i < numPoules; i++) {
+        switch (i) {
+          case 0:
+            pouleNames.add('A');
+            break;
+          case 1:
+            pouleNames.add('B');
+            break;
+          case 2:
+            pouleNames.add('C');
+            break;
+          case 3:
+            pouleNames.add('D');
+            break;
+        }
+      }
+      pouleNames.add("Finales");
+
+      //gameInfo.addAll(data[1]);
+      gameInfoClass.pouleScore = int.parse(data[1][0]);
+      gameInfoClass.pouleLegs = int.parse(data[1][1]);
+      gameInfoClass.quartScore = int.parse(data[1][2]);
+      gameInfoClass.quartLegs = int.parse(data[1][3]);
+      gameInfoClass.halfScore = int.parse(data[1][4]);
+      gameInfoClass.halfLegs = int.parse(data[1][5]);
+      gameInfoClass.finalScore = int.parse(data[1][6]);
+      gameInfoClass.finalLegs = int.parse(data[1][7]);
+      setState(() {
+        pouleNames = pouleNames;
+      });
+    } catch (e) {
+      // ignore: avoid_print
+      print(e);
+    }
+  }
+
+  void updateSettings(data) {
+    gameInfoClass.pouleScore = int.parse(data[0]);
+    gameInfoClass.pouleLegs = int.parse(data[1]);
+    gameInfoClass.quartScore = int.parse(data[2]);
+    gameInfoClass.quartLegs = int.parse(data[3]);
+    gameInfoClass.halfScore = int.parse(data[4]);
+    gameInfoClass.halfLegs = int.parse(data[5]);
+    gameInfoClass.finalScore = int.parse(data[6]);
+    gameInfoClass.finalLegs = int.parse(data[7]);
+    print(gameInfoClass);
+  }
+
+  void pouleBtnPress(pouleNum, context) {
+    activePoule = pouleNum;
+    //socket.clearListeners();
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (BuildContext context) => const PouleScreen()),
+    );
+  }
+
+  void backBtnPress(context) {
+    socket.disconnect();
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (BuildContext context) => StartScreen()),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    serverAddressObj = widget.serverIP;
+    if (socket.connected == false) {
+      connectWebsocket();
+    }
+    return MaterialApp(
+      theme: ThemeData(
+        scaffoldBackgroundColor: const Color(0xFF181818),
+      ),
+      home: Builder(builder: (context) {
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text('Poules'),
+            backgroundColor: Color(DEFAULT_BTN_COLOR),
+            leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () {
+                  backBtnPress(context);
+                }),
+          ),
+          body: Center(
+            child: Column(
+              children: pouleNames.map((String data) {
+                return ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    primary: Color(DEFAULT_BTN_COLOR),
+                  ),
+                  onPressed: () {
+                    pouleBtnPress(data, context);
+                  },
+                  child: getPouleName(data),
+                );
+              }).toList(),
+            ),
+          ),
+        );
+      }),
+    );
+  }
+}
+
+class PouleScreen extends StatefulWidget {
+  const PouleScreen({Key? key}) : super(key: key);
+
+  @override
+  _PouleScreenState createState() => _PouleScreenState();
+}
+
+class _PouleScreenState extends State<PouleScreen> {
+  List<PouleRanking> rankings = [];
+  List<PouleGames> games = [];
+  @override
+  void initState() {
+    super.initState();
+    if (activePoule != 'Finales') {
+      socket.emit('poule${activePoule}InfoRequest', 'plsGeef');
+    } else {
+      socket.emit('finalsInfoRequest', 'plsGeef');
+    }
+    socket.on('poule${activePoule}Ranks', (data) => updateRanks(data));
+    socket.on('finalsInfo', (data) => updateFinals(data));
+  }
+
+  void updateRanks(data) {
+    rankings.clear();
+    for (var i = 0; i < data[0].length; i++) {
+      rankings.add(PouleRanking(
+          playerName: data[0][i][0].toString(),
+          points: data[0][i][1].toString()));
+    }
+
+    games.clear();
+    for (var i = 0; i < data[1].length; i++) {
+      String gameID = activePoule + (i + 1).toString();
+      games.add(PouleGames(
+          gameID: gameID,
+          player1: data[1][i][0],
+          player2: data[1][i][1],
+          gamePlayed: data[1][i][2],
+          gameType: data[2]));
+    }
+    setState(() {});
+  }
+
+  void updateFinals(data) {
+    games.clear();
+    for (var i = 0; i < data.length; i++) {
+      String gameID = data[i][0];
+      games.add(
+        PouleGames(
+            gameID: gameID,
+            player1: data[i][1],
+            player2: data[i][2],
+            gamePlayed: data[i][3],
+            gameType: data[i][4]),
+      );
+    }
+    setState(() {});
+  }
+
+  void gamePressed(PouleGames game, context) {
+    Navigator.of(context).push(MaterialPageRoute(
+        builder: (BuildContext context) => PouleGame(game: game)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      theme: ThemeData(
+        scaffoldBackgroundColor: const Color(0xFF181818),
+      ),
+      home: Builder(
+        builder: (context) {
+          return Scaffold(
+            appBar: AppBar(
+              title: getPouleName(activePoule),
+              backgroundColor: Color(DEFAULT_BTN_COLOR),
+              leading: IconButton(
+                  icon: const Icon(Icons.arrow_back),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (BuildContext context) =>
+                              PoulesOverview(serverIP: serverIP)),
+                    );
+                  }),
+            ),
+            body: Center(
+              child: Column(
+                children: [
+                  Table(
+                    border: const TableBorder(
+                        horizontalInside: BorderSide(color: Color(0xFFE46800)),
+                        verticalInside: BorderSide(color: Color(0xFFE46800))),
+                    //defaultColumnWidth: const FixedColumnWidth(100),
+                    columnWidths: const {
+                      0: FixedColumnWidth(100),
+                      1: FixedColumnWidth(50),
+                    },
+                    children: rankings.map((currentPlayer) {
+                      return TableRow(
+                        children: <Widget>[
+                          Center(
+                            child: Text(
+                              currentPlayer.playerName,
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ),
+                          Center(
+                            child: Text(
+                              currentPlayer.points,
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        ],
+                      );
+                    }).toList(),
+                  ),
+                  Column(
+                    children: games.map((currentGame) {
+                      return IgnorePointer(
+                        ignoring: currentGame.gamePlayed,
+                        child: Container(
+                          width: 200,
+                          height: 60,
+                          padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
+                          child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                primary: currentGame.gamePlayed
+                                    ? const Color(0xFF202020)
+                                    : Color(DEFAULT_BTN_COLOR),
+                              ),
+                              onPressed: () {
+                                if (!currentGame.gamePlayed) {
+                                  gamePressed(currentGame, context);
+                                }
+                              },
+                              child: AutoSizeText(
+                                  '${currentGame.player1} - ${currentGame.player2}',
+                                  maxLines: 1,
+                                  style: TextStyle(
+                                      color: currentGame.gamePlayed
+                                          ? Colors.grey
+                                          : Colors.white,
+                                      fontSize: 20))),
+                        ),
+                      );
+                    }).toList(),
+                  )
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class PouleGame extends StatelessWidget {
+  final PouleGames game;
+  const PouleGame({Key? key, required this.game}) : super(key: key);
+
+  void backPressed(context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: const Text("Wedstrijd sluiten"),
+        content: const Text(
+            "Weet je zeker dat je de wedstrijd wil sluiten?\nAlle voortgang wordt verwijderd."),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context, 'Cancel');
+            },
+            child: const Text("Annuleren"),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (BuildContext context) => const PouleScreen()),
+              );
+            },
+            child: const Text("Wedstrijd sluiten"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+        theme: ThemeData(
+          scaffoldBackgroundColor: const Color(0xFF181818),
+        ),
+        home: Builder(builder: (context) {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Wedstrijd'),
+              centerTitle: true,
+              backgroundColor: Color(DEFAULT_BTN_COLOR),
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back),
+                onPressed: () {
+                  backPressed(context);
+                },
+              ),
+            ),
+            body: PouleGameBody(game: game, context: context),
+          );
+        }));
+  }
+}
+
+class PouleGameBody extends StatefulWidget {
+  final PouleGames game;
+  final BuildContext context;
+  const PouleGameBody({Key? key, required this.game, required this.context})
+      : super(key: key);
+
+  @override
+  _PouleGameBodyState createState() => _PouleGameBodyState();
+}
+
+class _PouleGameBodyState extends State<PouleGameBody> {
+  PlayerClass player1 = PlayerClass();
+  PlayerClass player2 = PlayerClass();
+  ChosenPlayerEnum chosenPlayer = activeStartingPlayer;
+
+  var specialBtnStyle = cBtnStyle;
+  bool gameStarted = false;
+  int setsToPlay = 0;
+  int legsToPlay = 0;
+  String specialBtnText = 'C';
+  int numDarts = 3;
+
+  @override
+  void initState() {
+    super.initState();
+    activeGameInfo.clear();
+    activeGameInfo.add(widget.game.gameID);
+    if (widget.game.gameType == 'poule') {
+      player2.currentScore = player1.currentScore = gameInfoClass.pouleScore;
+      activeGameInfo.add(gameInfoClass.pouleScore);
+      legsToPlay = gameInfoClass.pouleLegs;
+    } else if (widget.game.gameType == 'quart') {
+      player2.currentScore = player1.currentScore = gameInfoClass.quartScore;
+      activeGameInfo.add(gameInfoClass.quartScore);
+      legsToPlay = gameInfoClass.quartLegs;
+    } else if (widget.game.gameType == 'half') {
+      player2.currentScore = player1.currentScore = gameInfoClass.halfScore;
+      activeGameInfo.add(gameInfoClass.halfScore);
+      legsToPlay = gameInfoClass.halfLegs;
+    } else {
+      player2.currentScore = player1.currentScore = gameInfoClass.finalScore;
+      activeGameInfo.add(gameInfoClass.finalScore);
+      legsToPlay = gameInfoClass.finalLegs;
+    }
+    activeGameInfo.add(player1.currentScore);
+    activeGameInfo.add(player2.currentScore);
+    activeGameInfo.add(player1.legsWon);
+    activeGameInfo.add(player1.setsWon);
+    activeGameInfo.add(player2.legsWon);
+    activeGameInfo.add(player2.setsWon);
+    activeGameInfo.add(legsToPlay);
+    activeGameInfo.add(setsToPlay);
+    activeStartingPlayer = ChosenPlayerEnum.undefined;
+    chosenPlayer = activeStartingPlayer;
+  }
+
+  void btnPress(String btnType) {
+    switch (btnType) {
+      case 'OK':
+        if (player1.myTurn) {
+          if (player1.thrownScore == '') {
+            ScaffoldMessenger.of(widget.context).showSnackBar(
+              const SnackBar(content: Text("Geen score ingevuld")),
+            );
+          } else {
+            if (int.parse(player1.thrownScore) > 180 ||
+                int.parse(player1.thrownScore) > player1.currentScore) {
+              ScaffoldMessenger.of(widget.context).showSnackBar(
+                SnackBar(content: Text(player1.thrownScore + ' is te hoog'),
+                duration: const Duration(seconds: 5),),
+              );
+            } else if (int.parse(player1.thrownScore) / numDarts > 60) {
+              ScaffoldMessenger.of(widget.context).showSnackBar(
+                SnackBar(
+                    content: Text(
+                      (numDarts == 1) ?
+                        '${player1.thrownScore} kan niet met $numDarts pijl gegooid worden.' :
+                        '${player1.thrownScore} kan niet met $numDarts pijlen gegooid worden.'),
+                    duration: const Duration(seconds: 5),),
+              );
+            } else if (player1.thrownScore != '0') {
+              player1.currentScore -= int.parse(player1.thrownScore);
+              player1.scoresThrownHistory.add(int.parse(player1.thrownScore));
+              player1.myTurn = false;
+              player1.dartsThrown += numDarts;
+              player1.dartsThrownHistory.add(numDarts);
+              player2.thrownScore = '';
+            } else {
+              player1.myTurn = false;
+              player1.scoresThrownHistory.add(int.parse(player1.thrownScore));
+              player1.dartsThrown += numDarts;
+              player1.dartsThrownHistory.add(numDarts);
+              player2.thrownScore = '';
+            }
+
+            if (player1.currentScore == 0) {
+              endLeg(widget.game.player1, player1);
+            } else if (170 - player1.currentScore >= 0) {
+              player1.possibleOut = possibleOuts[170 - player1.currentScore];
+            } else {
+              player1.possibleOut = '';
+            }
+          }
+        } else {
+          if (player2.thrownScore == '') {
+            ScaffoldMessenger.of(widget.context).showSnackBar(
+              const SnackBar(content: Text("Geen score ingevuld")),
+            );
+          } else {
+            if (int.parse(player2.thrownScore) > 180 ||
+                int.parse(player2.thrownScore) > player2.currentScore) {
+              ScaffoldMessenger.of(widget.context).showSnackBar(
+                SnackBar(content: Text(player2.thrownScore + ' is te hoog')),
+              );
+            } else if (int.parse(player2.thrownScore) / numDarts > 60) {
+              ScaffoldMessenger.of(widget.context).showSnackBar(
+                SnackBar(
+                    content: Text(
+                      (numDarts == 1) ?
+                        '${player2.thrownScore} kan niet met $numDarts pijl gegooid worden.' :
+                        '${player2.thrownScore} kan niet met $numDarts pijlen gegooid worden.'),
+                    duration: const Duration(seconds: 5),),
+              );
+            } else if (player2.thrownScore != '0') {
+              player2.currentScore -= int.parse(player2.thrownScore);
+              player2.scoresThrownHistory.add(int.parse(player2.thrownScore));
+              player2.dartsThrown += numDarts;
+              player2.dartsThrownHistory.add(numDarts);
+              player1.myTurn = true;
+              player1.thrownScore = '';
+            } else {
+              player2.scoresThrownHistory.add(int.parse(player2.thrownScore));
+              player2.dartsThrown += numDarts;
+              player2.dartsThrownHistory.add(numDarts);
+              player1.myTurn = true;
+              player1.thrownScore = '';
+            }
+
+            if (player2.currentScore == 0) {
+              endLeg(widget.game.player2, player2);
+            } else if (170 - player2.currentScore >= 0) {
+              player2.possibleOut = possibleOuts[170 - player2.currentScore];
+            } else {
+              player2.possibleOut = '';
+            }
+          }
+        }
+        numDarts = 3;
+        break;
+      case 'C':
+        if (player1.myTurn) {
+          player1.thrownScore = '';
+        } else {
+          player2.thrownScore = '';
+        }
+        break;
+      case 'BUST':
+        if (player1.myTurn) {
+          player1.thrownScore = 'BUST';
+          player1.dartsThrown += numDarts;
+          player1.scoresThrownHistory.add(0);
+          player2.thrownScore = '';
+          player1.myTurn = false;
+        } else {
+          player2.thrownScore = 'BUST';
+          player2.dartsThrown += numDarts;
+          player2.scoresThrownHistory.add(0);
+          player1.thrownScore = '';
+          player1.myTurn = true;
+        }
+        break;
+      default:
+        if (player1.myTurn) {
+          if ((player1.thrownScore + btnType).toString().length > 3) {
+            break;
+          } else {
+            if (player1.thrownScore == '0') {
+              player1.thrownScore == btnType;
+            } else {
+              player1.thrownScore = player1.thrownScore + btnType;
+            }
+          }
+        } else {
+          if ((player2.thrownScore + btnType).toString().length > 3) {
+            break;
+          } else {
+            if (player2.thrownScore == '0') {
+              player2.thrownScore == btnType;
+            } else {
+              player2.thrownScore = player2.thrownScore + btnType;
+            }
+          }
+        }
+        break;
+    }
+    setState(() {
+      null;
+    });
+  }
+
+  void endGame(String winner) {
+    showDialog<String>(
+      context: widget.context,
+      builder: (BuildContext context) => AlertDialog(
+        title: Text("Heeft $winner de wedstrijd gewonnen?"),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context, 'Cancel');
+            },
+            child: const Text("Annuleren"),
+          ),
+          TextButton(
+            onPressed: () {
+              String msg =
+                  "${widget.game.gameID},${player1.legsWon.toString()},${player2.legsWon.toString()}";
+              socket.emit('gamePlayed', msg);
+              Navigator.pop(context, 'Bevestigd');
+              Navigator.of(widget.context).push(
+                MaterialPageRoute(
+                    builder: (BuildContext context) => const PouleScreen()),
+              );
+            },
+            child: const Text("Bevestigen"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void endLeg(String winnerName, PlayerClass winnerType) {
+    showDialog<String>(
+      context: widget.context,
+      builder: (BuildContext context) => AlertDialog(
+        title: Text("Heeft $winnerName de leg gewonnen?"),
+        content: Text(
+            "$winnerName heeft de leg in ${winnerType.dartsThrown.toString()} darts uitgegooid."),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () {
+              resetLastScore(winnerType);
+              Navigator.pop(context, 'Cancel');
+            },
+            child: const Text("Annuleren"),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context, 'Bevestigd');
+              winnerType.legsWon++;
+              if (winnerType.legsWon > (legsToPlay - winnerType.legsWon)) {
+                winnerType.setsWon++;
+                if (winnerType.setsWon > (setsToPlay - winnerType.setsWon)) {
+                  endGame(winnerName);
+                } else {
+                  resetGame();
+                }
+              } else {
+                resetGame();
+              }
+            },
+            child: const Text("Bevestigen"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void resetGame() {
+    player1.currentScore = activeGameInfo[1];
+    player1.possibleOut = '';
+    player1.thrownScore = '';
+    player1.dartsThrown = 0;
+    player1.scoresThrownHistory.clear();
+    player2.currentScore = activeGameInfo[1];
+    player2.possibleOut = '';
+    player2.thrownScore = '';
+    player2.dartsThrown = 0;
+    player2.scoresThrownHistory.clear();
+    numDarts = 3;
+
+    int legsPlayed = player1.legsWon + player2.legsWon;
+
+    if (legsPlayed % 2 == 0) {
+      if (chosenPlayer == ChosenPlayerEnum.player1) {
+        player1.myTurn = true;
+      } else {
+        player1.myTurn = false;
+      }
+    } else {
+      if (chosenPlayer == ChosenPlayerEnum.player1) {
+        player1.myTurn = false;
+      } else {
+        player1.myTurn = true;
+      }
+    }
+    setState(() {
+      null;
+    });
+  }
+
+  void resetLastScore(PlayerClass player) {
+    if (player.scoresThrownHistory.isNotEmpty) {
+      player.currentScore += player.scoresThrownHistory.removeLast();
+      player.dartsThrown -= player.dartsThrownHistory.removeLast();
+      player.thrownScore = '';
+      if (170 - player.currentScore >= 0) {
+        player.possibleOut = possibleOuts[170 - player.currentScore];
+      } else {
+        player.possibleOut = '';
+      }
+      numDarts = 3;
+      player1.myTurn = false; //onbekend welke speler gereset wordt, dus beide
+      player2.myTurn = false; //spelers niet de beurt geven om vervolgens
+      player.myTurn = true; //de juiste speler wel de beurt te geven.
+    }
+    setState(() {
+      null;
+    });
+  }
+
+  Widget bodyContainer() {
+    activeStartingPlayer = chosenPlayer;
+    if (!gameStarted) {
+      switch (chosenPlayer) {
+        case ChosenPlayerEnum.player1:
+          player1.myTurn = true;
+          gameStarted = true;
+          return playerChosen(widget.game.player1);
+        case ChosenPlayerEnum.player2:
+          player1.myTurn = false;
+          gameStarted = true;
+          return playerChosen(widget.game.player2);
+        case ChosenPlayerEnum.undefined:
+          return defaultLayout();
+      }
+    } else {
+      return playerChosen(widget.game.player1);
+    }
+  }
+
+  Widget playerChosen(String player) {
+    return Center(
+      child: Column(
+        children: [
+          Table(
+            defaultColumnWidth: const FlexColumnWidth(),
+            defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+            children: [
+              TableRow(
+                children: <Widget>[
+                  Center(
+                    child: Text(
+                      widget.game.player1 +
+                          ' (${player1.dartsThrown.toString()})',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                      ),
+                    ),
+                  ),
+                  Table(
+                    defaultColumnWidth: const FixedColumnWidth(50),
+                    children: [
+                      TableRow(children: <Widget>[
+                        Center(
+                          child: Text(
+                            player1.setsWon.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                            ),
+                          ),
+                        ),
+                        const Center(
+                          child: Text(
+                            "Sets",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                            ),
+                          ),
+                        ),
+                        Center(
+                          child: Text(
+                            player2.setsWon.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                            ),
+                          ),
+                        ),
+                      ]),
+                      TableRow(children: <Widget>[
+                        Center(
+                          child: Text(
+                            player1.legsWon.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                            ),
+                          ),
+                        ),
+                        const Center(
+                          child: Text(
+                            "Legs",
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                            ),
+                          ),
+                        ),
+                        Center(
+                          child: Text(
+                            player2.legsWon.toString(),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                            ),
+                          ),
+                        ),
+                      ]),
+                    ],
+                  ),
+                  Center(
+                    child: Text(
+                      widget.game.player2 +
+                          ' (${player2.dartsThrown.toString()})',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          Table(
+            defaultColumnWidth: const FlexColumnWidth(),
+            children: [
+              TableRow(children: <Widget>[
+                Center(
+                  child: AutoSizeText(
+                    player1.currentScore.toString(),
+                    maxLines: 1,
+                    style: const TextStyle(color: Colors.white, fontSize: 80),
+                  ),
+                ),
+                Center(
+                  child: AutoSizeText(
+                    player2.currentScore.toString(),
+                    maxLines: 1,
+                    style: const TextStyle(color: Colors.white, fontSize: 80),
+                  ),
+                ),
+              ]),
+              const TableRow(children: <Widget>[
+                Center(
+                    child: SizedBox(
+                  height: 30,
+                )),
+                Center(
+                    child: SizedBox(
+                  height: 30,
+                )),
+              ]),
+              TableRow(children: <Widget>[
+                Center(
+                  child: Text(
+                    player1.possibleOut,
+                    style: const TextStyle(color: Colors.white, fontSize: 20),
+                  ),
+                ),
+                Center(
+                  child: Text(
+                    player2.possibleOut,
+                    style: const TextStyle(color: Colors.white, fontSize: 20),
+                  ),
+                ),
+              ]),
+              const TableRow(children: <Widget>[
+                Center(
+                    child: SizedBox(
+                  height: 30,
+                )),
+                Center(
+                    child: SizedBox(
+                  height: 30,
+                )),
+              ]),
+              TableRow(children: <Widget>[
+                Center(
+                  child: SizedBox(
+                    width: 150,
+                    height: 50,
+                    child: Container(
+                      color: player1.myTurn
+                          ? Colors.white
+                          : const Color(0xFF303030),
+                      alignment: Alignment.center,
+                      child: Center(
+                        child: Text(
+                          player1.thrownScore,
+                          style: TextStyle(
+                            color:
+                                player1.myTurn ? Colors.black : Colors.black38,
+                            fontSize: 30,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Center(
+                  child: SizedBox(
+                    width: 150,
+                    height: 50,
+                    child: Container(
+                      color: player1.myTurn
+                          ? const Color(0xFF303030)
+                          : Colors.white,
+                      alignment: Alignment.center,
+                      child: Center(
+                        child: Text(
+                          player2.thrownScore,
+                          style: TextStyle(
+                            color:
+                                player1.myTurn ? Colors.black38 : Colors.black,
+                            fontSize: 30,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ]),
+            ],
+          ),
+          const SizedBox(
+            height: 10,
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              const SizedBox(
+                width: 10,
+              ),
+              SizedBox(
+                width: numBtnWidth,
+                height: numBtnHeigth,
+                child: ElevatedButton(
+                    style: numBtnStyle,
+                    onPressed: () {
+                      btnPress('1');
+                    },
+                    child: const Text(
+                      '1',
+                      style: TextStyle(fontSize: 20),
+                    )),
+              ),
+              SizedBox(
+                width: numBtnWidth,
+                height: numBtnHeigth,
+                child: ElevatedButton(
+                    style: numBtnStyle,
+                    onPressed: () {
+                      btnPress('2');
+                    },
+                    child: const Text(
+                      '2',
+                      style: TextStyle(fontSize: 20),
+                    )),
+              ),
+              SizedBox(
+                width: numBtnWidth,
+                height: numBtnHeigth,
+                child: ElevatedButton(
+                    style: numBtnStyle,
+                    onPressed: () {
+                      btnPress('3');
+                    },
+                    child: const Text(
+                      '3',
+                      style: TextStyle(fontSize: 20),
+                    )),
+              ),
+              SizedBox(
+                width: sideBtnWidth,
+                height: sideBtnHeigth,
+                child: ElevatedButton(
+                  style: sideBtnStyle,
+                  onPressed: () {
+                    if (player1.myTurn) {
+                      resetLastScore(player2);
+                    } else {
+                      resetLastScore(player1);
+                    }
+                  },
+                  child: const Icon(Icons.replay_outlined),
+                ),
+              ),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              const SizedBox(
+                width: 10,
+              ),
+              SizedBox(
+                width: numBtnWidth,
+                height: numBtnHeigth,
+                child: ElevatedButton(
+                    style: numBtnStyle,
+                    onPressed: () {
+                      btnPress('4');
+                    },
+                    child: const Text(
+                      '4',
+                      style: TextStyle(fontSize: 20),
+                    )),
+              ),
+              SizedBox(
+                width: numBtnWidth,
+                height: numBtnHeigth,
+                child: ElevatedButton(
+                    style: numBtnStyle,
+                    onPressed: () {
+                      btnPress('5');
+                    },
+                    child: const Text(
+                      '5',
+                      style: TextStyle(fontSize: 20),
+                    )),
+              ),
+              SizedBox(
+                width: numBtnWidth,
+                height: numBtnHeigth,
+                child: ElevatedButton(
+                    style: numBtnStyle,
+                    onPressed: () {
+                      btnPress('6');
+                    },
+                    child: const Text(
+                      '6',
+                      style: TextStyle(fontSize: 20),
+                    )),
+              ),
+              SizedBox(
+                width: sideBtnWidth,
+                height: sideBtnHeigth,
+                child: IgnorePointer(
+                  ignoring: true,
+                  child: ElevatedButton(
+                    style: sideBtnStyle,
+                    onPressed: () {
+                      null;
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.all(0.0),
+                      child: AutoSizeText(
+                        "Darts",
+                        maxLines: 2,
+                        minFontSize: 14,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              const SizedBox(
+                width: 10,
+              ),
+              SizedBox(
+                width: numBtnWidth,
+                height: numBtnHeigth,
+                child: ElevatedButton(
+                    style: numBtnStyle,
+                    onPressed: () {
+                      btnPress('7');
+                    },
+                    child: const Text(
+                      '7',
+                      style: TextStyle(fontSize: 20),
+                    )),
+              ),
+              SizedBox(
+                width: numBtnWidth,
+                height: numBtnHeigth,
+                child: ElevatedButton(
+                    style: numBtnStyle,
+                    onPressed: () {
+                      btnPress('8');
+                    },
+                    child: const Text(
+                      '8',
+                      style: TextStyle(fontSize: 20),
+                    )),
+              ),
+              SizedBox(
+                width: numBtnWidth,
+                height: numBtnHeigth,
+                child: ElevatedButton(
+                    style: numBtnStyle,
+                    onPressed: () {
+                      btnPress('9');
+                    },
+                    child: const Text(
+                      '9',
+                      style: TextStyle(fontSize: 20),
+                    )),
+              ),
+              SizedBox(
+                width: sideBtnWidth,
+                height: sideBtnHeigth,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.all(Radius.zero),
+                    ),
+                    elevation: 0,
+                    shadowColor: Colors.transparent,
+                    primary:
+                        (numDarts == 1) ? Colors.grey[700] : Colors.grey[850],
+                  ),
+                  onPressed: () {
+                    numDarts = 1;
+                    setState(() {
+                      null;
+                    });
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.all(0.0),
+                    child: AutoSizeText(
+                      "1",
+                      maxLines: 2,
+                      minFontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              const SizedBox(
+                width: 10,
+              ),
+              SizedBox(
+                width: numBtnWidth,
+                height: numBtnHeigth,
+                child: ElevatedButton(
+                    style: specialBtnStyle,
+                    onPressed: () {
+                      btnPress(specialBtnText);
+                    },
+                    child: Text(
+                      specialBtnText,
+                      style: const TextStyle(fontSize: 20),
+                    )),
+              ),
+              SizedBox(
+                width: numBtnWidth,
+                height: numBtnHeigth,
+                child: ElevatedButton(
+                    style: numBtnStyle,
+                    onPressed: () {
+                      btnPress('0');
+                    },
+                    child: const Text(
+                      '0',
+                      style: TextStyle(fontSize: 20),
+                    )),
+              ),
+              SizedBox(
+                width: numBtnWidth,
+                height: numBtnHeigth,
+                child: ElevatedButton(
+                    style: okBtnStyle,
+                    onPressed: () {
+                      btnPress('OK');
+                    },
+                    child: const Text(
+                      'OK',
+                      style: TextStyle(fontSize: 20),
+                    )),
+              ),
+              SizedBox(
+                width: sideBtnWidth,
+                height: sideBtnHeigth,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.all(Radius.zero),
+                    ),
+                    elevation: 0,
+                    shadowColor: Colors.transparent,
+                    primary:
+                        (numDarts == 2) ? Colors.grey[700] : Colors.grey[850],
+                  ),
+                  onPressed: () {
+                    numDarts = 2;
+                    setState(() {
+                      null;
+                    });
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.all(0.0),
+                    child: AutoSizeText(
+                      "2",
+                      maxLines: 2,
+                      minFontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: [
+              const SizedBox(
+                width: 10,
+              ),
+              SizedBox(
+                width: 300,
+                height: 60,
+                child: ElevatedButton(
+                  style: numBtnStyle,
+                  onPressed: () {
+                    btnPress('26');
+                  },
+                  child: const Text(
+                    "Standaard",
+                    style: TextStyle(
+                      fontSize: 20,
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(
+                width: sideBtnWidth,
+                height: sideBtnHeigth,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.all(Radius.zero),
+                    ),
+                    elevation: 0,
+                    shadowColor: Colors.transparent,
+                    primary:
+                        (numDarts == 3) ? Colors.grey[700] : Colors.grey[850],
+                  ),
+                  onPressed: () {
+                    numDarts = 3;
+                    setState(() {
+                      null;
+                    });
+                  },
+                  child: const Padding(
+                    padding: EdgeInsets.all(0.0),
+                    child: AutoSizeText(
+                      "3",
+                      maxLines: 2,
+                      minFontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget defaultLayout() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(0, 100, 0, 0),
+      child: ListView(
+        children: [
+          const Center(
+            child: Text(
+              "Wie mag er beginnen?",
+              style: TextStyle(color: Colors.white, fontSize: 20),
+            ),
+          ),
+          const SizedBox(
+            height: 20,
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              SizedBox(
+                width: 150,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      chosenPlayer = ChosenPlayerEnum.player1;
+                    });
+                  },
+                  child: Text(
+                    widget.game.player1,
+                    style: const TextStyle(fontSize: 20),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    primary: Color(DEFAULT_BTN_COLOR),
+                  ),
+                ),
+              ),
+              const SizedBox(
+                width: 20,
+              ),
+              SizedBox(
+                width: 150,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      chosenPlayer = ChosenPlayerEnum.player2;
+                    });
+                  },
+                  child: Text(
+                    widget.game.player2,
+                    style: const TextStyle(fontSize: 20),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    primary: Color(DEFAULT_BTN_COLOR),
+                  ),
+                ),
+              ),
+            ],
+          )
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if ((player1.myTurn &&
+            player1.currentScore <= 180 &&
+            player1.thrownScore == '') ||
+        (!player1.myTurn &&
+            player2.currentScore < 180 &&
+            player2.thrownScore == '')) {
+      specialBtnText = 'BUST';
+      specialBtnStyle = bustBtnSytle;
+    } else {
+      specialBtnText = 'C';
+      specialBtnStyle = cBtnStyle;
+    }
+    return Container(
+      child: bodyContainer(),
+    );
+  }
+}

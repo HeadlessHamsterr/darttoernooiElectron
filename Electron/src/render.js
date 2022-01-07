@@ -6,9 +6,159 @@ const {app, ipcRenderer} = require('electron');
 const exp = require('constants');
 const { randomInt } = require('crypto');
 const { default: jsPDF } = require('jspdf');
+const {address} = require('ip');
+const { PassThrough } = require('stream');
+const httpServer = require('http').createServer();
+const {createHttpTerminator} = require('http-terminator');
+const io = require('socket.io')(httpServer, {
+    cors: {
+        methods: ["GET", "POST"],
+        transports: ['websocket', 'polling']
+    },
+    allowEIO3: true
+});
 
+const sockets = new Set();
 var numPlayers = 0;
 var numPoules = 0;
+var appSettings = [];
+var appOptions = ["pouleScore", "pouleLegs", "quartScore", "quartLegs", "halfScore", "halfLegs", "finalScore", "finalLegs"];
+
+io.on('connection', (socket) => {
+    sockets.add(socket);
+    console.log("Websocket connection astablished");
+    /*if(pouleExists(pouleA) || pouleExists(pouleB) || pouleExists(pouleC) || pouleExists(pouleD)){
+        socket.emit('pouleInfo', exportGameInfo(false));
+    }else{
+        socket.emit('pouleInfo', "No active game");
+    }*/
+    socket.on('allPouleInfoRequest', (data) => {
+        var msg = [];
+        var pouleTempArray = [];
+        
+        if(pouleExists(pouleA)){
+            pouleTempArray.push('pouleA');
+        }
+        if(pouleExists(pouleB)){
+            pouleTempArray.push('pouleB');
+        }
+        if(pouleExists(pouleC)){
+            pouleTempArray.push('pouleC');
+        }
+        if(pouleExists(pouleD)){
+            pouleTempArray.push('pouleD');
+        }
+    
+        msg.push(pouleTempArray);
+        msg.push(appSettings);
+        console.log(`Pouleinfo msg: ${msg}`);
+        console.log(appSettings);
+        socket.emit('pouleInfo', msg);
+    })
+    socket.on('pouleAInfoRequest', (data) => {
+          console.log(`Poule A Info request: ${data}`);
+          if(pouleExists(pouleA)){
+                pouleA.updatePoints();
+                let msg = [pouleA.rankings, pouleA.sendPouleGames(), 'poule'];
+                socket.emit('pouleARanks', msg);
+                console.log(msg);
+          }else{
+                let msg = [["No active", "game"]];
+                socket.emit('pouleARanks', msg);
+          }
+    });
+    socket.on('pouleBInfoRequest', (data) => {
+          console.log(`Poule B Info request: ${data}`);
+          if(pouleExists(pouleB)){
+            pouleB.updatePoints();
+            var msg = [pouleB.rankings, pouleB.sendPouleGames(), 'poule'];
+            console.log(msg);
+            socket.emit('pouleBRanks', msg);
+          }else{
+            let msg = [["No active", "game"]];
+            socket.emit('pouleBRanks', msg);
+          }
+    });
+    socket.on('pouleCInfoRequest', (data) => {
+        console.log(`Poule C Info request: ${data}`);
+        if(pouleExists(pouleC)){
+            pouleC.updatePoints();
+            var msg = [pouleC.rankings, pouleC.sendPouleGames(), 'poule'];
+            console.log(msg);
+            socket.emit('pouleCRanks', msg);
+        }else{
+          let msg = [["No active", "game"]];
+          socket.emit('pouleCRanks', msg);
+        }
+    });
+    socket.on('pouleDInfoRequest', (data) => {
+        console.log(`Poule D Info request: ${data}`);
+        if(pouleExists(pouleD)){
+            pouleD.updatePoints();
+            var msg = [pouleD.rankings, pouleD.sendPouleGames(), 'poule'];
+            console.log(msg);
+            socket.emit('pouleDRanks', msg);
+        }else{
+            let msg = [["No active", "game"]];
+            socket.emit('pouleDRanks', msg);
+        }
+    });
+    socket.on('finalsInfoRequest', (data) => {
+        var finalsMsg = [];
+        switch(numPoules){
+            case 4:
+                for(let i = 0; i < 7; i++){
+                    var gameType = '';
+
+                    if(4 < i < 0){
+                        gameType = 'quart';
+                    }else if(6 < i < 3){
+                        gameType = 'half';
+                    }else{
+                        gameType = 'final';
+                    }
+
+                    finalsMsg.push(finalsGameToApp(i+1, gameType));
+                }
+                break;
+            case 3:
+                finalsMsg.push(finalsGameToApp(1, 'quart'));
+                finalsMsg.push(finalsGameToApp(2, 'quart'));
+                finalsMsg.push(finalsGameToApp(3, 'quart'));
+                finalsMsg.push(finalsGameToApp(5, 'half'));
+                finalsMsg.push(finalsGameToApp(7, 'final'));
+                break;
+            case 2:
+                finalsMsg.push(finalsGameToApp(5, 'half'));
+                finalsMsg.push(finalsGameToApp(6, 'half'));
+                finalsMsg.push(finalsGameToApp(7, 'final'));
+                break;
+            case 1:
+                finalsMsg.push(finalsGameToApp(7, 'final'));
+                break;
+        }
+        socket.emit('finalsInfo', finalsMsg);
+    })
+    socket.on('gamePlayed', (data) => {
+        var dataArray = data.split(',');
+        console.log(`Game played: ${dataArray}`);
+        console.log(dataArray[1]);
+        console.log(typeof(dataArray));
+        if(dataArray[0][0] == 'M'){
+            document.getElementById(`${dataArray[0]}1Score`).value = dataArray[1];
+            document.getElementById(`${dataArray[0]}2Score`).value = dataArray[2];
+        }else{
+            document.getElementById(`game${dataArray[0]}1Score`).value = dataArray[1];
+            document.getElementById(`game${dataArray[0]}2Score`).value = dataArray[2];
+        }
+    });
+});
+
+const PORT = process.env.PORT || 11520;
+
+/*httpServer.listen(PORT, () => {
+  console.log(`server listening at http://${address()}:${PORT}`);
+});*/
 
 var players = [];
 
@@ -53,11 +203,15 @@ class pouleGames{
         this.numTiedGames;
         this.gameFormat;
         this.tiedGameFormat;
+        this.rankings = [];
+        this.lastRankings = [];
     }
 
     reset(){
         this.players = [];
         this.tiedPlayers = [];
+        this.rankings = [];
+        this.lastRankings = [];
         this.winner = "";
         this.secondPlace = "";
         this.numGames;
@@ -159,9 +313,9 @@ class pouleGames{
     }
 
     sort(){
-        var playersCopy = []
-        Array.prototype.push.apply(playersCopy, this.players);
-        playersCopy.sort(function(a,b){return(b[1]-a[1])});
+        this.rankings = []
+        Array.prototype.push.apply(this.rankings, this.players);
+        this.rankings.sort(function(a,b){return(b[1]-a[1])});
 
         var pouleTable = document.getElementById(`poule${this.pouleNum}Table`);
         var pouleTableHeader = $('<tr><th>Speler</th><th>Score</th></tr>');
@@ -169,14 +323,52 @@ class pouleGames{
         $(pouleTable).empty();
         $(pouleTable).append(pouleTableHeader);
 
-        for(let i in playersCopy){
-            if(typeof playersCopy[i][1] == 'undefined'){
-                playersCopy[i][1] = 0;
+        for(let i in this.rankings){
+            if(typeof this.rankings[i][1] == 'undefined'){
+                this.rankings[i][1] = 0;
             }
 
-            var tableEntry = $(`<tr><td>${playersCopy[i][0]}</td><td>${playersCopy[i][1]}</td></tr>`);
+            var tableEntry = $(`<tr><td>${this.rankings[i][0]}</td><td>${this.rankings[i][1]}</td></tr>`);
             $(pouleTable).append(tableEntry);
         }
+    
+
+        /*for(let i = 0; i < this.rankings.length; i++){
+            if(this.rankings[i] == this.lastRankings[i]){
+                console.log(`Rankings: ${this.rankings}`);
+                console.log(`Last rankings: ${this.lastRankings}`);
+                continue;
+            }else{
+                io.emit(`poule${this.pouleNum}Ranks`, this.rankings);
+                this.lastRankings = JSON.parse(JSON.stringify(this.rankings));
+                break;
+            }
+        }*/
+        if(JSON.stringify(this.rankings) != JSON.stringify(this.lastRankings)){
+            this.lastRankings = JSON.parse(JSON.stringify(this.rankings));
+            let msg = [this.rankings, this.sendPouleGames(), 'poule'];
+            console.log(`Sending message: ${msg}`);
+            io.emit(`poule${this.pouleNum}Ranks`, msg);
+        }
+    }
+
+    sendPouleGames(){
+        var games = [];
+        for(let i = 0; i < this.numGames; i++){
+            let player1 = document.getElementById(`game${this.pouleNum}${i+1}1Name`).innerHTML;
+            let player2 = document.getElementById(`game${this.pouleNum}${i+1}2Name`).innerHTML;
+            let score1 = document.getElementById(`game${this.pouleNum}${i+1}1Score`).value;
+            let score2 = document.getElementById(`game${this.pouleNum}${i+1}2Score`).value;
+    
+            var gamePlayed = true;
+            if(!score1 && !score2){
+                gamePlayed = false;
+            }
+    
+            var tempArray = [player1, player2, gamePlayed];
+            games.push(tempArray);
+        }
+        return games;
     }
 
     updatePoints(){
@@ -381,6 +573,13 @@ let pouleC = new pouleGames("C");
 let pouleD = new pouleGames("D");
 
 function returnToHome(){
+    closeNav();
+    for(const socket in sockets){
+        socket.destroy();
+        sockets.delete(socket);
+    }
+    httpServer.close();
+
     document.getElementById('numPlayers').value = null;
     document.getElementById('numPoules').value = null;
     $("#playerInputForm").empty();
@@ -400,6 +599,7 @@ function returnToHome(){
     pouleD.reset();
 
     players = [];
+    appSettings = [];
     numPlayers = 0;
     numPoules = 0;
 
@@ -423,6 +623,7 @@ function drawSetup(){
     $(document.getElementById('controlBtnDiv')).show();
     $(document.getElementById('saveBtnDiv')).hide();
     $(document.getElementById('exportBtnDiv')).hide();
+    $(document.getElementById('ipAddressDiv')).hide();
 }
 
 function getGameFileName(action){
@@ -454,6 +655,7 @@ function loadGame(){
     $(document.getElementById('saveBtnDiv')).show();
     $(document.getElementById('exportBtnDiv')).show();
     $(document.getElementById('returnBtnDiv')).show();
+    $(document.getElementById('ipAddressDiv')).show();
     $(document.getElementById('mainRosterDiv')).show();
     $(document.getElementById('mainRosterSubDiv')).show();
     $(document.getElementById('gameDiv')).show();
@@ -470,6 +672,9 @@ function loadGame(){
         }
     });
     let jsonObj = JSON.parse(jsonString);
+
+    appSettings = jsonObj['appSettings'][0];
+    console.log(appSettings);
 
     numPoules = jsonObj["poules"].length;
 
@@ -557,7 +762,6 @@ function loadGame(){
                     document.getElementById(`M${i+3}2Name`).innerHTML = player2Name;
                     document.getElementById(`M${i+3}2Score`).value = player2Score;
                 }
-                console.log("wtf");
             }
         break;
         case 2:
@@ -588,6 +792,11 @@ function loadGame(){
     }
 
     startPoulesSorting();
+    document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
+    httpServer.listen(PORT, () => {
+        console.log(`Server listening on http://${address()}:${PORT}`);
+    });
+    io.emit('pouleInfo', exportGameInfo(false));
 }
 
 function loadPoulGames(pouleLetter, jsonObj){
@@ -680,6 +889,16 @@ function getGameInfo(){
 
         console.log(`Number of total players: ${numPlayers}`);
         console.log(`Number of poules: ${numPoules}`);
+        
+        appSettings.push(document.getElementById('pouleScoreSelect').value);
+        console.log(`PouleScoreSelect: ${document.getElementById('pouleScoreSelect').value}`);
+        appSettings.push(document.getElementById('pouleLegSelect').value);
+        appSettings.push(document.getElementById('quartScoreSelect').value);
+        appSettings.push(document.getElementById('quartLegSelect').value);
+        appSettings.push(document.getElementById('halfScoreSelect').value);
+        appSettings.push(document.getElementById('halfLegSelect').value);
+        appSettings.push(document.getElementById('finalScoreSelect').value);
+        appSettings.push(document.getElementById('finalLegSelect').value);
 
         //$(document.getElementById('gameSetup')).hide();
         $(document.getElementById('gameSetup')).hide();
@@ -687,6 +906,7 @@ function getGameInfo(){
         $(document.getElementById('playerInputSubDiv')).show();
         $(document.getElementById('controlBtnDiv')).show();
         $(document.getElementById('returnBtnDiv')).show();
+
 
         var playerInputForm = document.getElementById('playerInputForm');
 
@@ -732,6 +952,7 @@ function makePoules(){
         //$(saveBtn).show();
         $(document.getElementById('saveBtnDiv')).show();
         $(document.getElementById('exportBtnDiv')).show();
+        $(document.getElementById('ipAddressDiv')).show();
 
         var poulesDiv = document.getElementById('poulesDiv');
 
@@ -856,6 +1077,11 @@ function makePoules(){
         $(document.getElementById('mainRosterSubDiv')).show();
         $(document.getElementById('gameDiv')).show();
         startPoulesSorting();
+        document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
+        httpServer.listen(PORT, () => {
+            console.log(`Server listening on http://${address()}:${PORT}`);
+        });
+        io.emit('pouleInfo', exportGameInfo(false));
     }
 }
 
@@ -879,24 +1105,36 @@ function preparePDFExport(){
     }
 }
 
-function exportPDF(poule, filePath){  
+function exportPDF(poule, filePath, exportToPDF){  
     const doc = new jsPDF({
         orientation: 'portrait',
     });
     
     doc.setFontSize(40);
-    doc.text(`Poule ${poule.pouleNum}`, 105, 20, null, null, "center")
-    doc.setFontSize(30)
+    doc.text(`Poule ${poule.pouleNum}`, 105, 20, null, null, "center");
+    doc.setFontSize(30);
+    if(!exportToPDF){
+        var games = [];
+    }
     for(let i = 0; i < pouleA.numGames; i++){
         let player1 = document.getElementById(`game${poule.pouleNum}${i+1}1Name`).innerHTML;
         let player2 = document.getElementById(`game${poule.pouleNum}${i+1}2Name`).innerHTML;
 
-        let gameString = player1 + " - " + player2
+        let gameString = player1 + " - " + player2;
+        
+        if(!exportToPDF){
+            var tempArray = [player1, player2];
+            games.push(tempArray);
+        }
 
-        doc.text(gameString, 105, 40 + (30*i), null, null, "center")
+        doc.text(gameString, 105, 40 + (30*i), null, null, "center");
     }
 
-    doc.save(filePath + `/poule${poule.pouleNum}.pdf`)
+    if(exportToPDF){
+        doc.save(filePath + `/poule${poule.pouleNum}.pdf`);
+    }else{
+        return games;
+    }
 }
 
 function makeFinals(numberOfPoules){
@@ -949,6 +1187,17 @@ function startPoulesSorting(){
                     document.getElementById('M71Name').innerHTML = pouleA.winner;
                     document.getElementById('M72Name').innerHTML = pouleA.secondPlace;
                 }
+            }else{
+                if(numPoules >= 3){
+                    document.getElementById('M11Name').innerHTML = "";
+                    document.getElementById('M22Name').innerHTML = "";
+                }else if(numPoules == 2){
+                    document.getElementById('M51Name').innerHTML = "";
+                    document.getElementById('M62Name').innerHTML = "";
+                }else if(numPoules == 1){
+                    document.getElementById('M71Name').innerHTML = "";
+                    document.getElementById('M72Name').innerHTML = "";
+                }
             }
         }
     
@@ -962,6 +1211,14 @@ function startPoulesSorting(){
                 }else if(numPoules == 2){
                     document.getElementById('M61Name').innerHTML = pouleB.winner;
                     document.getElementById('M52Name').innerHTML = pouleB.secondPlace;
+                }
+            }else{
+                if(numPoules >= 3){
+                    document.getElementById('M21Name').innerHTML = "";
+                    document.getElementById('M32Name').innerHTML = "";
+                }else if(numPoules == 2){
+                    document.getElementById('M61Name').innerHTML = "";
+                    document.getElementById('M52Name').innerHTML = "";
                 }
             }
         }
@@ -977,6 +1234,14 @@ function startPoulesSorting(){
                     document.getElementById('M31Name').innerHTML = pouleC.winner;
                     document.getElementById('M12Name').innerHTML = pouleC.secondPlace;
                 }
+            }else{
+                if(numPoules == 4){
+                    document.getElementById('M31Name').innerHTML = "";
+                    document.getElementById('M42Name').innerHTML = "";
+                }else if(numPoules == 3){
+                    document.getElementById('M31Name').innerHTML = "";
+                    document.getElementById('M12Name').innerHTML = "";
+                }
             }
         }
     
@@ -986,6 +1251,9 @@ function startPoulesSorting(){
             if(pouleD.allGamesPlayed()){
                 document.getElementById('M41Name').innerHTML = pouleD.winner;
                 document.getElementById('M12Name').innerHTML = pouleD.secondPlace;
+            }else{
+                document.getElementById('M41Name').innerHTML = "";
+                document.getElementById('M12Name').innerHTML = "";
             }
         }
 
@@ -1046,6 +1314,30 @@ function pouleExists(poule){
     }
 }
 
+function finalsGameToApp(gameNum, gameType){
+    var tempArray = [];
+    var gamePlayed = false;
+    let player1Name = document.getElementById(`M${gameNum}1Name`).innerHTML;
+    let player2Name = document.getElementById(`M${gameNum}2Name`).innerHTML;
+
+    let player1Score = parseInt(document.getElementById(`M${gameNum}1Score`).value);
+    let player2Score = parseInt(document.getElementById(`M${gameNum}2Score`).value);
+
+    if(!isNaN(player1Score) || !isNaN(player2Score)){
+        gamePlayed = true;
+    }else if(player1Name == "" || player2Name == ""){
+        gamePlayed = true;
+    }
+
+    tempArray.push(`M${gameNum}`);
+    tempArray.push(player1Name);
+    tempArray.push(player2Name);
+    tempArray.push(gamePlayed);
+    tempArray.push(gameType);
+
+    return tempArray;
+}
+
 function exportFinalsGame(gameNum){
     let player1Score = parseInt(document.getElementById(`M${gameNum}1Score`).value);
     let player1Name = document.getElementById(`M${gameNum}1Name`).innerHTML;
@@ -1055,19 +1347,22 @@ function exportFinalsGame(gameNum){
     return [player1Score, player1Name, player2Score, player2Name];
 }
 
-function exportGameInfo(){
-    var gameFileName = getGameFileName("save");
+function exportGameInfo(writeToFile = true){
+    var gameFileName;
+    if(writeToFile){
+        gameFileName = getGameFileName("save");
 
-    if(gameFileName === null){
-        console.log("No file name given")
-        return -1;
+        if(gameFileName === null){
+            console.log("No file name given")
+            return -1;
+        }
+
+        if(!gameFileName.includes(".darts")){
+            gameFileName = gameFileName + ".darts"
+        }
     }
 
-    if(!gameFileName.includes(".darts")){
-        gameFileName = gameFileName + ".darts"
-    }
-
-    var jsonObj = {"poules":[], "games":[]};
+    var jsonObj = {"poules":[], "games":[], "appSettings":[]};
 
     if(pouleExists(pouleA)){
         jsonObj["poules"].push({"pouleA":[]})
@@ -1316,11 +1611,46 @@ function exportGameInfo(){
         break;
     }
 
-    fs.writeFile(path.resolve(gameFileName), JSON.stringify(jsonObj, null, 4), function(err){
-        if(err){
-            console.log(err);
-        }else{
-            console.log(`Game saved to ${gameFileName}.`);
-        }
-    });
+    jsonObj['appSettings'].push(appSettings);
+
+    if(writeToFile){
+        fs.writeFile(path.resolve(gameFileName), JSON.stringify(jsonObj, null, 4), function(err){
+            if(err){
+                console.log(err);
+            }else{
+                console.log(`Game saved to ${gameFileName}.`);
+            }
+        });
+    }
+
+    return jsonObj;
+}
+
+function openNav(){
+    for(let i=0; i<appSettings.length; i++){
+        document.getElementById(appOptions[i]+"Input").value = appSettings[i];
+    }
+
+    document.getElementById("sideNav").style.right = "0px";
+}
+
+function closeNav(){
+    document.getElementById("sideNav").style.right = "-250px";
+    updateSettings();
+}
+
+function handle(e){
+    key = e.keyCode || e.which;
+    if(key == 13){
+        e.preventDefault();
+        updateSettings();
+    }
+}
+
+function updateSettings(){
+    for(let i=0; i<appSettings.length; i++){
+        appSettings[i] = document.getElementById(appOptions[i]+"Input").value;
+    }
+    console.log(appSettings);
+    io.emit("settingsUpdate", appSettings);
 }

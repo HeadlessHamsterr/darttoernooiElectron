@@ -89,8 +89,4 @@ typings/
 out/
 
 game.json
-<<<<<<< HEAD
-dist/*
-=======
 dist
->>>>>>> f53fa905110047c3e5c187437bc9cffc39c99ed4
