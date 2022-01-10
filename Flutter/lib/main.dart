@@ -329,7 +329,7 @@ class StartScreen extends StatelessWidget {
 
   void enterIP(context) {
     serverIP = ipAddressController.text;
-    socket = IO.io('ws://$serverIP:3000', <String, dynamic>{
+    socket = IO.io('ws://$serverIP:11520', <String, dynamic>{
       'transports': ['websocket'],
       'force new connection': true,
       'autoConnect': false
