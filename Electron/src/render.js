@@ -609,8 +609,6 @@ function returnToHome(){
     $(document.getElementById('poulesDiv')).hide();
     $(document.getElementById('playerInputDiv')).hide();
     $(document.getElementById('gameOptionsWrapper')).show();
-    //$(returnBtn).hide();
-    //$(saveBtn).hide();
 }
 
 function drawSetup(){
@@ -651,6 +649,7 @@ function loadGame(){
     //$(document.getElementById('controlBtnDiv')).show();
     //$(saveBtn).show();
     //$(returnBtn).show();
+    //$(document.getElementById('appSettingForm')).hide();
     $(document.getElementById('controlBtnDiv')).show();
     $(document.getElementById('saveBtnDiv')).show();
     $(document.getElementById('exportBtnDiv')).show();
@@ -800,7 +799,6 @@ function loadGame(){
 }
 
 function loadPoulGames(pouleLetter, jsonObj){
-
     var indexInJson = 0;
     var pouleToEdit;
 
@@ -843,6 +841,11 @@ function loadPoulGames(pouleLetter, jsonObj){
             gameScore1Field.value = gameScore1Saved;
             gameScore2Field.value = gameScore2Saved;
         }
+    }
+    let playerSettingsForm = document.getElementById('playerSettingForm');
+    for(var i = 0; i < pouleToEdit.players.length; i++){
+        let input = $(`<input id="player${pouleLetter}${i}Input" class="settingInput" type="text" value="${pouleToEdit.players[i][0]}"></br>`)
+        $(playerSettingsForm).append(input)
     }
 }
 
@@ -950,6 +953,7 @@ function makePoules(){
         $(document.getElementById('playerInputDiv')).hide();
         //$(document.getElementById('controlBtnDiv')).show();
         //$(saveBtn).show();
+        //$(document.getElementById('appSettingForm')).hide();
         $(document.getElementById('saveBtnDiv')).show();
         $(document.getElementById('exportBtnDiv')).show();
         $(document.getElementById('ipAddressDiv')).show();
@@ -1037,9 +1041,15 @@ function makePoules(){
             filePath = ipcRenderer.sendSync('selectPDFDirectory');
         }
 
+        let playerSettingsForm = document.getElementById('playerSettingsDiv');
+        
         if(pouleExists(pouleA)){
             pouleA.makePoule();
             pouleA.makeGames();
+            for(var i = 0; i < pouleA.players.length; i++){
+                let input = $(`<input id="playerA${i}Input" class="settingInput" type="text" value="${pouleA.players[i][0]}"></br>`)
+                $(playerSettingsForm).append(input)
+            }
             if(shouldBePrinted){
                 exportPDF(pouleA, filePath);
             }
@@ -1048,6 +1058,10 @@ function makePoules(){
         if(pouleExists(pouleB)){
             pouleB.makePoule();
             pouleB.makeGames();
+            for(var i = 0; i < pouleB.players.length; i++){
+                let input = $(`<input id="playerB${i}Input" class="settingInput" type="text" value="${pouleB.players[i][0]}"></br>`)
+                $(playerSettingsForm).append(input)
+            }
             if(shouldBePrinted){
                 exportPDF(pouleB, filePath);
             }
@@ -1056,6 +1070,10 @@ function makePoules(){
         if(pouleExists(pouleC)){
             pouleC.makePoule();
             pouleC.makeGames();
+            for(var i = 0; i < pouleC.players.length; i++){
+                let input = $(`<input id="playerC${i}Input" class="settingInput" type="text" value="${pouleC.players[i][0]}"></br>`)
+                $(playerSettingsForm).append(input)
+            }
             if(shouldBePrinted){
                 exportPDF(pouleC, filePath);
             }
@@ -1064,6 +1082,10 @@ function makePoules(){
         if(pouleExists(pouleD)){
             pouleD.makePoule();
             pouleD.makeGames();
+            for(var i = 0; i < pouleD.players.length; i++){
+                let input = $(`<input id="playerD${i}Input" class="settingInput" type="text" value="${pouleD.players[i][0]}"></br>`)
+                $(playerSettingsForm).append(input)
+            }
             if(shouldBePrinted){
                 exportPDF(pouleD, filePath);
             }
@@ -1073,6 +1095,7 @@ function makePoules(){
         
         $(poulesDiv).show();
         //$(saveBtn).show();
+        //$(document.getElementById('appSettingForm')).hide();
         $(document.getElementById('mainRosterDiv')).show();
         $(document.getElementById('mainRosterSubDiv')).show();
         $(document.getElementById('gameDiv')).show();
@@ -1651,6 +1674,29 @@ function updateSettings(){
     for(let i=0; i<appSettings.length; i++){
         appSettings[i] = document.getElementById(appOptions[i]+"Input").value;
     }
-    console.log(appSettings);
     io.emit("settingsUpdate", appSettings);
+}
+
+function showAppSettings(){
+    if(document.getElementById("appSettingsArrow").style.transform == "rotate(0deg)"){
+        document.getElementById("appSettingsArrow").style.transform = "rotate(180deg)";
+        document.getElementById("playerSettingsArrow").style.transform = "rotate(0deg)";
+        $("#playerSettingsDiv").slideUp(300);
+        $("#appSettingsDiv").slideDown(300);
+    }else{
+        document.getElementById("appSettingsArrow").style.transform = "rotate(0deg)";
+        $("#appSettingsDiv").slideUp(300);
+    }
+}
+
+function showPlayerSettings(){
+    if(document.getElementById("playerSettingsArrow").style.transform == "rotate(0deg)"){
+        document.getElementById("playerSettingsArrow").style.transform = "rotate(180deg)";
+        document.getElementById("appSettingsArrow").style.transform = "rotate(0deg)";
+        $("#appSettingsDiv").slideUp(300);
+        $("#playerSettingsDiv").slideDown(300);
+    }else{
+        document.getElementById("playerSettingsArrow").style.transform = "rotate(0deg)";
+        $("#playerSettingsDiv").slideUp(300);
+    }
 }

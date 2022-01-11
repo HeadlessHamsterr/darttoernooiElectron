@@ -493,17 +493,26 @@ button:focus{
   transform: scale(0.95);
 }
 
-.sideNav button{
+.sideNavBtn{
   position: absolute;
-  right: 60px;
-  background-color: var(--btn-color);
+  background-color: #111;
   border: none;
   height: 40px;
-  width: 150px;
+  width: 100%;
   font-size: 17px;
   color: white;
   font-family: var(--default-font);
-  border-radius: 4px
+  border-radius: 4px;
+  display: inline-block;
+  transition: 0.1s;
+}
+
+.sideNavBtn:hover{
+  color: #c7c7c7
+}
+
+.sideNavBtn i{
+  transition: transform 0.5s;
 }
 
 .sideNav a {
@@ -641,4 +650,12 @@ input.settingInput{
   background: var(--input-background);
   color: #C0C0C0;
   margin-bottom: 20px;
+}
+
+#appSettingsDiv{
+  padding-top: 50px;
+}
+
+#playerSettingsDiv{
+  padding-top: 50px;
 }
