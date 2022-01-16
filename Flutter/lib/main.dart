@@ -1,6 +1,3 @@
-/*TODO:
-  - Undo knop voor ingevoerde scores
-*/
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -21,6 +18,7 @@ double numBtnWidth = 100;
 double numBtnHeigth = 70;
 double sideBtnWidth = 68;
 double sideBtnHeigth = 70;
+const PRIMARY_COLOR = 0xFF4A0000;
 const DEFAULT_BTN_COLOR = 0xFF4A0000;
 const BACKGROUND_COLOR = 0xFF181818;
 
@@ -352,13 +350,13 @@ class StartScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: ThemeData(
-        scaffoldBackgroundColor: const Color(0xFF181818),
+        scaffoldBackgroundColor: Color(0xFF181818),
       ),
       home: Builder(builder: (context) {
         return Scaffold(
           appBar: AppBar(
             title: const Text('Darttoernooi companion'),
-            backgroundColor: const Color(DEFAULT_BTN_COLOR),
+            backgroundColor: const Color(PRIMARY_COLOR),
           ),
           body: ListView(
             children: [
@@ -404,6 +402,7 @@ class StartScreen extends StatelessWidget {
   }
 }
 
+//Constructor voor scherm met poules
 class PoulesOverview extends StatefulWidget {
   final String serverIP;
   const PoulesOverview({Key? key, required this.serverIP}) : super(key: key);
@@ -412,6 +411,7 @@ class PoulesOverview extends StatefulWidget {
   _PoulesOverviewState createState() => _PoulesOverviewState();
 }
 
+//Scherm met poules
 class _PoulesOverviewState extends State<PoulesOverview> {
   String serverAddressObj = '';
 
@@ -503,13 +503,13 @@ class _PoulesOverviewState extends State<PoulesOverview> {
     }
     return MaterialApp(
       theme: ThemeData(
-        scaffoldBackgroundColor: const Color(0xFF181818),
+        scaffoldBackgroundColor: const Color(BACKGROUND_COLOR),
       ),
       home: Builder(builder: (context) {
         return Scaffold(
           appBar: AppBar(
             title: const Text('Poules'),
-            backgroundColor: Color(DEFAULT_BTN_COLOR),
+            backgroundColor: Color(PRIMARY_COLOR),
             leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () {
@@ -537,6 +537,7 @@ class _PoulesOverviewState extends State<PoulesOverview> {
   }
 }
 
+//Constructor voor scherm met poule wedstrijden
 class PouleScreen extends StatefulWidget {
   const PouleScreen({Key? key}) : super(key: key);
 
@@ -544,6 +545,7 @@ class PouleScreen extends StatefulWidget {
   _PouleScreenState createState() => _PouleScreenState();
 }
 
+//Scherm met poule wedstrijden
 class _PouleScreenState extends State<PouleScreen> {
   List<PouleRanking> rankings = [];
   List<PouleGames> games = [];
@@ -551,12 +553,14 @@ class _PouleScreenState extends State<PouleScreen> {
   void initState() {
     super.initState();
     if (activePoule != 'Finales') {
+      socket.off('finalsInfo');
+      socket.on('poule${activePoule}Ranks', (data) => updateRanks(data));
       socket.emit('poule${activePoule}InfoRequest', 'plsGeef');
     } else {
+      socket.off('poule${activePoule}Ranks');
+      socket.on('finalsInfo', (data) => updateFinals(data));
       socket.emit('finalsInfoRequest', 'plsGeef');
     }
-    socket.on('poule${activePoule}Ranks', (data) => updateRanks(data));
-    socket.on('finalsInfo', (data) => updateFinals(data));
   }
 
   void updateRanks(data) {
@@ -605,14 +609,14 @@ class _PouleScreenState extends State<PouleScreen> {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: ThemeData(
-        scaffoldBackgroundColor: const Color(0xFF181818),
+        scaffoldBackgroundColor: const Color(BACKGROUND_COLOR),
       ),
       home: Builder(
         builder: (context) {
           return Scaffold(
             appBar: AppBar(
               title: getPouleName(activePoule),
-              backgroundColor: Color(DEFAULT_BTN_COLOR),
+              backgroundColor: Color(PRIMARY_COLOR),
               leading: IconButton(
                   icon: const Icon(Icons.arrow_back),
                   onPressed: () {
@@ -654,37 +658,45 @@ class _PouleScreenState extends State<PouleScreen> {
                       );
                     }).toList(),
                   ),
-                  Column(
-                    children: games.map((currentGame) {
-                      return IgnorePointer(
-                        ignoring: currentGame.gamePlayed,
-                        child: Container(
-                          width: 200,
-                          height: 60,
-                          padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
-                          child: ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                primary: currentGame.gamePlayed
-                                    ? const Color(0xFF202020)
-                                    : Color(DEFAULT_BTN_COLOR),
+                  Expanded(
+                    child: ListView(
+                      shrinkWrap: true,
+                      scrollDirection: Axis.vertical,
+                      children: <Widget>[
+                        Column(
+                          children: games.map((currentGame) {
+                            return IgnorePointer(
+                              ignoring: currentGame.gamePlayed,
+                              child: Container(
+                                width: 200,
+                                height: 60,
+                                padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
+                                child: ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      primary: currentGame.gamePlayed
+                                          ? const Color(0xFF202020)
+                                          : const Color(DEFAULT_BTN_COLOR),
+                                    ),
+                                    onPressed: () {
+                                      if (!currentGame.gamePlayed) {
+                                        gamePressed(currentGame, context);
+                                      }
+                                    },
+                                    child: AutoSizeText(
+                                        '${currentGame.player1} - ${currentGame.player2}',
+                                        maxLines: 1,
+                                        style: TextStyle(
+                                            color: currentGame.gamePlayed
+                                                ? Colors.grey
+                                                : Colors.white,
+                                            fontSize: 20))),
                               ),
-                              onPressed: () {
-                                if (!currentGame.gamePlayed) {
-                                  gamePressed(currentGame, context);
-                                }
-                              },
-                              child: AutoSizeText(
-                                  '${currentGame.player1} - ${currentGame.player2}',
-                                  maxLines: 1,
-                                  style: TextStyle(
-                                      color: currentGame.gamePlayed
-                                          ? Colors.grey
-                                          : Colors.white,
-                                      fontSize: 20))),
+                            );
+                          }).toList(),
                         ),
-                      );
-                    }).toList(),
-                  )
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -695,6 +707,7 @@ class _PouleScreenState extends State<PouleScreen> {
   }
 }
 
+//Leeg scherm waar puntentelling in wordt geplaatst
 class PouleGame extends StatelessWidget {
   final PouleGames game;
   const PouleGame({Key? key, required this.game}) : super(key: key);
@@ -731,14 +744,14 @@ class PouleGame extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
         theme: ThemeData(
-          scaffoldBackgroundColor: const Color(0xFF181818),
+          scaffoldBackgroundColor: const Color(BACKGROUND_COLOR),
         ),
         home: Builder(builder: (context) {
           return Scaffold(
             appBar: AppBar(
               title: const Text('Wedstrijd'),
               centerTitle: true,
-              backgroundColor: Color(DEFAULT_BTN_COLOR),
+              backgroundColor: Color(PRIMARY_COLOR),
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () {
@@ -746,12 +759,16 @@ class PouleGame extends StatelessWidget {
                 },
               ),
             ),
+            //Kiezen wie begint en de puntentelling moeten op hetzelfde scherm
+            //gebeuren. Dit wordt conditioneel geregeld, dus de body moet kunnen
+            //worden aangepast. Body is dus een widget die z'n content aanpast.
             body: PouleGameBody(game: game, context: context),
           );
         }));
   }
 }
 
+//Constructor voor puntentel en beginner keuze scherm
 class PouleGameBody extends StatefulWidget {
   final PouleGames game;
   final BuildContext context;
@@ -762,6 +779,7 @@ class PouleGameBody extends StatefulWidget {
   _PouleGameBodyState createState() => _PouleGameBodyState();
 }
 
+//Puntentel en beginner keuze scherm
 class _PouleGameBodyState extends State<PouleGameBody> {
   PlayerClass player1 = PlayerClass();
   PlayerClass player2 = PlayerClass();
@@ -820,17 +838,19 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             if (int.parse(player1.thrownScore) > 180 ||
                 int.parse(player1.thrownScore) > player1.currentScore) {
               ScaffoldMessenger.of(widget.context).showSnackBar(
-                SnackBar(content: Text(player1.thrownScore + ' is te hoog'),
-                duration: const Duration(seconds: 5),),
+                SnackBar(
+                  content: Text(player1.thrownScore + ' is te hoog'),
+                  duration: const Duration(seconds: 5),
+                ),
               );
             } else if (int.parse(player1.thrownScore) / numDarts > 60) {
               ScaffoldMessenger.of(widget.context).showSnackBar(
                 SnackBar(
-                    content: Text(
-                      (numDarts == 1) ?
-                        '${player1.thrownScore} kan niet met $numDarts pijl gegooid worden.' :
-                        '${player1.thrownScore} kan niet met $numDarts pijlen gegooid worden.'),
-                    duration: const Duration(seconds: 5),),
+                  content: Text((numDarts == 1)
+                      ? '${player1.thrownScore} kan niet met $numDarts pijl gegooid worden.'
+                      : '${player1.thrownScore} kan niet met $numDarts pijlen gegooid worden.'),
+                  duration: const Duration(seconds: 5),
+                ),
               );
             } else if (player1.thrownScore != '0') {
               player1.currentScore -= int.parse(player1.thrownScore);
@@ -869,11 +889,11 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             } else if (int.parse(player2.thrownScore) / numDarts > 60) {
               ScaffoldMessenger.of(widget.context).showSnackBar(
                 SnackBar(
-                    content: Text(
-                      (numDarts == 1) ?
-                        '${player2.thrownScore} kan niet met $numDarts pijl gegooid worden.' :
-                        '${player2.thrownScore} kan niet met $numDarts pijlen gegooid worden.'),
-                    duration: const Duration(seconds: 5),),
+                  content: Text((numDarts == 1)
+                      ? '${player2.thrownScore} kan niet met $numDarts pijl gegooid worden.'
+                      : '${player2.thrownScore} kan niet met $numDarts pijlen gegooid worden.'),
+                  duration: const Duration(seconds: 5),
+                ),
               );
             } else if (player2.thrownScore != '0') {
               player2.currentScore -= int.parse(player2.thrownScore);
@@ -1211,11 +1231,11 @@ class _PouleGameBodyState extends State<PouleGameBody> {
               const TableRow(children: <Widget>[
                 Center(
                     child: SizedBox(
-                  height: 30,
+                  height: 20,
                 )),
                 Center(
                     child: SizedBox(
-                  height: 30,
+                  height: 20,
                 )),
               ]),
               TableRow(children: <Widget>[
@@ -1235,11 +1255,11 @@ class _PouleGameBodyState extends State<PouleGameBody> {
               const TableRow(children: <Widget>[
                 Center(
                     child: SizedBox(
-                  height: 30,
+                  height: 20,
                 )),
                 Center(
                     child: SizedBox(
-                  height: 30,
+                  height: 20,
                 )),
               ]),
               TableRow(children: <Widget>[
@@ -1293,340 +1313,349 @@ class _PouleGameBodyState extends State<PouleGameBody> {
           const SizedBox(
             height: 10,
           ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              const SizedBox(
-                width: 10,
-              ),
-              SizedBox(
-                width: numBtnWidth,
-                height: numBtnHeigth,
-                child: ElevatedButton(
-                    style: numBtnStyle,
-                    onPressed: () {
-                      btnPress('1');
-                    },
-                    child: const Text(
-                      '1',
-                      style: TextStyle(fontSize: 20),
-                    )),
-              ),
-              SizedBox(
-                width: numBtnWidth,
-                height: numBtnHeigth,
-                child: ElevatedButton(
-                    style: numBtnStyle,
-                    onPressed: () {
-                      btnPress('2');
-                    },
-                    child: const Text(
-                      '2',
-                      style: TextStyle(fontSize: 20),
-                    )),
-              ),
-              SizedBox(
-                width: numBtnWidth,
-                height: numBtnHeigth,
-                child: ElevatedButton(
-                    style: numBtnStyle,
-                    onPressed: () {
-                      btnPress('3');
-                    },
-                    child: const Text(
-                      '3',
-                      style: TextStyle(fontSize: 20),
-                    )),
-              ),
-              SizedBox(
-                width: sideBtnWidth,
-                height: sideBtnHeigth,
-                child: ElevatedButton(
-                  style: sideBtnStyle,
-                  onPressed: () {
-                    if (player1.myTurn) {
-                      resetLastScore(player2);
-                    } else {
-                      resetLastScore(player1);
-                    }
-                  },
-                  child: const Icon(Icons.replay_outlined),
-                ),
-              ),
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              const SizedBox(
-                width: 10,
-              ),
-              SizedBox(
-                width: numBtnWidth,
-                height: numBtnHeigth,
-                child: ElevatedButton(
-                    style: numBtnStyle,
-                    onPressed: () {
-                      btnPress('4');
-                    },
-                    child: const Text(
-                      '4',
-                      style: TextStyle(fontSize: 20),
-                    )),
-              ),
-              SizedBox(
-                width: numBtnWidth,
-                height: numBtnHeigth,
-                child: ElevatedButton(
-                    style: numBtnStyle,
-                    onPressed: () {
-                      btnPress('5');
-                    },
-                    child: const Text(
-                      '5',
-                      style: TextStyle(fontSize: 20),
-                    )),
-              ),
-              SizedBox(
-                width: numBtnWidth,
-                height: numBtnHeigth,
-                child: ElevatedButton(
-                    style: numBtnStyle,
-                    onPressed: () {
-                      btnPress('6');
-                    },
-                    child: const Text(
-                      '6',
-                      style: TextStyle(fontSize: 20),
-                    )),
-              ),
-              SizedBox(
-                width: sideBtnWidth,
-                height: sideBtnHeigth,
-                child: IgnorePointer(
-                  ignoring: true,
-                  child: ElevatedButton(
-                    style: sideBtnStyle,
-                    onPressed: () {
-                      null;
-                    },
-                    child: const Padding(
-                      padding: EdgeInsets.all(0.0),
-                      child: AutoSizeText(
-                        "Darts",
-                        maxLines: 2,
-                        minFontSize: 14,
+          Expanded(
+            child: ListView(
+              children: <Widget>[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    const SizedBox(
+                      width: 10,
+                    ),
+                    SizedBox(
+                      width: numBtnWidth,
+                      height: numBtnHeigth,
+                      child: ElevatedButton(
+                          style: numBtnStyle,
+                          onPressed: () {
+                            btnPress('1');
+                          },
+                          child: const Text(
+                            '1',
+                            style: TextStyle(fontSize: 20),
+                          )),
+                    ),
+                    SizedBox(
+                      width: numBtnWidth,
+                      height: numBtnHeigth,
+                      child: ElevatedButton(
+                          style: numBtnStyle,
+                          onPressed: () {
+                            btnPress('2');
+                          },
+                          child: const Text(
+                            '2',
+                            style: TextStyle(fontSize: 20),
+                          )),
+                    ),
+                    SizedBox(
+                      width: numBtnWidth,
+                      height: numBtnHeigth,
+                      child: ElevatedButton(
+                          style: numBtnStyle,
+                          onPressed: () {
+                            btnPress('3');
+                          },
+                          child: const Text(
+                            '3',
+                            style: TextStyle(fontSize: 20),
+                          )),
+                    ),
+                    SizedBox(
+                      width: sideBtnWidth,
+                      height: sideBtnHeigth,
+                      child: ElevatedButton(
+                        style: sideBtnStyle,
+                        onPressed: () {
+                          if (player1.myTurn) {
+                            resetLastScore(player2);
+                          } else {
+                            resetLastScore(player1);
+                          }
+                        },
+                        child: const Icon(Icons.replay_outlined),
                       ),
                     ),
-                  ),
+                  ],
                 ),
-              ),
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              const SizedBox(
-                width: 10,
-              ),
-              SizedBox(
-                width: numBtnWidth,
-                height: numBtnHeigth,
-                child: ElevatedButton(
-                    style: numBtnStyle,
-                    onPressed: () {
-                      btnPress('7');
-                    },
-                    child: const Text(
-                      '7',
-                      style: TextStyle(fontSize: 20),
-                    )),
-              ),
-              SizedBox(
-                width: numBtnWidth,
-                height: numBtnHeigth,
-                child: ElevatedButton(
-                    style: numBtnStyle,
-                    onPressed: () {
-                      btnPress('8');
-                    },
-                    child: const Text(
-                      '8',
-                      style: TextStyle(fontSize: 20),
-                    )),
-              ),
-              SizedBox(
-                width: numBtnWidth,
-                height: numBtnHeigth,
-                child: ElevatedButton(
-                    style: numBtnStyle,
-                    onPressed: () {
-                      btnPress('9');
-                    },
-                    child: const Text(
-                      '9',
-                      style: TextStyle(fontSize: 20),
-                    )),
-              ),
-              SizedBox(
-                width: sideBtnWidth,
-                height: sideBtnHeigth,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(Radius.zero),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    const SizedBox(
+                      width: 10,
                     ),
-                    elevation: 0,
-                    shadowColor: Colors.transparent,
-                    primary:
-                        (numDarts == 1) ? Colors.grey[700] : Colors.grey[850],
-                  ),
-                  onPressed: () {
-                    numDarts = 1;
-                    setState(() {
-                      null;
-                    });
-                  },
-                  child: const Padding(
-                    padding: EdgeInsets.all(0.0),
-                    child: AutoSizeText(
-                      "1",
-                      maxLines: 2,
-                      minFontSize: 14,
+                    SizedBox(
+                      width: numBtnWidth,
+                      height: numBtnHeigth,
+                      child: ElevatedButton(
+                          style: numBtnStyle,
+                          onPressed: () {
+                            btnPress('4');
+                          },
+                          child: const Text(
+                            '4',
+                            style: TextStyle(fontSize: 20),
+                          )),
                     ),
-                  ),
+                    SizedBox(
+                      width: numBtnWidth,
+                      height: numBtnHeigth,
+                      child: ElevatedButton(
+                          style: numBtnStyle,
+                          onPressed: () {
+                            btnPress('5');
+                          },
+                          child: const Text(
+                            '5',
+                            style: TextStyle(fontSize: 20),
+                          )),
+                    ),
+                    SizedBox(
+                      width: numBtnWidth,
+                      height: numBtnHeigth,
+                      child: ElevatedButton(
+                          style: numBtnStyle,
+                          onPressed: () {
+                            btnPress('6');
+                          },
+                          child: const Text(
+                            '6',
+                            style: TextStyle(fontSize: 20),
+                          )),
+                    ),
+                    SizedBox(
+                      width: sideBtnWidth,
+                      height: sideBtnHeigth,
+                      child: IgnorePointer(
+                        ignoring: true,
+                        child: ElevatedButton(
+                          style: sideBtnStyle,
+                          onPressed: () {
+                            null;
+                          },
+                          child: const Padding(
+                            padding: EdgeInsets.all(0.0),
+                            child: AutoSizeText(
+                              "Darts",
+                              maxLines: 2,
+                              minFontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              const SizedBox(
-                width: 10,
-              ),
-              SizedBox(
-                width: numBtnWidth,
-                height: numBtnHeigth,
-                child: ElevatedButton(
-                    style: specialBtnStyle,
-                    onPressed: () {
-                      btnPress(specialBtnText);
-                    },
-                    child: Text(
-                      specialBtnText,
-                      style: const TextStyle(fontSize: 20),
-                    )),
-              ),
-              SizedBox(
-                width: numBtnWidth,
-                height: numBtnHeigth,
-                child: ElevatedButton(
-                    style: numBtnStyle,
-                    onPressed: () {
-                      btnPress('0');
-                    },
-                    child: const Text(
-                      '0',
-                      style: TextStyle(fontSize: 20),
-                    )),
-              ),
-              SizedBox(
-                width: numBtnWidth,
-                height: numBtnHeigth,
-                child: ElevatedButton(
-                    style: okBtnStyle,
-                    onPressed: () {
-                      btnPress('OK');
-                    },
-                    child: const Text(
-                      'OK',
-                      style: TextStyle(fontSize: 20),
-                    )),
-              ),
-              SizedBox(
-                width: sideBtnWidth,
-                height: sideBtnHeigth,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(Radius.zero),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    const SizedBox(
+                      width: 10,
                     ),
-                    elevation: 0,
-                    shadowColor: Colors.transparent,
-                    primary:
-                        (numDarts == 2) ? Colors.grey[700] : Colors.grey[850],
-                  ),
-                  onPressed: () {
-                    numDarts = 2;
-                    setState(() {
-                      null;
-                    });
-                  },
-                  child: const Padding(
-                    padding: EdgeInsets.all(0.0),
-                    child: AutoSizeText(
-                      "2",
-                      maxLines: 2,
-                      minFontSize: 14,
+                    SizedBox(
+                      width: numBtnWidth,
+                      height: numBtnHeigth,
+                      child: ElevatedButton(
+                          style: numBtnStyle,
+                          onPressed: () {
+                            btnPress('7');
+                          },
+                          child: const Text(
+                            '7',
+                            style: TextStyle(fontSize: 20),
+                          )),
                     ),
-                  ),
+                    SizedBox(
+                      width: numBtnWidth,
+                      height: numBtnHeigth,
+                      child: ElevatedButton(
+                          style: numBtnStyle,
+                          onPressed: () {
+                            btnPress('8');
+                          },
+                          child: const Text(
+                            '8',
+                            style: TextStyle(fontSize: 20),
+                          )),
+                    ),
+                    SizedBox(
+                      width: numBtnWidth,
+                      height: numBtnHeigth,
+                      child: ElevatedButton(
+                          style: numBtnStyle,
+                          onPressed: () {
+                            btnPress('9');
+                          },
+                          child: const Text(
+                            '9',
+                            style: TextStyle(fontSize: 20),
+                          )),
+                    ),
+                    SizedBox(
+                      width: sideBtnWidth,
+                      height: sideBtnHeigth,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.all(Radius.zero),
+                          ),
+                          elevation: 0,
+                          shadowColor: Colors.transparent,
+                          primary: (numDarts == 1)
+                              ? Colors.grey[700]
+                              : Colors.grey[850],
+                        ),
+                        onPressed: () {
+                          numDarts = 1;
+                          setState(() {
+                            null;
+                          });
+                        },
+                        child: const Padding(
+                          padding: EdgeInsets.all(0.0),
+                          child: AutoSizeText(
+                            "1",
+                            maxLines: 2,
+                            minFontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          ),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              const SizedBox(
-                width: 10,
-              ),
-              SizedBox(
-                width: 300,
-                height: 60,
-                child: ElevatedButton(
-                  style: numBtnStyle,
-                  onPressed: () {
-                    btnPress('26');
-                  },
-                  child: const Text(
-                    "Standaard",
-                    style: TextStyle(
-                      fontSize: 20,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    const SizedBox(
+                      width: 10,
                     ),
-                  ),
+                    SizedBox(
+                      width: numBtnWidth,
+                      height: numBtnHeigth,
+                      child: ElevatedButton(
+                          style: specialBtnStyle,
+                          onPressed: () {
+                            btnPress(specialBtnText);
+                          },
+                          child: Text(
+                            specialBtnText,
+                            style: const TextStyle(fontSize: 20),
+                          )),
+                    ),
+                    SizedBox(
+                      width: numBtnWidth,
+                      height: numBtnHeigth,
+                      child: ElevatedButton(
+                          style: numBtnStyle,
+                          onPressed: () {
+                            btnPress('0');
+                          },
+                          child: const Text(
+                            '0',
+                            style: TextStyle(fontSize: 20),
+                          )),
+                    ),
+                    SizedBox(
+                      width: numBtnWidth,
+                      height: numBtnHeigth,
+                      child: ElevatedButton(
+                          style: okBtnStyle,
+                          onPressed: () {
+                            btnPress('OK');
+                          },
+                          child: const Text(
+                            'OK',
+                            style: TextStyle(fontSize: 20),
+                          )),
+                    ),
+                    SizedBox(
+                      width: sideBtnWidth,
+                      height: sideBtnHeigth,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.all(Radius.zero),
+                          ),
+                          elevation: 0,
+                          shadowColor: Colors.transparent,
+                          primary: (numDarts == 2)
+                              ? Colors.grey[700]
+                              : Colors.grey[850],
+                        ),
+                        onPressed: () {
+                          numDarts = 2;
+                          setState(() {
+                            null;
+                          });
+                        },
+                        child: const Padding(
+                          padding: EdgeInsets.all(0.0),
+                          child: AutoSizeText(
+                            "2",
+                            maxLines: 2,
+                            minFontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-              SizedBox(
-                width: sideBtnWidth,
-                height: sideBtnHeigth,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.all(Radius.zero),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  children: [
+                    const SizedBox(
+                      width: 10,
                     ),
-                    elevation: 0,
-                    shadowColor: Colors.transparent,
-                    primary:
-                        (numDarts == 3) ? Colors.grey[700] : Colors.grey[850],
-                  ),
-                  onPressed: () {
-                    numDarts = 3;
-                    setState(() {
-                      null;
-                    });
-                  },
-                  child: const Padding(
-                    padding: EdgeInsets.all(0.0),
-                    child: AutoSizeText(
-                      "3",
-                      maxLines: 2,
-                      minFontSize: 14,
+                    SizedBox(
+                      width: 300,
+                      height: 60,
+                      child: ElevatedButton(
+                        style: numBtnStyle,
+                        onPressed: () {
+                          btnPress('26');
+                        },
+                        child: const Text(
+                          "Standaard",
+                          style: TextStyle(
+                            fontSize: 20,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
+                    SizedBox(
+                      width: sideBtnWidth,
+                      height: sideBtnHeigth,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.all(Radius.zero),
+                          ),
+                          elevation: 0,
+                          shadowColor: Colors.transparent,
+                          primary: (numDarts == 3)
+                              ? Colors.grey[700]
+                              : Colors.grey[850],
+                        ),
+                        onPressed: () {
+                          numDarts = 3;
+                          setState(() {
+                            null;
+                          });
+                        },
+                        child: const Padding(
+                          padding: EdgeInsets.all(0.0),
+                          child: AutoSizeText(
+                            "3",
+                            maxLines: 2,
+                            minFontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
