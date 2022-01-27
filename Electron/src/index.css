@@ -659,3 +659,47 @@ input.settingInput{
 #playerSettingsDiv{
   padding-top: 50px;
 }
+
+.activeGameTable{
+  margin-left: 10px;
+  margin-right: 10px;
+  margin-bottom: 20px;
+  margin-top: 20px;
+  border-collapse: collapse;
+  width: 100px;
+}
+
+.activeGameTable td{
+  border-right: 1px solid var(--table-borders);
+  border-bottom: 1px solid var(--table-borders);
+  padding-left: 8px;
+  padding-top: 5px;
+  padding-right: 10px;
+}
+
+.activeGameTable th{
+  border-bottom: 1px solid var(--table-borders);
+  font-size: 20px;
+  padding-right: 10px;
+  padding-left: 10px;
+}
+
+.activeGameTable tr:first-child{
+  font-weight: bold;
+}
+
+.activeGameTable tr:first-child td{
+  border-bottom: 2px solid var(--table-borders);
+}
+
+.tablePlayer{
+  font-size: 15px;
+}
+
+.activeGameTable td:last-child{
+  border-right: none;
+}
+
+.activeGameTable tr:last-child td{
+  border-bottom: none;
+}
