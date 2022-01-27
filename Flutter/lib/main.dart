@@ -728,6 +728,7 @@ class PouleGame extends StatelessWidget {
           ),
           TextButton(
             onPressed: () {
+              stopCurrentGame();
               Navigator.of(context).push(
                 MaterialPageRoute(
                     builder: (BuildContext context) => const PouleScreen()),
@@ -738,6 +739,11 @@ class PouleGame extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  void stopCurrentGame() {
+    String msg = game.gameID;
+    socket.emit('stopActiveGame', msg);
   }
 
   @override
@@ -822,6 +828,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
     activeGameInfo.add(player2.setsWon);
     activeGameInfo.add(legsToPlay);
     activeGameInfo.add(setsToPlay);
+    print(widget.game.gameID);
     activeStartingPlayer = ChosenPlayerEnum.undefined;
     chosenPlayer = activeStartingPlayer;
   }
@@ -869,10 +876,13 @@ class _PouleGameBodyState extends State<PouleGameBody> {
 
             if (player1.currentScore == 0) {
               endLeg(widget.game.player1, player1);
-            } else if (170 - player1.currentScore >= 0) {
-              player1.possibleOut = possibleOuts[170 - player1.currentScore];
             } else {
-              player1.possibleOut = '';
+              sendCurrentScores(false);
+              if (170 - player1.currentScore >= 0) {
+                player1.possibleOut = possibleOuts[170 - player1.currentScore];
+              } else {
+                player1.possibleOut = '';
+              }
             }
           }
         } else {
@@ -912,10 +922,13 @@ class _PouleGameBodyState extends State<PouleGameBody> {
 
             if (player2.currentScore == 0) {
               endLeg(widget.game.player2, player2);
-            } else if (170 - player2.currentScore >= 0) {
-              player2.possibleOut = possibleOuts[170 - player2.currentScore];
             } else {
-              player2.possibleOut = '';
+              sendCurrentScores(false);
+              if (170 - player2.currentScore >= 0) {
+                player2.possibleOut = possibleOuts[170 - player2.currentScore];
+              } else {
+                player2.possibleOut = '';
+              }
             }
           }
         }
@@ -986,6 +999,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
           ),
           TextButton(
             onPressed: () {
+              sendCurrentScores(false);
               String msg =
                   "${widget.game.gameID},${player1.legsWon.toString()},${player2.legsWon.toString()}";
               socket.emit('gamePlayed', msg);
@@ -1012,6 +1026,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
         actions: <Widget>[
           TextButton(
             onPressed: () {
+              sendCurrentScores(false);
               resetLastScore(winnerType);
               Navigator.pop(context, 'Cancel');
             },
@@ -1024,6 +1039,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
               if (winnerType.legsWon > (legsToPlay - winnerType.legsWon)) {
                 winnerType.setsWon++;
                 if (winnerType.setsWon > (setsToPlay - winnerType.setsWon)) {
+                  sendCurrentScores(false);
                   endGame(winnerName);
                 } else {
                   resetGame();
@@ -1067,6 +1083,10 @@ class _PouleGameBodyState extends State<PouleGameBody> {
         player1.myTurn = true;
       }
     }
+    player1.myTurn
+        ? activeStartingPlayer = ChosenPlayerEnum.player1
+        : activeStartingPlayer = ChosenPlayerEnum.player2;
+    sendCurrentScores(false);
     setState(() {
       null;
     });
@@ -1090,6 +1110,19 @@ class _PouleGameBodyState extends State<PouleGameBody> {
     setState(() {
       null;
     });
+  }
+
+  void sendCurrentScores(bool firstMsg) {
+    int startingPlayer;
+    if (activeStartingPlayer == ChosenPlayerEnum.player1) {
+      startingPlayer = 0;
+    } else {
+      startingPlayer = 1;
+    }
+    String msg =
+        '${widget.game.gameID},${player1.currentScore},${player1.legsWon},${player2.currentScore},${player2.legsWon},$firstMsg,$startingPlayer';
+    print(msg);
+    socket.emit('activeGameInfo', msg);
   }
 
   Widget bodyContainer() {
@@ -1686,6 +1719,8 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                   onPressed: () {
                     setState(() {
                       chosenPlayer = ChosenPlayerEnum.player1;
+                      activeStartingPlayer = chosenPlayer;
+                      sendCurrentScores(true);
                     });
                   },
                   child: Text(
@@ -1693,7 +1728,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                     style: const TextStyle(fontSize: 20),
                   ),
                   style: ElevatedButton.styleFrom(
-                    primary: Color(DEFAULT_BTN_COLOR),
+                    primary: const Color(DEFAULT_BTN_COLOR),
                   ),
                 ),
               ),
@@ -1706,6 +1741,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                 child: ElevatedButton(
                   onPressed: () {
                     setState(() {
+                      sendCurrentScores(true);
                       chosenPlayer = ChosenPlayerEnum.player2;
                     });
                   },
@@ -1714,7 +1750,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                     style: const TextStyle(fontSize: 20),
                   ),
                   style: ElevatedButton.styleFrom(
-                    primary: Color(DEFAULT_BTN_COLOR),
+                    primary: const Color(DEFAULT_BTN_COLOR),
                   ),
                 ),
               ),

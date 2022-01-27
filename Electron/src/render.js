@@ -23,6 +23,7 @@ var numPlayers = 0;
 var numPoules = 0;
 var appSettings = [];
 var appOptions = ["pouleScore", "pouleLegs", "quartScore", "quartLegs", "halfScore", "halfLegs", "finalScore", "finalLegs"];
+var activeGames = [];
 
 io.on('connection', (socket) => {
     sockets.add(socket);
@@ -128,7 +129,7 @@ io.on('connection', (socket) => {
                 break;
         }
         socket.emit('finalsInfo', finalsMsg);
-    })
+    });
     socket.on('gamePlayed', (data) => {
         var dataArray = data.split(',');
         if(dataArray[0][0] == 'M'){
@@ -137,6 +138,59 @@ io.on('connection', (socket) => {
         }else{
             document.getElementById(`game${dataArray[0]}1Score`).value = dataArray[1];
             document.getElementById(`game${dataArray[0]}2Score`).value = dataArray[2];
+        }
+
+        for(let i = 0; i < activeGames.length; i++){
+            if(activeGames[i] == dataArray[0]){
+                activeGames.splice(i, 1);
+            }
+            $(document.getElementById(dataArray[0])).remove();
+
+            if(activeGames.length == 0){
+                $(document.getElementById('activeGamesDiv')).hide();
+            }
+            console.log(activeGames);
+        }
+    });
+    socket.on('activeGameInfo', (data) => {
+        var dataArray = data.split(',');
+        $(document.getElementById('activeGamesDiv')).show();
+        if(dataArray[5] === 'true'){
+            activeGames.push(dataArray[0]);
+            console.log(`New game ${dataArray[0]} started`);
+            let div = document.getElementById('activeGamesDiv');
+            //Bij finales (M games) zoeken op M(gameNummer)(spelerNummer)
+            let player1 = document.getElementById(`game${dataArray[0]}1Name`).innerHTML;
+            let player2 = document.getElementById(`game${dataArray[0]}2Name`).innerHTML;
+            $(div).append(`<table id="${dataArray[0]}" class="activeGameTable"><tr><td>Speler</td><td>Legs</td><td>Score</td></tr><tr><td id="activePlayer${dataArray[0]}1">${player1}</td><td id="activeLeg${dataArray[0]}1">${dataArray[2]}</td><td id="activeScore${dataArray[0]}1">${dataArray[1]}</td></tr><tr><td id="activePlayer${dataArray[0]}2">${player2}</td><td id="activeLeg${dataArray[0]}2">${dataArray[4]}</td><td id="activeScore${dataArray[0]}2">${dataArray[3]}</td></tr></table>`)
+        }
+        document.getElementById(`activeLeg${dataArray[0]}1`).innerHTML = dataArray[2];
+        document.getElementById(`activeLeg${dataArray[0]}2`).innerHTML = dataArray[4];
+        document.getElementById(`activeScore${dataArray[0]}1`).innerHTML = dataArray[1];
+        document.getElementById(`activeScore${dataArray[0]}2`).innerHTML = dataArray[3];
+
+        if(dataArray[6] == '0'){
+            document.getElementById(`activePlayer${dataArray[0]}1`).style.color = 'green';
+            document.getElementById(`activePlayer${dataArray[0]}2`).style.color = 'white';
+        }else{
+            document.getElementById(`activePlayer${dataArray[0]}1`).style.color = 'white';
+            document.getElementById(`activePlayer${dataArray[0]}2`).style.color = 'green';
+        }
+
+        console.log(dataArray);
+    });
+    socket.on('stopActiveGame', (data) => {
+        for(let i = 0; i < activeGames.length; i++){
+            if(activeGames[i] == data){
+                activeGames.splice(i, 1);
+                console.log(`Game ${data} stopped`);
+            }
+            $(document.getElementById(data)).remove();
+
+            if(activeGames.length == 0){
+                $(document.getElementById('activeGamesDiv')).hide();
+            }
+            console.log(activeGames);
         }
     });
 });
@@ -672,22 +726,27 @@ function loadGame(){
     //Load Poule A
     if(numPoules >= 1){
         loadPoulGames("A", jsonObj);
+        $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleA')));
     }
 
     //Load Poule B
     if(numPoules >= 2){
         loadPoulGames("B", jsonObj);
+        $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleB')));
     }
 
     //Load Poule C
     if(numPoules >= 3){
         loadPoulGames("C", jsonObj);
+        $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleC')));
     }
 
     //Load Poule D
     if(numPoules >= 4){
         loadPoulGames("D", jsonObj);
+        $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleD')));
     }
+    $(document.getElementById('activeGamesDiv')).hide();
 
     makeFinals(numPoules);
 
@@ -1007,6 +1066,7 @@ function makePoules(){
             if(shouldBePrinted){
                 exportPDF(pouleA, filePath, true);
             }
+            $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleA')));
         }
 
         if(pouleExists(pouleB)){
@@ -1019,6 +1079,7 @@ function makePoules(){
             if(shouldBePrinted){
                 exportPDF(pouleB, filePath, true);
             }
+            $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleB')));
         }
 
         if(pouleExists(pouleC)){
@@ -1031,6 +1092,7 @@ function makePoules(){
             if(shouldBePrinted){
                 exportPDF(pouleC, filePath, true);
             }
+            $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleC')));
         }
 
         if(pouleExists(pouleD)){
@@ -1043,7 +1105,9 @@ function makePoules(){
             if(shouldBePrinted){
                 exportPDF(pouleD, filePath, true);
             }
+            $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleD')));
         }
+        $(document.getElementById('activeGamesDiv')).hide();
 
         makeFinals(numPoules);
         
