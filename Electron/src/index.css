@@ -493,17 +493,26 @@ button:focus{
   transform: scale(0.95);
 }
 
-.sideNav button{
+.sideNavBtn{
   position: absolute;
-  right: 60px;
-  background-color: var(--btn-color);
+  background-color: #111;
   border: none;
   height: 40px;
-  width: 150px;
+  width: 100%;
   font-size: 17px;
   color: white;
   font-family: var(--default-font);
-  border-radius: 4px
+  border-radius: 4px;
+  display: inline-block;
+  transition: 0.1s;
+}
+
+.sideNavBtn:hover{
+  color: #c7c7c7
+}
+
+.sideNavBtn i{
+  transition: transform 0.5s;
 }
 
 .sideNav a {
@@ -641,4 +650,76 @@ input.settingInput{
   background: var(--input-background);
   color: #C0C0C0;
   margin-bottom: 20px;
+}
+
+#appSettingsDiv{
+  padding-top: 50px;
+}
+
+#playerSettingsDiv{
+  padding-top: 50px;
+}
+
+.activeGameTable{
+  margin-left: 10px;
+  margin-right: 10px;
+  margin-bottom: 20px;
+  border-collapse: collapse;
+  width: 100px;
+}
+
+.activeGameTable td{
+  border-right: 1px solid var(--table-borders);
+  border-bottom: 1px solid var(--table-borders);
+  padding-left: 8px;
+  padding-top: 5px;
+  padding-right: 10px;
+}
+
+.activeGameTable th{
+  border-bottom: 1px solid var(--table-borders);
+  font-size: 20px;
+  padding-right: 10px;
+  padding-left: 10px;
+}
+
+.activeGameTable tr:first-child{
+  font-weight: bold;
+}
+
+.activeGameTable tr:first-child td{
+  border-bottom: 2px solid var(--table-borders);
+}
+
+.tablePlayer{
+  font-size: 15px;
+}
+
+.activeGameTable td:last-child{
+  border-right: none;
+}
+
+.activeGameTable tr:last-child td{
+  border-bottom: none;
+}
+
+.activeGamesDiv{
+  background: var(--card-background);
+  border-radius: 10px;
+  color: #FFF;
+  box-shadow: 0px 2px 18px -4px rgba(0,0,0,0.75);
+  margin-left: 10px;
+  min-width: 150px;
+  max-width: 2000px;
+  text-align: center;
+  max-height: 350px;
+  display: inline;
+}
+
+.activeGamesDiv hr{
+  margin-bottom: 20px;
+}
+
+.activeTablesDiv{
+  display: flex;
 }

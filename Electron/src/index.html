@@ -237,7 +237,16 @@
       </div>
     </div>
   
-    <div id='poulesDiv' class='cardPoules'></div>
+    <div id='poulesDiv' class='cardPoules'>
+      <div id="activeGamesDiv" class="activeGamesDiv">
+        <header class="pouleHeader">
+          <h2>Live scores:</h2>
+          <hr>
+        </header>
+        <div id='activeTablesDiv1' class='activeTablesDiv'></div>
+        <div id='activeTablesDiv2' class='activeTablesDiv'></div>
+      </div>
+    </div>
     
     <div id='gameDiv' class='cardPoules'>
       <div id='pouleGames' class='cardPouleGames'></div>
@@ -266,7 +275,9 @@
           </tbody>
         </table>
       </div>
-        <form style="text-align: center;" onkeypress="handle(event)">
+      <button id='appSettingsBtn' class='sideNavBtn' onclick='showAppSettings()'>App instellingen <i id='appSettingsArrow' class='material-icons' style='transform: rotate(0deg);'>expand_more</i></button>
+      <div id='appSettingsDiv' style="display: none;">
+        <form id="appSettingForm" style="text-align: center; display: block;" onkeypress="handle(event)">
           <label for="pouleScoreInput" class="settingsLabel">Poule score</label></br>
           <input id="pouleScoreInput" class="settingInput" type="number" value="0"></br>
           <label for="pouleLegsInput" class="settingsLabel">Poule best of</label></br>
@@ -284,6 +295,12 @@
           <label for="finalLegsInput" class="settingsLabel">Finale best of</label></br>
           <input id="finalLegsInput" class="settingInput" type="number" value="1"></br>
         </form>
+      </div><br><br>
+      <button id='playerSettingsBtn' class='sideNavBtn' onclick='showPlayerSettings()'>Spelers <i id='playerSettingsArrow' class='material-icons' style='transform: rotate(0deg);'>expand_more</i></button>
+      <div id='playerSettingsDiv' style="display: none;">
+        <form id="playerSettingForm" style="text-align: center; display: block;" onkeypress="handle(event)">
+        </form>
+      </div><br><br>
     </div>
   </body>
 
