@@ -158,11 +158,41 @@ io.on('connection', (socket) => {
         if(dataArray[5] === 'true'){
             activeGames.push(dataArray[0]);
             console.log(`New game ${dataArray[0]} started`);
-            let div = document.getElementById('activeGamesDiv');
+            var div;
+            console.log(activeGames.length % 2);
+            if(activeGames.length % 2 == 0){
+                div = document.getElementById('activeTablesDiv2');
+            }else{
+                div = document.getElementById('activeTablesDiv1');
+            }
             //Bij finales (M games) zoeken op M(gameNummer)(spelerNummer)
             let player1 = document.getElementById(`game${dataArray[0]}1Name`).innerHTML;
             let player2 = document.getElementById(`game${dataArray[0]}2Name`).innerHTML;
             $(div).append(`<table id="${dataArray[0]}" class="activeGameTable"><tr><td>Speler</td><td>Legs</td><td>Score</td></tr><tr><td id="activePlayer${dataArray[0]}1">${player1}</td><td id="activeLeg${dataArray[0]}1">${dataArray[2]}</td><td id="activeScore${dataArray[0]}1">${dataArray[1]}</td></tr><tr><td id="activePlayer${dataArray[0]}2">${player2}</td><td id="activeLeg${dataArray[0]}2">${dataArray[4]}</td><td id="activeScore${dataArray[0]}2">${dataArray[3]}</td></tr></table>`)
+            
+            var msg;
+            switch(dataArray[0][0]){
+                case 'A':
+                    pouleA.updatePoints();
+                    msg = [pouleA.rankings, pouleA.sendPouleGames(), 'poule'];
+                    io.emit('pouleARanks', msg);
+                break;
+                case 'B':
+                    pouleB.updatePoints();
+                    msg = [pouleB.rankings, pouleB.sendPouleGames(), 'poule'];
+                    io.emit('pouleBRanks', msg);
+                break;
+                case 'C':
+                    pouleC.updatePoints();
+                    msg = [pouleC.rankings, pouleC.sendPouleGames(), 'poule'];
+                    io.emit('pouleCRanks', msg);
+                break;
+                case 'D':
+                    pouleD.updatePoints();
+                    msg = [pouleD.rankings, pouleD.sendPouleGames(), 'poule'];
+                    io.emit('pouleDRanks', msg);
+                break;
+            }
         }
         document.getElementById(`activeLeg${dataArray[0]}1`).innerHTML = dataArray[2];
         document.getElementById(`activeLeg${dataArray[0]}2`).innerHTML = dataArray[4];
@@ -191,6 +221,30 @@ io.on('connection', (socket) => {
                 $(document.getElementById('activeGamesDiv')).hide();
             }
             console.log(activeGames);
+        }
+
+        var msg;
+        switch(data[0]){
+            case 'A':
+                pouleA.updatePoints();
+                msg = [pouleA.rankings, pouleA.sendPouleGames(), 'poule'];
+                io.emit('pouleARanks', msg);
+            break;
+            case 'B':
+                pouleB.updatePoints();
+                msg = [pouleB.rankings, pouleB.sendPouleGames(), 'poule'];
+                io.emit('pouleBRanks', msg);
+            break;
+            case 'C':
+                pouleC.updatePoints();
+                msg = [pouleC.rankings, pouleC.sendPouleGames(), 'poule'];
+                io.emit('pouleCRanks', msg);
+            break;
+            case 'D':
+                pouleD.updatePoints();
+                msg = [pouleD.rankings, pouleD.sendPouleGames(), 'poule'];
+                io.emit('pouleDRanks', msg);
+            break;
         }
     });
 });
@@ -386,7 +440,17 @@ class pouleGames{
             let score2 = document.getElementById(`game${this.pouleNum}${i+1}2Score`).value;
     
             var gamePlayed = true;
-            if(!score1 && !score2){
+
+            var gameActive = false;
+
+            for(let j=0; j < activeGames.length; j++){
+                if(activeGames[j] == `${this.pouleNum}${i+1}`){
+                    gameActive = true;
+                    break;
+                }
+            }
+
+            if(!score1 && !score2 && !gameActive){
                 gamePlayed = false;
             }
     
