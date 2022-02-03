@@ -660,6 +660,10 @@ input.settingInput{
   padding-top: 50px;
 }
 
+#activeGamesSideDiv{
+  padding-top: 50px;
+}
+
 .activeGameTable{
   margin-left: 10px;
   margin-right: 10px;
@@ -722,4 +726,30 @@ input.settingInput{
 
 .activeTablesDiv{
   display: flex;
+}
+
+.stopGameButton{
+  background-color: #111;
+  border: none;
+  height: 40px;
+  width: 100%;
+  font-size: 17px;
+  color: white;
+  font-family: var(--default-font);
+  border-radius: 4px;
+  display: inline-block;
+  transition: 0.1s;
+}
+
+.stopGameButton:hover{
+  background: #2d2d2d
+}
+
+.stopGameButton i{
+  color: grey;
+}
+
+.stopGameButton i:hover{
+  color: white;
+  transform: scale(1.2);
 }

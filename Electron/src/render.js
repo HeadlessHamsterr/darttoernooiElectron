@@ -28,11 +28,7 @@ var activeGames = [];
 io.on('connection', (socket) => {
     sockets.add(socket);
     console.log("Websocket connection astablished");
-    /*if(pouleExists(pouleA) || pouleExists(pouleB) || pouleExists(pouleC) || pouleExists(pouleD)){
-        socket.emit('pouleInfo', exportGameInfo(false));
-    }else{
-        socket.emit('pouleInfo', "No active game");
-    }*/
+
     socket.on('allPouleInfoRequest', (data) => {
         var msg = [];
         var pouleTempArray = [];
@@ -155,12 +151,21 @@ io.on('connection', (socket) => {
     socket.on('activeGameInfo', (data) => {
         var dataArray = data.split(',');
         $(document.getElementById('activeGamesDiv')).show();
-        if(dataArray[5] === 'true'){
-            activeGames.push(dataArray[0]);
+        var newGame = true
+
+        for(let i = 0; i < activeGames.length; i++){
+            if(activeGames[i] == dataArray[0]){
+                newGame = false;
+                break;
+            }
+        }
+
+        if(newGame){
             console.log(`New game ${dataArray[0]} started`);
             var div;
-            console.log(activeGames.length % 2);
-            if(activeGames.length % 2 == 0){
+            console.log(`Active games: ${activeGames.length}`);
+            console.log(`Active games mod: ${activeGames.length % 2}`);
+            if(activeGames.length % 2 === 0){
                 div = document.getElementById('activeTablesDiv2');
             }else{
                 div = document.getElementById('activeTablesDiv1');
@@ -169,7 +174,10 @@ io.on('connection', (socket) => {
             let player1 = document.getElementById(`game${dataArray[0]}1Name`).innerHTML;
             let player2 = document.getElementById(`game${dataArray[0]}2Name`).innerHTML;
             $(div).append(`<table id="${dataArray[0]}" class="activeGameTable"><tr><td>Speler</td><td>Legs</td><td>Score</td></tr><tr><td id="activePlayer${dataArray[0]}1">${player1}</td><td id="activeLeg${dataArray[0]}1">${dataArray[2]}</td><td id="activeScore${dataArray[0]}1">${dataArray[1]}</td></tr><tr><td id="activePlayer${dataArray[0]}2">${player2}</td><td id="activeLeg${dataArray[0]}2">${dataArray[4]}</td><td id="activeScore${dataArray[0]}2">${dataArray[3]}</td></tr></table>`)
+            activeGames.push(dataArray[0]);
             
+            let stopGameDiv = document.getElementById('activeGamesSideDiv');
+            $(stopGameDiv).append(`<button id="stop${dataArray[0]}" class="stopGameButton" onclick="stopGame(this.id)">${player1} - ${player2} <i id='remGameIcon' class='material-icons'>delete</i></button>`);
             var msg;
             switch(dataArray[0][0]){
                 case 'A':
@@ -216,6 +224,7 @@ io.on('connection', (socket) => {
                 console.log(`Game ${data} stopped`);
             }
             $(document.getElementById(data)).remove();
+            $(document.getElementById(`stop${data}`)).remove();
 
             if(activeGames.length == 0){
                 $(document.getElementById('activeGamesDiv')).hide();
@@ -247,6 +256,11 @@ io.on('connection', (socket) => {
             break;
         }
     });
+
+});
+
+io.on('disconnection', () => {
+    console.log('Websocket Disconnected');
 });
 
 const PORT = process.env.PORT || 11520;
@@ -296,6 +310,7 @@ class pouleGames{
         this.tiedGameFormat;
         this.rankings = [];
         this.lastRankings = [];
+        this.finalsDrawn = false;
     }
 
     reset(){
@@ -311,6 +326,7 @@ class pouleGames{
         this.numTiedGames;
         this.gameFormat;
         this.tiedGameFormat;
+        this.finalsDrawn = false;
     }
 
     makePoule(){
@@ -546,35 +562,40 @@ class pouleGames{
             }
         }
 
-        if(tieBreakersEnabled){
-            let newTiedPlayers = this.isTie();
         
-            if(newTiedPlayers.length != 0 && this.newTieDetected(this.tiedPlayers, newTiedPlayers)){
-                this.tiedPlayers = newTiedPlayers;
-                this.tieDetected = true;
-                this.drawTiedPoules();
-            }
+        let newTiedPlayers = this.isTie();
+    
+        if(newTiedPlayers.length != 0 && this.newTieDetected(this.tiedPlayers, newTiedPlayers)){
+            this.tiedPlayers = newTiedPlayers;
+            this.tieDetected = true;
+        }
 
-            if(this.tieDetected){
-                for(let i = 0; i < this.numTiedGames; i++){
-                    var points1 = document.getElementById(`tie${this.pouleNum}${i+1}1Score`).value;
-                    var points2 = document.getElementById(`tie${this.pouleNum}${i+1}2Score`).value;
-
-                    points1 = parseInt(points1);
-                    points2 = parseInt(points2);
-
-                    if(isNaN(points1) || isNaN(points2)){
-                        return false;
-                    }
+        if(this.tieDetected && numPoules == 1 && !this.finalsDrawn){
+            makeFinals(1);
+            $("#winnerTable").insertAfter("#finalsTable");
+            this.finalsDrawn = true;
+        }else if(this.tieDetected && tieBreakersEnabled){
+            this.drawTiedPoules();
+            for(let i = 0; i < this.numTiedGames; i++){
+                var points1 = document.getElementById(`tie${this.pouleNum}${i+1}1Score`).value;
+                var points2 = document.getElementById(`tie${this.pouleNum}${i+1}2Score`).value
+                points1 = parseInt(points1);
+                points2 = parseInt(points2)
+                if(isNaN(points1) || isNaN(points2)){
+                    return false;
                 }
+            }
+        }else{
+            var playersCopy = [];
+            Array.prototype.push.apply(playersCopy, this.players);
+            playersCopy.sort(function(a,b){return b[1] - a[1]});
+            this.winner = playersCopy[0][0];
+            this.secondPlace = playersCopy[1][0];
+            if(!this.finalsDrawn){
+                document.getElementById("M81Name").innerHTML = this.winner;
             }
         }
 
-        var playersCopy = [];
-        Array.prototype.push.apply(playersCopy, this.players);
-        playersCopy.sort(function(a,b){return b[1] - a[1]});
-        this.winner = playersCopy[0][0];
-        this.secondPlace = playersCopy[1][0];
         return true;
     }
 
@@ -1173,7 +1194,9 @@ function makePoules(){
         }
         $(document.getElementById('activeGamesDiv')).hide();
 
-        makeFinals(numPoules);
+        if(numPoules > 1){
+            makeFinals(numPoules);
+        }
         
         $(poulesDiv).show();
         //$(saveBtn).show();
@@ -1182,6 +1205,10 @@ function makePoules(){
         $(document.getElementById('mainRosterSubDiv')).show();
         $(document.getElementById('gameDiv')).show();
         startPoulesSorting();
+
+        let winnerTable = $('<table id="winnerTable" class="mainRosterTable"><tr><td colspan="3"><h2>Winnaar:</h2></td></tr><tr><td colspan="3"><h2 id="M81Name"></h2></td></tr></table>');
+        $("#mainRosterSubDiv").append(winnerTable);
+
         document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
         httpServer.listen(PORT, () => {
             console.log(`Server listening on http://${address()}:${PORT}`);
@@ -1269,10 +1296,8 @@ function makeFinals(numberOfPoules){
         case 3:
         case 2:
         case 1:
-            let finals = $('<table class="mainRosterTable"><tr><th colspan="3"><h2>Finale</h2></th></tr><tr><td><h2 id="M71Name"></h2></td><td><h2>-</h2></td><td><h2 id="M72Name"></h2></td></tr><tr><td><input id="M71Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M72Score" class="gameScore"></td></tr></table>');
-            let winnerTable = $('<table class="mainRosterTable"><tr><td colspan="3"><h2>Winnaar:</h2></td></tr><tr><td colspan="3"><h2 id="M81Name"></h2></td></tr></table>');
+            let finals = $('<table id="finalsTable" class="mainRosterTable"><tr><th colspan="3"><h2>Finale</h2></th></tr><tr><td><h2 id="M71Name"></h2></td><td><h2>-</h2></td><td><h2 id="M72Name"></h2></td></tr><tr><td><input id="M71Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M72Score" class="gameScore"></td></tr></table>');
             $(rosterDiv).append(finals);
-            $(rosterDiv).append(winnerTable);
         break;
     }
 }
@@ -1290,8 +1315,10 @@ function startPoulesSorting(){
                     document.getElementById('M51Name').innerHTML = pouleA.winner;
                     document.getElementById('M62Name').innerHTML = pouleA.secondPlace;
                 }else if(numPoules == 1){
-                    document.getElementById('M71Name').innerHTML = pouleA.winner;
-                    document.getElementById('M72Name').innerHTML = pouleA.secondPlace;
+                    if(pouleA.finalsDrawn){
+                        document.getElementById('M71Name').innerHTML = pouleA.winner;
+                        document.getElementById('M72Name').innerHTML = pouleA.secondPlace;
+                    }
                 }
             }else{
                 if(numPoules >= 3){
@@ -1301,8 +1328,10 @@ function startPoulesSorting(){
                     document.getElementById('M51Name').innerHTML = "";
                     document.getElementById('M62Name').innerHTML = "";
                 }else if(numPoules == 1){
-                    document.getElementById('M71Name').innerHTML = "";
-                    document.getElementById('M72Name').innerHTML = "";
+                    if(pouleA.finalsDrawn){
+                        document.getElementById('M71Name').innerHTML = "";
+                        document.getElementById('M72Name').innerHTML = "";
+                    }
                 }
             }
         }
@@ -1416,9 +1445,11 @@ function startPoulesSorting(){
                 finalsMsg.push(finalsGameToApp(7, 'final'));
             break;
             case 1:
-                getFinalsWinner("M71", "M72", "M81");
+                if(pouleA.finalsDrawn){
+                    getFinalsWinner("M71", "M72", "M81");
 
-                finalsMsg.push(finalsGameToApp(7, 'final'));
+                    finalsMsg.push(finalsGameToApp(7, 'final'));
+                }
             break;
         }
         io.emit('finalsInfo', finalsMsg);
@@ -1807,6 +1838,9 @@ function showAppSettings(){
     if(document.getElementById("appSettingsArrow").style.transform == "rotate(0deg)"){
         document.getElementById("appSettingsArrow").style.transform = "rotate(180deg)";
         document.getElementById("playerSettingsArrow").style.transform = "rotate(0deg)";
+        document.getElementById("activeGamesArrow").style.transform = "rotate(0deg)";
+
+        $("#activeGamesSideDiv").slideUp(300);
         $("#playerSettingsDiv").slideUp(300);
         $("#appSettingsDiv").slideDown(300);
     }else{
@@ -1819,10 +1853,47 @@ function showPlayerSettings(){
     if(document.getElementById("playerSettingsArrow").style.transform == "rotate(0deg)"){
         document.getElementById("playerSettingsArrow").style.transform = "rotate(180deg)";
         document.getElementById("appSettingsArrow").style.transform = "rotate(0deg)";
+        document.getElementById("activeGamesArrow").style.transform = "rotate(0deg)";
+
+        $("#activeGamesSideDiv").slideUp(300);
         $("#appSettingsDiv").slideUp(300);
         $("#playerSettingsDiv").slideDown(300);
     }else{
         document.getElementById("playerSettingsArrow").style.transform = "rotate(0deg)";
         $("#playerSettingsDiv").slideUp(300);
+    }
+}
+
+function showActiveGames(){
+    if(document.getElementById("activeGamesArrow").style.transform == "rotate(0deg)"){
+        document.getElementById("playerSettingsArrow").style.transform = "rotate(0deg)";
+        document.getElementById("appSettingsArrow").style.transform = "rotate(0deg)";
+        document.getElementById("activeGamesArrow").style.transform = "rotate(180deg)";
+
+        $("#appSettingsDiv").slideUp(300);
+        $("#playerSettingsDiv").slideUp(300);
+        $("#activeGamesSideDiv").slideDown(300);
+    }else{
+        document.getElementById("activeGamesArrow").style.transform = "rotate(0deg)";
+        $(document.getElementById('activeGamesSideDiv')).slideUp(300);
+    }
+}
+
+function stopGame(gameID){
+    gameID = gameID.replace('stop', '');
+    console.log("Stopping game: " + gameID);
+
+    for(let i = 0; i < activeGames.length; i++){
+        if(activeGames[i] == gameID){
+            activeGames.splice(i, 1);
+            console.log(`Game ${gameID} stopped`);
+        }
+        $(document.getElementById(gameID)).remove();
+        $(document.getElementById(`stop${gameID}`)).remove();
+
+        if(activeGames.length == 0){
+            $(document.getElementById('activeGamesDiv')).hide();
+        }
+        console.log(activeGames);
     }
 }
