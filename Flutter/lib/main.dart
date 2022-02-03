@@ -21,6 +21,7 @@ double sideBtnHeigth = 70;
 const PRIMARY_COLOR = 0xFF4A0000;
 const DEFAULT_BTN_COLOR = 0xFF4A0000;
 const BACKGROUND_COLOR = 0xFF181818;
+bool firstStart = false;
 
 List<String> possibleOuts = [
   'T20 T20 BULL',
@@ -326,6 +327,7 @@ class StartScreen extends StatelessWidget {
   final ipAddressController = TextEditingController(text: serverIP);
 
   void enterIP(context) {
+    firstStart = true;
     serverIP = ipAddressController.text;
     socket = IO.io('ws://$serverIP:11520', <String, dynamic>{
       'transports': ['websocket'],
@@ -338,11 +340,14 @@ class StartScreen extends StatelessWidget {
       duration: Duration(days: 365),
     ));
     socket.onConnect((_) {
-      socket.emit('clientGreeting', 'yoBitch');
-      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-      Navigator.of(context).push(MaterialPageRoute(
-          builder: (BuildContext context) =>
-              PoulesOverview(serverIP: serverIP)));
+      if (firstStart) {
+        firstStart = false;
+        socket.emit('clientGreeting', 'yoBitch');
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        Navigator.of(context).push(MaterialPageRoute(
+            builder: (BuildContext context) =>
+                PoulesOverview(serverIP: serverIP)));
+      }
     });
   }
 
@@ -350,7 +355,7 @@ class StartScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: ThemeData(
-        scaffoldBackgroundColor: Color(0xFF181818),
+        scaffoldBackgroundColor: const Color(0xFF181818),
       ),
       home: Builder(builder: (context) {
         return Scaffold(
