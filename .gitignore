@@ -90,3 +90,4 @@ out/
 
 game.json
 dist
+Electron/src/activeGamesDiv.html
