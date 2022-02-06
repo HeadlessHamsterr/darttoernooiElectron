@@ -167,17 +167,22 @@ io.on('connection', (socket) => {
         if(newGame){
             console.log(`New game ${dataArray[0]} started`);
             var div;
-            console.log(`Active games: ${activeGames.length}`);
-            console.log(`Active games mod: ${activeGames.length % 2}`);
-            if(activeGames.length % 2 === 0){
+            /*if(activeGames.length % 2 === 0){
                 div = document.getElementById('activeTablesDiv2');
             }else{
                 div = document.getElementById('activeTablesDiv1');
-            }
+            }*/
+            div = document.getElementById('activeTablesDiv1');
             //Bij finales (M games) zoeken op M(gameNummer)(spelerNummer)
             let player1 = document.getElementById(`game${dataArray[0]}1Name`).innerHTML;
             let player2 = document.getElementById(`game${dataArray[0]}2Name`).innerHTML;
-            $(div).append(`<table id="${dataArray[0]}" class="activeGameTable"><tr><td>Speler</td><td>Legs</td><td>Score</td></tr><tr><td id="activePlayer${dataArray[0]}1">${player1}</td><td id="activeLeg${dataArray[0]}1">${dataArray[2]}</td><td id="activeScore${dataArray[0]}1">${dataArray[1]}</td></tr><tr><td id="activePlayer${dataArray[0]}2">${player2}</td><td id="activeLeg${dataArray[0]}2">${dataArray[4]}</td><td id="activeScore${dataArray[0]}2">${dataArray[3]}</td></tr></table>`)
+
+            console.log(`numActiveGames: ${activeGames.length}`);
+            if(activeGames.length > 0){
+                $(div).append(`<div id="${dataArray[0]}VL" class="vl">`)
+            }
+
+            $(div).append(`<table id="${dataArray[0]}" class="activeGameTable"><tr><td id="activePlayer${dataArray[0]}1">${player1}</td><td><i id="${dataArray[0]}TurnArrow" class="material-icons turnArrow">expand_more</i></td><td id="activePlayer${dataArray[0]}2">${player2}</td></tr><tr><td id="activeLeg${dataArray[0]}1">${dataArray[2]}</td><td>legs</td><td id="activeLeg${dataArray[0]}2">${dataArray[4]}</td></tr><tr><td id="activeScore${dataArray[0]}1">${dataArray[1]}</td><td></td><td id="activeScore${dataArray[0]}2">${dataArray[3]}</td></tr></table>`)
             activeGames.push(dataArray[0]);
             
             let stopGameDiv = document.getElementById('activeGamesSideDiv');
@@ -205,6 +210,8 @@ io.on('connection', (socket) => {
                     io.emit('pouleDRanks', msg);
                 break;
             }
+
+            
         }
         document.getElementById(`activeLeg${dataArray[0]}1`).innerHTML = dataArray[2];
         document.getElementById(`activeLeg${dataArray[0]}2`).innerHTML = dataArray[4];
@@ -219,6 +226,12 @@ io.on('connection', (socket) => {
             document.getElementById(`activePlayer${dataArray[0]}2`).style.color = 'green';
         }
 
+        if(dataArray[5] == 'true'){
+            document.getElementById(`${dataArray[0]}TurnArrow`).style.transform = 'rotate(90deg)';
+        }else{
+            document.getElementById(`${dataArray[0]}TurnArrow`).style.transform = 'rotate(270deg)';
+        }
+
         console.log(dataArray);
     });
     socket.on('stopActiveGame', (data) => {
@@ -229,6 +242,7 @@ io.on('connection', (socket) => {
             }
             $(document.getElementById(data)).remove();
             $(document.getElementById(`stop${data}`)).remove();
+            $(document.getElementById(`${data}VL`)).remove();
 
             if(activeGames.length == 0){
                 $(document.getElementById('activeGamesDiv')).hide();
@@ -1894,6 +1908,7 @@ function stopGame(gameID){
         }
         $(document.getElementById(gameID)).remove();
         $(document.getElementById(`stop${gameID}`)).remove();
+        $(document.getElementById(`${gameID}VL`)).remove();
 
         if(activeGames.length == 0){
             $(document.getElementById('activeGamesDiv')).hide();
