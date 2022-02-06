@@ -10,6 +10,10 @@ const {address} = require('ip');
 const { PassThrough } = require('stream');
 const httpServer = require('http').createServer();
 const {createHttpTerminator} = require('http-terminator');
+const updater = require('update-electron-app')({
+    repo: 'https://github.com/HeadlessHamsterr/darttoernooiElectron',
+    updateInterval: '1 hour',
+});
 const io = require('socket.io')(httpServer, {
     cors: {
         methods: ["GET", "POST"],
