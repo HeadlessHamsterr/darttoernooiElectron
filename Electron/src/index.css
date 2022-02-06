@@ -664,49 +664,6 @@ input.settingInput{
   padding-top: 50px;
 }
 
-.activeGameTable{
-  margin-left: 10px;
-  margin-right: 10px;
-  margin-bottom: 20px;
-  border-collapse: collapse;
-  width: 100px;
-}
-
-.activeGameTable td{
-  border-right: 1px solid var(--table-borders);
-  border-bottom: 1px solid var(--table-borders);
-  padding-left: 8px;
-  padding-top: 5px;
-  padding-right: 10px;
-}
-
-.activeGameTable th{
-  border-bottom: 1px solid var(--table-borders);
-  font-size: 20px;
-  padding-right: 10px;
-  padding-left: 10px;
-}
-
-.activeGameTable tr:first-child{
-  font-weight: bold;
-}
-
-.activeGameTable tr:first-child td{
-  border-bottom: 2px solid var(--table-borders);
-}
-
-.tablePlayer{
-  font-size: 15px;
-}
-
-.activeGameTable td:last-child{
-  border-right: none;
-}
-
-.activeGameTable tr:last-child td{
-  border-bottom: none;
-}
-
 .activeGamesDiv{
   background: var(--card-background);
   border-radius: 10px;
@@ -754,40 +711,50 @@ input.settingInput{
   transform: scale(1.2);
 }
 
-.activeGameTableGroot{
+.activeGameTable{
   border: none;
   margin-left: 10px;
   margin-right: 10px;
   border-collapse: collapse;
   width: 100px;
+  transition: 0.1s;
+  white-space: nowrap;
 }
 
-.activeGameTableGroot tr:first-child{
-  border-left: solid 2px var(--table-borders);
-  border-top: solid 2px var(--table-borders);
-  border-right: solid 2px var(--table-borders);
-  font-size: 20px;
+.activeGameTable tr:first-child{
+  font-size: 30px;
 }
-
-.activeGameTableGroot tr:nth-child(2){
-  border-left: solid 2px var(--table-borders);
-  border-right: solid 2px var(--table-borders);
-}
-
-.activeGameTableGroot td:first-child, .activeGameTableGroot td:last-child{
+.activeGameTable td:first-child, .activeGameTable td:last-child{
   border: none;
   padding-left: 20px;
   padding-right: 20px;
 }
 
-.activeGameTableGroot tr:last-child{
-  border-left: solid 2px var(--table-borders);
-  border-right: solid 2px var(--table-borders);
-  border-bottom: solid 2px var(--table-borders);
-  font-size: 40px;
+.activeGameTable tr:last-child{
+  font-size: 60px;
 }
 
-.activeGameTableGroot td:nth-child(3){
+.activeGameTable td:nth-child(3){
   padding-left: 5px;
   padding-right: 5px;
+}
+
+.activeGameTable tr:nth-child(2){
+  font-size: 20px;
+}
+
+#ipAddress{
+  position: absolute;
+  top: 13px;
+  font-size: 18px;
+  margin-left: 20px;
+  color: white;
+}
+
+.turnArrow{
+  transition: 0.5s;
+}
+
+.vl{
+  border-left: 2px solid var(--table-borders);
 }
