@@ -6,9 +6,282 @@ const {app, ipcRenderer} = require('electron');
 const exp = require('constants');
 const { randomInt } = require('crypto');
 const { default: jsPDF } = require('jspdf');
+const {address} = require('ip');
+const { PassThrough } = require('stream');
+const httpServer = require('http').createServer();
+const {createHttpTerminator} = require('http-terminator');
+const updater = require('update-electron-app')({
+    repo: 'https://github.com/HeadlessHamsterr/darttoernooiElectron',
+    updateInterval: '1 hour',
+});
+const io = require('socket.io')(httpServer, {
+    cors: {
+        methods: ["GET", "POST"],
+        transports: ['websocket', 'polling']
+    },
+    allowEIO3: true
+});
 
+const sockets = new Set();
 var numPlayers = 0;
 var numPoules = 0;
+var appSettings = [];
+var appOptions = ["pouleScore", "pouleLegs", "quartScore", "quartLegs", "halfScore", "halfLegs", "finalScore", "finalLegs"];
+var activeGames = [];
+
+io.on('connection', (socket) => {
+    sockets.add(socket);
+    console.log("Websocket connection astablished");
+
+    socket.on('allPouleInfoRequest', (data) => {
+        var msg = [];
+        var pouleTempArray = [];
+        
+        if(pouleExists(pouleA)){
+            pouleTempArray.push('pouleA');
+        }
+        if(pouleExists(pouleB)){
+            pouleTempArray.push('pouleB');
+        }
+        if(pouleExists(pouleC)){
+            pouleTempArray.push('pouleC');
+        }
+        if(pouleExists(pouleD)){
+            pouleTempArray.push('pouleD');
+        }
+    
+        msg.push(pouleTempArray);
+        msg.push(appSettings);
+        socket.emit('pouleInfo', msg);
+    })
+    socket.on('pouleAInfoRequest', (data) => {
+          if(pouleExists(pouleA)){
+                pouleA.updatePoints();
+                let msg = [pouleA.rankings, pouleA.sendPouleGames(), 'poule'];
+                socket.emit('pouleARanks', msg);
+          }else{
+                let msg = [["No active", "game"]];
+                socket.emit('pouleARanks', msg);
+          }
+    });
+    socket.on('pouleBInfoRequest', (data) => {
+          if(pouleExists(pouleB)){
+            pouleB.updatePoints();
+            var msg = [pouleB.rankings, pouleB.sendPouleGames(), 'poule'];
+            socket.emit('pouleBRanks', msg);
+          }else{
+            let msg = [["No active", "game"]];
+            socket.emit('pouleBRanks', msg);
+          }
+    });
+    socket.on('pouleCInfoRequest', (data) => {
+        if(pouleExists(pouleC)){
+            pouleC.updatePoints();
+            var msg = [pouleC.rankings, pouleC.sendPouleGames(), 'poule'];
+            socket.emit('pouleCRanks', msg);
+        }else{
+          let msg = [["No active", "game"]];
+          socket.emit('pouleCRanks', msg);
+        }
+    });
+    socket.on('pouleDInfoRequest', (data) => {
+        if(pouleExists(pouleD)){
+            pouleD.updatePoints();
+            var msg = [pouleD.rankings, pouleD.sendPouleGames(), 'poule'];
+            socket.emit('pouleDRanks', msg);
+        }else{
+            let msg = [["No active", "game"]];
+            socket.emit('pouleDRanks', msg);
+        }
+    });
+    socket.on('finalsInfoRequest', (data) => {
+        var finalsMsg = [];
+        switch(numPoules){
+            case 4:
+                for(let i = 0; i < 7; i++){
+                    var gameType = '';
+
+                    if(4 < i < 0){
+                        gameType = 'quart';
+                    }else if(6 < i < 3){
+                        gameType = 'half';
+                    }else{
+                        gameType = 'final';
+                    }
+
+                    finalsMsg.push(finalsGameToApp(i+1, gameType));
+                }
+                break;
+            case 3:
+                finalsMsg.push(finalsGameToApp(1, 'quart'));
+                finalsMsg.push(finalsGameToApp(2, 'quart'));
+                finalsMsg.push(finalsGameToApp(3, 'quart'));
+                finalsMsg.push(finalsGameToApp(5, 'half'));
+                finalsMsg.push(finalsGameToApp(7, 'final'));
+                break;
+            case 2:
+                finalsMsg.push(finalsGameToApp(5, 'half'));
+                finalsMsg.push(finalsGameToApp(6, 'half'));
+                finalsMsg.push(finalsGameToApp(7, 'final'));
+                break;
+            case 1:
+                finalsMsg.push(finalsGameToApp(7, 'final'));
+                break;
+        }
+        socket.emit('finalsInfo', finalsMsg);
+    });
+    socket.on('gamePlayed', (data) => {
+        var dataArray = data.split(',');
+        if(dataArray[0][0] == 'M'){
+            document.getElementById(`${dataArray[0]}1Score`).value = dataArray[1];
+            document.getElementById(`${dataArray[0]}2Score`).value = dataArray[2];
+        }else{
+            document.getElementById(`game${dataArray[0]}1Score`).value = dataArray[1];
+            document.getElementById(`game${dataArray[0]}2Score`).value = dataArray[2];
+        }
+
+        for(let i = 0; i < activeGames.length; i++){
+            if(activeGames[i] == dataArray[0]){
+                activeGames.splice(i, 1);
+            }
+            $(document.getElementById(dataArray[0])).remove();
+
+            if(activeGames.length == 0){
+                $(document.getElementById('activeGamesDiv')).hide();
+            }
+            console.log(activeGames);
+        }
+    });
+    socket.on('activeGameInfo', (data) => {
+        var dataArray = data.split(',');
+        $(document.getElementById('activeGamesDiv')).show();
+        var newGame = true
+
+        for(let i = 0; i < activeGames.length; i++){
+            if(activeGames[i] == dataArray[0]){
+                newGame = false;
+                break;
+            }
+        }
+
+        if(newGame){
+            console.log(`New game ${dataArray[0]} started`);
+            var div;
+            /*if(activeGames.length % 2 === 0){
+                div = document.getElementById('activeTablesDiv2');
+            }else{
+                div = document.getElementById('activeTablesDiv1');
+            }*/
+            div = document.getElementById('activeTablesDiv1');
+            //Bij finales (M games) zoeken op M(gameNummer)(spelerNummer)
+            let player1 = document.getElementById(`game${dataArray[0]}1Name`).innerHTML;
+            let player2 = document.getElementById(`game${dataArray[0]}2Name`).innerHTML;
+
+            console.log(`numActiveGames: ${activeGames.length}`);
+            if(activeGames.length > 0){
+                $(div).append(`<div id="${dataArray[0]}VL" class="vl">`)
+            }
+
+            $(div).append(`<table id="${dataArray[0]}" class="activeGameTable"><tr><td id="activePlayer${dataArray[0]}1">${player1}</td><td><i id="${dataArray[0]}TurnArrow" class="material-icons turnArrow">expand_more</i></td><td id="activePlayer${dataArray[0]}2">${player2}</td></tr><tr><td id="activeLeg${dataArray[0]}1">${dataArray[2]}</td><td>legs</td><td id="activeLeg${dataArray[0]}2">${dataArray[4]}</td></tr><tr><td id="activeScore${dataArray[0]}1">${dataArray[1]}</td><td></td><td id="activeScore${dataArray[0]}2">${dataArray[3]}</td></tr></table>`)
+            activeGames.push(dataArray[0]);
+            
+            let stopGameDiv = document.getElementById('activeGamesSideDiv');
+            $(stopGameDiv).append(`<button id="stop${dataArray[0]}" class="stopGameButton" onclick="stopGame(this.id)">${player1} - ${player2} <i id='remGameIcon' class='material-icons'>delete</i></button>`);
+            var msg;
+            switch(dataArray[0][0]){
+                case 'A':
+                    pouleA.updatePoints();
+                    msg = [pouleA.rankings, pouleA.sendPouleGames(), 'poule'];
+                    io.emit('pouleARanks', msg);
+                break;
+                case 'B':
+                    pouleB.updatePoints();
+                    msg = [pouleB.rankings, pouleB.sendPouleGames(), 'poule'];
+                    io.emit('pouleBRanks', msg);
+                break;
+                case 'C':
+                    pouleC.updatePoints();
+                    msg = [pouleC.rankings, pouleC.sendPouleGames(), 'poule'];
+                    io.emit('pouleCRanks', msg);
+                break;
+                case 'D':
+                    pouleD.updatePoints();
+                    msg = [pouleD.rankings, pouleD.sendPouleGames(), 'poule'];
+                    io.emit('pouleDRanks', msg);
+                break;
+            }
+
+            
+        }
+        document.getElementById(`activeLeg${dataArray[0]}1`).innerHTML = dataArray[2];
+        document.getElementById(`activeLeg${dataArray[0]}2`).innerHTML = dataArray[4];
+        document.getElementById(`activeScore${dataArray[0]}1`).innerHTML = dataArray[1];
+        document.getElementById(`activeScore${dataArray[0]}2`).innerHTML = dataArray[3];
+
+        if(dataArray[6] == '0'){
+            document.getElementById(`activePlayer${dataArray[0]}1`).style.color = 'green';
+            document.getElementById(`activePlayer${dataArray[0]}2`).style.color = 'white';
+        }else{
+            document.getElementById(`activePlayer${dataArray[0]}1`).style.color = 'white';
+            document.getElementById(`activePlayer${dataArray[0]}2`).style.color = 'green';
+        }
+
+        if(dataArray[5] == 'true'){
+            document.getElementById(`${dataArray[0]}TurnArrow`).style.transform = 'rotate(90deg)';
+        }else{
+            document.getElementById(`${dataArray[0]}TurnArrow`).style.transform = 'rotate(270deg)';
+        }
+
+        console.log(dataArray);
+    });
+    socket.on('stopActiveGame', (data) => {
+        for(let i = 0; i < activeGames.length; i++){
+            if(activeGames[i] == data){
+                activeGames.splice(i, 1);
+                console.log(`Game ${data} stopped`);
+            }
+            $(document.getElementById(data)).remove();
+            $(document.getElementById(`stop${data}`)).remove();
+            $(document.getElementById(`${data}VL`)).remove();
+
+            if(activeGames.length == 0){
+                $(document.getElementById('activeGamesDiv')).hide();
+            }
+            console.log(activeGames);
+        }
+
+        var msg;
+        switch(data[0]){
+            case 'A':
+                pouleA.updatePoints();
+                msg = [pouleA.rankings, pouleA.sendPouleGames(), 'poule'];
+                io.emit('pouleARanks', msg);
+            break;
+            case 'B':
+                pouleB.updatePoints();
+                msg = [pouleB.rankings, pouleB.sendPouleGames(), 'poule'];
+                io.emit('pouleBRanks', msg);
+            break;
+            case 'C':
+                pouleC.updatePoints();
+                msg = [pouleC.rankings, pouleC.sendPouleGames(), 'poule'];
+                io.emit('pouleCRanks', msg);
+            break;
+            case 'D':
+                pouleD.updatePoints();
+                msg = [pouleD.rankings, pouleD.sendPouleGames(), 'poule'];
+                io.emit('pouleDRanks', msg);
+            break;
+        }
+    });
+
+});
+
+io.on('disconnection', () => {
+    console.log('Websocket Disconnected');
+});
+
+const PORT = process.env.PORT || 11520;
 
 var players = [];
 
@@ -53,11 +326,16 @@ class pouleGames{
         this.numTiedGames;
         this.gameFormat;
         this.tiedGameFormat;
+        this.rankings = [];
+        this.lastRankings = [];
+        this.finalsDrawn = false;
     }
 
     reset(){
         this.players = [];
         this.tiedPlayers = [];
+        this.rankings = [];
+        this.lastRankings = [];
         this.winner = "";
         this.secondPlace = "";
         this.numGames;
@@ -66,6 +344,7 @@ class pouleGames{
         this.numTiedGames;
         this.gameFormat;
         this.tiedGameFormat;
+        this.finalsDrawn = false;
     }
 
     makePoule(){
@@ -97,8 +376,10 @@ class pouleGames{
         if(numPlayers == 1){
             let singlePlayerDiv = $(`<div id="singlePlayerDiv" class="singlePlayerDiv"><h3>Winnaar:</h3><h4>${this.players[0][0]}!</h4><p1>Leuk geprobeerd, hier heb ik aan gedacht</p1></div>`);
             $(singlePlayerDiv).appendTo(document.body);
-            $(document.getElementById('saveBtnDiv')).hide();
-            $(document.getElementById('exportBtnDiv')).hide();
+            $(document.getElementById('saveBtn')).hide();
+            $(document.getElementById('exportBtn')).hide();
+            $(document.getElementById('appSettingsBtn')).hide();
+            $(document.getElementById('playerSettingsBtn')).hide();
         }else{
             gamesDiv = document.getElementById('pouleGames');
             var pouleGamesDiv = $(`<div id='poule${this.pouleNum}Games' class='pouleGamesDiv'></div>`);
@@ -115,8 +396,6 @@ class pouleGames{
         }else{
             this.numGames = (this.factorial(numPlayers)/(2*this.factorial(numPlayers-2)));
         }
-        console.log(`Number of players for poule ${this.pouleNum}: ${numPlayers}`)
-        console.log(`Number of games for poule ${this.pouleNum}: ${this.numGames}`);
 
         switch(numPlayers){
             case 2:
@@ -159,9 +438,9 @@ class pouleGames{
     }
 
     sort(){
-        var playersCopy = []
-        Array.prototype.push.apply(playersCopy, this.players);
-        playersCopy.sort(function(a,b){return(b[1]-a[1])});
+        this.rankings = []
+        Array.prototype.push.apply(this.rankings, this.players);
+        this.rankings.sort(function(a,b){return(b[1]-a[1])});
 
         var pouleTable = document.getElementById(`poule${this.pouleNum}Table`);
         var pouleTableHeader = $('<tr><th>Speler</th><th>Score</th></tr>');
@@ -169,14 +448,50 @@ class pouleGames{
         $(pouleTable).empty();
         $(pouleTable).append(pouleTableHeader);
 
-        for(let i in playersCopy){
-            if(typeof playersCopy[i][1] == 'undefined'){
-                playersCopy[i][1] = 0;
+        for(let i in this.rankings){
+            if(typeof this.rankings[i][1] == 'undefined'){
+                this.rankings[i][1] = 0;
             }
 
-            var tableEntry = $(`<tr><td>${playersCopy[i][0]}</td><td>${playersCopy[i][1]}</td></tr>`);
+            var tableEntry = $(`<tr><td>${this.rankings[i][0]}</td><td>${this.rankings[i][1]}</td></tr>`);
             $(pouleTable).append(tableEntry);
         }
+
+        if(JSON.stringify(this.rankings) != JSON.stringify(this.lastRankings)){
+            this.lastRankings = JSON.parse(JSON.stringify(this.rankings));
+            let msg = [this.rankings, this.sendPouleGames(), 'poule'];
+            console.log(msg);
+            io.emit(`poule${this.pouleNum}Ranks`, msg);
+        }
+    }
+
+    sendPouleGames(){
+        var games = [];
+        for(let i = 0; i < this.numGames; i++){
+            let player1 = document.getElementById(`game${this.pouleNum}${i+1}1Name`).innerHTML;
+            let player2 = document.getElementById(`game${this.pouleNum}${i+1}2Name`).innerHTML;
+            let score1 = document.getElementById(`game${this.pouleNum}${i+1}1Score`).value;
+            let score2 = document.getElementById(`game${this.pouleNum}${i+1}2Score`).value;
+    
+            var gamePlayed = true;
+
+            var gameActive = false;
+
+            for(let j=0; j < activeGames.length; j++){
+                if(activeGames[j] == `${this.pouleNum}${i+1}`){
+                    gameActive = true;
+                    break;
+                }
+            }
+
+            if(!score1 && !score2 && !gameActive){
+                gamePlayed = false;
+            }
+    
+            var tempArray = [player1, player2, gamePlayed];
+            games.push(tempArray);
+        }
+        return games;
     }
 
     updatePoints(){
@@ -225,7 +540,6 @@ class pouleGames{
                 //Daarom moet de locatie in de tiedPlayers array worden vertaald naar de juiste locatie in de players array, zodat de punten bij de juiste spelers komen.
                 var playersEqIndex1;
                 var playersEqIndex2;
-                console.log("For loop moet nu beginnen");
                 for(let j = 0; j < this.players.length; j++){
                     if(this.players[j][0] === this.tiedPlayers[this.tiedGameFormat[i][0]][0]){
                         playersEqIndex1 = j;
@@ -233,7 +547,6 @@ class pouleGames{
                         playersEqIndex2 = j;
                     }
                 }
-                console.log("For loop moet nu klaar zijn")
                 points[playersEqIndex1] = points[playersEqIndex1] + points1;    //Punten toewijzen aan die speler
                 points[playersEqIndex2] = points[playersEqIndex2] + points2;
             }
@@ -250,8 +563,6 @@ class pouleGames{
             Array.prototype.push.apply(playersCopy, this.players);
             playersCopy.sort(function(a,b){return(b[1]-a[1])})
 
-            console.log(`Winnaar poule ${this.pouleNum}: ${playersCopy[0][0]}`);
-            console.log(`Tweede plaats poule ${this.pouleNum}: ${playersCopy[1][0]}`);
             this.winnerPrinted = true;
         }
     }
@@ -269,35 +580,40 @@ class pouleGames{
             }
         }
 
-        if(tieBreakersEnabled){
-            let newTiedPlayers = this.isTie();
         
-            if(newTiedPlayers.length != 0 && this.newTieDetected(this.tiedPlayers, newTiedPlayers)){
-                this.tiedPlayers = newTiedPlayers;
-                this.tieDetected = true;
-                this.drawTiedPoules();
-            }
+        let newTiedPlayers = this.isTie();
+    
+        if(newTiedPlayers.length != 0 && this.newTieDetected(this.tiedPlayers, newTiedPlayers)){
+            this.tiedPlayers = newTiedPlayers;
+            this.tieDetected = true;
+        }
 
-            if(this.tieDetected){
-                for(let i = 0; i < this.numTiedGames; i++){
-                    var points1 = document.getElementById(`tie${this.pouleNum}${i+1}1Score`).value;
-                    var points2 = document.getElementById(`tie${this.pouleNum}${i+1}2Score`).value;
-
-                    points1 = parseInt(points1);
-                    points2 = parseInt(points2);
-
-                    if(isNaN(points1) || isNaN(points2)){
-                        return false;
-                    }
+        if(this.tieDetected && numPoules == 1 && !this.finalsDrawn){
+            makeFinals(1);
+            $("#winnerTable").insertAfter("#finalsTable");
+            this.finalsDrawn = true;
+        }else if(this.tieDetected && tieBreakersEnabled){
+            this.drawTiedPoules();
+            for(let i = 0; i < this.numTiedGames; i++){
+                var points1 = document.getElementById(`tie${this.pouleNum}${i+1}1Score`).value;
+                var points2 = document.getElementById(`tie${this.pouleNum}${i+1}2Score`).value
+                points1 = parseInt(points1);
+                points2 = parseInt(points2)
+                if(isNaN(points1) || isNaN(points2)){
+                    return false;
                 }
+            }
+        }else{
+            var playersCopy = [];
+            Array.prototype.push.apply(playersCopy, this.players);
+            playersCopy.sort(function(a,b){return b[1] - a[1]});
+            this.winner = playersCopy[0][0];
+            this.secondPlace = playersCopy[1][0];
+            if(!this.finalsDrawn){
+                document.getElementById("M81Name").innerHTML = this.winner;
             }
         }
 
-        var playersCopy = [];
-        Array.prototype.push.apply(playersCopy, this.players);
-        playersCopy.sort(function(a,b){return b[1] - a[1]});
-        this.winner = playersCopy[0][0];
-        this.secondPlace = playersCopy[1][0];
         return true;
     }
 
@@ -373,6 +689,13 @@ class pouleGames{
 
         return newTiedPlayers;
     }
+
+    reloadPlayers(){
+        for(let i = 0; i < this.numGames; i++){
+            document.getElementById(`game${this.pouleNum}${i+1}1Name`).innerHTML = this.players[this.gameFormat[i][0]][0];
+            document.getElementById(`game${this.pouleNum}${i+1}2Name`).innerHTML = this.players[this.gameFormat[i][1]][0];
+        }
+    }
 }
 
 let pouleA = new pouleGames("A");
@@ -381,6 +704,13 @@ let pouleC = new pouleGames("C");
 let pouleD = new pouleGames("D");
 
 function returnToHome(){
+    closeNav();
+    for(const socket in sockets){
+        socket.destroy();
+        sockets.delete(socket);
+    }
+    httpServer.close();
+
     document.getElementById('numPlayers').value = null;
     document.getElementById('numPoules').value = null;
     $("#playerInputForm").empty();
@@ -391,7 +721,7 @@ function returnToHome(){
     try{
         $(".singlePlayerDiv").remove();
     }catch{
-        console.log("Single player div bestaat niet")
+        console.log("Single player div bestaat niet");
     }
 
     pouleA.reset();
@@ -400,6 +730,7 @@ function returnToHome(){
     pouleD.reset();
 
     players = [];
+    appSettings = [];
     numPlayers = 0;
     numPoules = 0;
 
@@ -409,12 +740,9 @@ function returnToHome(){
     $(document.getElementById('poulesDiv')).hide();
     $(document.getElementById('playerInputDiv')).hide();
     $(document.getElementById('gameOptionsWrapper')).show();
-    //$(returnBtn).hide();
-    //$(saveBtn).hide();
 }
 
 function drawSetup(){
-    console.log("New game...")
     $(document.getElementById('gameOptionsWrapper')).hide();
     $(document.getElementById('gameSetup')).show();
     $(document.getElementById('gameSetupSubDiv')).show();
@@ -423,6 +751,7 @@ function drawSetup(){
     $(document.getElementById('controlBtnDiv')).show();
     $(document.getElementById('saveBtnDiv')).hide();
     $(document.getElementById('exportBtnDiv')).hide();
+    $(document.getElementById('ipAddressDiv')).hide();
 }
 
 function getGameFileName(action){
@@ -434,7 +763,6 @@ function getGameFileName(action){
     }else{
         return null;
     }
-    console.log(fileName)
     return fileName;
 }
 
@@ -450,10 +778,12 @@ function loadGame(){
     //$(document.getElementById('controlBtnDiv')).show();
     //$(saveBtn).show();
     //$(returnBtn).show();
+    //$(document.getElementById('appSettingForm')).hide();
     $(document.getElementById('controlBtnDiv')).show();
     $(document.getElementById('saveBtnDiv')).show();
     $(document.getElementById('exportBtnDiv')).show();
     $(document.getElementById('returnBtnDiv')).show();
+    $(document.getElementById('ipAddressDiv')).show();
     $(document.getElementById('mainRosterDiv')).show();
     $(document.getElementById('mainRosterSubDiv')).show();
     $(document.getElementById('gameDiv')).show();
@@ -470,6 +800,8 @@ function loadGame(){
         }
     });
     let jsonObj = JSON.parse(jsonString);
+
+    appSettings = jsonObj['appSettings'][0];
 
     numPoules = jsonObj["poules"].length;
 
@@ -497,22 +829,27 @@ function loadGame(){
     //Load Poule A
     if(numPoules >= 1){
         loadPoulGames("A", jsonObj);
+        $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleA')));
     }
 
     //Load Poule B
     if(numPoules >= 2){
         loadPoulGames("B", jsonObj);
+        $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleB')));
     }
 
     //Load Poule C
     if(numPoules >= 3){
         loadPoulGames("C", jsonObj);
+        $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleC')));
     }
 
     //Load Poule D
     if(numPoules >= 4){
         loadPoulGames("D", jsonObj);
+        $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleD')));
     }
+    $(document.getElementById('activeGamesDiv')).hide();
 
     makeFinals(numPoules);
 
@@ -536,10 +873,6 @@ function loadGame(){
                 let player1Score = jsonObj["games"][i]["game1Score"];
                 let player2Name = jsonObj["games"][i]["game2Name"];
                 let player2Score = jsonObj["games"][i]["game2Score"];
-                console.log(player1Name);
-                console.log(player1Score);
-                console.log(player2Name);
-                console.log(player2Score);
 
                 if(i < 3){
                     document.getElementById(`M${i+1}1Name`).innerHTML = player1Name;
@@ -557,12 +890,10 @@ function loadGame(){
                     document.getElementById(`M${i+3}2Name`).innerHTML = player2Name;
                     document.getElementById(`M${i+3}2Score`).value = player2Score;
                 }
-                console.log("wtf");
             }
         break;
         case 2:
             for(let i = 0; i < 3; i++){
-                console.log(i);
                 let player1Name = jsonObj["games"][i]["game1Name"];
                 let player1Score = jsonObj["games"][i]["game1Score"];
                 let player2Name = jsonObj["games"][i]["game2Name"];
@@ -588,10 +919,14 @@ function loadGame(){
     }
 
     startPoulesSorting();
+    document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
+    httpServer.listen(PORT, () => {
+        console.log(`Server listening on http://${address()}:${PORT}`);
+    });
+    io.emit('pouleInfo', exportGameInfo(false));
 }
 
 function loadPoulGames(pouleLetter, jsonObj){
-
     var indexInJson = 0;
     var pouleToEdit;
 
@@ -635,6 +970,11 @@ function loadPoulGames(pouleLetter, jsonObj){
             gameScore2Field.value = gameScore2Saved;
         }
     }
+    let playerSettingsForm = document.getElementById('playerSettingForm');
+    for(var i = 0; i < pouleToEdit.players.length; i++){
+        let input = $(`<input id="player${pouleLetter}${i}Input" class="settingInput" type="text" value="${pouleToEdit.players[i][0]}"></br>`)
+        $(playerSettingsForm).append(input)
+    }
 }
 
 function getGameInfo(){
@@ -677,9 +1017,15 @@ function getGameInfo(){
 
         numPlayers = parseInt(numPlayers);
         numPoules = parseInt(numPoules);
-
-        console.log(`Number of total players: ${numPlayers}`);
-        console.log(`Number of poules: ${numPoules}`);
+        
+        appSettings.push(document.getElementById('pouleScoreSelect').value);
+        appSettings.push(document.getElementById('pouleLegSelect').value);
+        appSettings.push(document.getElementById('quartScoreSelect').value);
+        appSettings.push(document.getElementById('quartLegSelect').value);
+        appSettings.push(document.getElementById('halfScoreSelect').value);
+        appSettings.push(document.getElementById('halfLegSelect').value);
+        appSettings.push(document.getElementById('finalScoreSelect').value);
+        appSettings.push(document.getElementById('finalLegSelect').value);
 
         //$(document.getElementById('gameSetup')).hide();
         $(document.getElementById('gameSetup')).hide();
@@ -687,6 +1033,7 @@ function getGameInfo(){
         $(document.getElementById('playerInputSubDiv')).show();
         $(document.getElementById('controlBtnDiv')).show();
         $(document.getElementById('returnBtnDiv')).show();
+
 
         var playerInputForm = document.getElementById('playerInputForm');
 
@@ -709,7 +1056,6 @@ function makePoules(){
 
     for(let i = 0; i < numPlayers; i++){
         var playerName = document.getElementById(`player${i}`).value;
-        console.log(playerName);
         players.push(playerName);
     }
 
@@ -718,7 +1064,6 @@ function makePoules(){
         if(players[i] == ""){
             $(document.getElementById(`player${i}`)).css('border-color', 'red');
             playerEmpty = true;
-            console.log(`Player${i} leeg!`);
         }else{
             $(document.getElementById(`player${i}`)).css('border-color', '#414141');
         }
@@ -730,8 +1075,10 @@ function makePoules(){
         $(document.getElementById('playerInputDiv')).hide();
         //$(document.getElementById('controlBtnDiv')).show();
         //$(saveBtn).show();
+        //$(document.getElementById('appSettingForm')).hide();
         $(document.getElementById('saveBtnDiv')).show();
         $(document.getElementById('exportBtnDiv')).show();
+        $(document.getElementById('ipAddressDiv')).show();
 
         var poulesDiv = document.getElementById('poulesDiv');
 
@@ -740,9 +1087,7 @@ function makePoules(){
         players.sort(function(a,b){return 0.5 - Math.random()});
         
         var PLAYERS_PER_POULE = numPlayers/numPoules;
-        let PLAYERS_PER_POULE_ROUNDED = Math.round(PLAYERS_PER_POULE)
-        console.log(`Players per poule: ${PLAYERS_PER_POULE}`);
-        console.log(`Players per poule rounded: ${PLAYERS_PER_POULE_ROUNDED}`);
+        let PLAYERS_PER_POULE_ROUNDED = Math.round(PLAYERS_PER_POULE);
 
         if(PLAYERS_PER_POULE - PLAYERS_PER_POULE_ROUNDED > 0){
             for(let i = 0; i < numPlayers-1; i++){
@@ -776,19 +1121,15 @@ function makePoules(){
             switch(randomNumber){
                 case 0:
                     pouleA.players.push(playerArray);
-                    console.log(`Adding ${playerArray} to poule A`);
                 break;
                 case 1:
                     pouleB.players.push(playerArray);
-                    console.log(`Adding ${playerArray} to poule B`);
                 break;
                 case 2:
                     pouleC.players.push(playerArray);
-                    console.log(`Adding ${playerArray} to poule C`);
                 break;
                 case 3:
                     pouleD.players.push(playerArray);
-                    console.log(`Adding ${playerArray} to poule D`);
                 break;
             }
         }else{
@@ -816,46 +1157,81 @@ function makePoules(){
             filePath = ipcRenderer.sendSync('selectPDFDirectory');
         }
 
+        let playerSettingsForm = document.getElementById('playerSettingsDiv');
+        
         if(pouleExists(pouleA)){
             pouleA.makePoule();
             pouleA.makeGames();
-            if(shouldBePrinted){
-                exportPDF(pouleA, filePath);
+            for(var i = 0; i < pouleA.players.length; i++){
+                let input = $(`<input id="playerA${i}Input" class="settingInput" type="text" value="${pouleA.players[i][0]}"></br>`)
+                $(playerSettingsForm).append(input)
             }
+            if(shouldBePrinted){
+                exportPDF(pouleA, filePath, true);
+            }
+            $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleA')));
         }
 
         if(pouleExists(pouleB)){
             pouleB.makePoule();
             pouleB.makeGames();
-            if(shouldBePrinted){
-                exportPDF(pouleB, filePath);
+            for(var i = 0; i < pouleB.players.length; i++){
+                let input = $(`<input id="playerB${i}Input" class="settingInput" type="text" value="${pouleB.players[i][0]}"></br>`)
+                $(playerSettingsForm).append(input)
             }
+            if(shouldBePrinted){
+                exportPDF(pouleB, filePath, true);
+            }
+            $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleB')));
         }
 
         if(pouleExists(pouleC)){
             pouleC.makePoule();
             pouleC.makeGames();
-            if(shouldBePrinted){
-                exportPDF(pouleC, filePath);
+            for(var i = 0; i < pouleC.players.length; i++){
+                let input = $(`<input id="playerC${i}Input" class="settingInput" type="text" value="${pouleC.players[i][0]}"></br>`)
+                $(playerSettingsForm).append(input)
             }
+            if(shouldBePrinted){
+                exportPDF(pouleC, filePath, true);
+            }
+            $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleC')));
         }
 
         if(pouleExists(pouleD)){
             pouleD.makePoule();
             pouleD.makeGames();
-            if(shouldBePrinted){
-                exportPDF(pouleD, filePath);
+            for(var i = 0; i < pouleD.players.length; i++){
+                let input = $(`<input id="playerD${i}Input" class="settingInput" type="text" value="${pouleD.players[i][0]}"></br>`)
+                $(playerSettingsForm).append(input)
             }
+            if(shouldBePrinted){
+                exportPDF(pouleD, filePath, true);
+            }
+            $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleD')));
         }
+        $(document.getElementById('activeGamesDiv')).hide();
 
-        makeFinals(numPoules);
+        if(numPoules > 1){
+            makeFinals(numPoules);
+        }
         
         $(poulesDiv).show();
         //$(saveBtn).show();
+        //$(document.getElementById('appSettingForm')).hide();
         $(document.getElementById('mainRosterDiv')).show();
         $(document.getElementById('mainRosterSubDiv')).show();
         $(document.getElementById('gameDiv')).show();
         startPoulesSorting();
+
+        let winnerTable = $('<table id="winnerTable" class="mainRosterTable"><tr><td colspan="3"><h2>Winnaar:</h2></td></tr><tr><td colspan="3"><h2 id="M81Name"></h2></td></tr></table>');
+        $("#mainRosterSubDiv").append(winnerTable);
+
+        document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
+        httpServer.listen(PORT, () => {
+            console.log(`Server listening on http://${address()}:${PORT}`);
+        });
+        io.emit('pouleInfo', exportGameInfo(false));
     }
 }
 
@@ -864,39 +1240,52 @@ function preparePDFExport(){
     for(let i = 0; i < numPoules; i++){
         switch(i){
             case 0:
-                exportPDF(pouleA, filepath);
+                exportPDF(pouleA, filepath, true);
             break;
             case 1:
-                exportPDF(pouleB, filepath);
+                exportPDF(pouleB, filepath, true);
             break;
             case 2:
-                exportPDF(pouleC, filepath);
+                exportPDF(pouleC, filepath, true);
             break;
             case 3:
-                exportPDF(pouleD, filepath);
+                exportPDF(pouleD, filepath, true);
             break;
         }
     }
 }
 
-function exportPDF(poule, filePath){  
+function exportPDF(poule, filePath, exportToPDF){  
     const doc = new jsPDF({
         orientation: 'portrait',
     });
     
     doc.setFontSize(40);
-    doc.text(`Poule ${poule.pouleNum}`, 105, 20, null, null, "center")
-    doc.setFontSize(30)
-    for(let i = 0; i < pouleA.numGames; i++){
+    doc.text(`Poule ${poule.pouleNum}`, 105, 20, null, null, "center");
+    doc.setFontSize(30);
+    if(!exportToPDF){s
+        var games = [];
+    }
+    for(let i = 0; i < poule.numGames; i++){
+        console.log(`game${poule.pouleNum}${i+1}`);
         let player1 = document.getElementById(`game${poule.pouleNum}${i+1}1Name`).innerHTML;
         let player2 = document.getElementById(`game${poule.pouleNum}${i+1}2Name`).innerHTML;
 
-        let gameString = player1 + " - " + player2
+        let gameString = player1 + " - " + player2;
+        
+        if(!exportToPDF){
+            var tempArray = [player1, player2];
+            games.push(tempArray);
+        }
 
-        doc.text(gameString, 105, 40 + (30*i), null, null, "center")
+        doc.text(gameString, 105, 40 + (30*i), null, null, "center");
     }
 
-    doc.save(filePath + `/poule${poule.pouleNum}.pdf`)
+    if(exportToPDF){
+        doc.save(filePath + `/poule${poule.pouleNum}.pdf`);
+    }else{
+        return games;
+    }
 }
 
 function makeFinals(numberOfPoules){
@@ -925,10 +1314,8 @@ function makeFinals(numberOfPoules){
         case 3:
         case 2:
         case 1:
-            let finals = $('<table class="mainRosterTable"><tr><th colspan="3"><h2>Finale</h2></th></tr><tr><td><h2 id="M71Name"></h2></td><td><h2>-</h2></td><td><h2 id="M72Name"></h2></td></tr><tr><td><input id="M71Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M72Score" class="gameScore"></td></tr></table>');
-            let winnerTable = $('<table class="mainRosterTable"><tr><td colspan="3"><h2>Winnaar:</h2></td></tr><tr><td colspan="3"><h2 id="M81Name"></h2></td></tr></table>');
+            let finals = $('<table id="finalsTable" class="mainRosterTable"><tr><th colspan="3"><h2>Finale</h2></th></tr><tr><td><h2 id="M71Name"></h2></td><td><h2>-</h2></td><td><h2 id="M72Name"></h2></td></tr><tr><td><input id="M71Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M72Score" class="gameScore"></td></tr></table>');
             $(rosterDiv).append(finals);
-            $(rosterDiv).append(winnerTable);
         break;
     }
 }
@@ -946,8 +1333,23 @@ function startPoulesSorting(){
                     document.getElementById('M51Name').innerHTML = pouleA.winner;
                     document.getElementById('M62Name').innerHTML = pouleA.secondPlace;
                 }else if(numPoules == 1){
-                    document.getElementById('M71Name').innerHTML = pouleA.winner;
-                    document.getElementById('M72Name').innerHTML = pouleA.secondPlace;
+                    if(pouleA.finalsDrawn){
+                        document.getElementById('M71Name').innerHTML = pouleA.winner;
+                        document.getElementById('M72Name').innerHTML = pouleA.secondPlace;
+                    }
+                }
+            }else{
+                if(numPoules >= 3){
+                    document.getElementById('M11Name').innerHTML = "";
+                    document.getElementById('M22Name').innerHTML = "";
+                }else if(numPoules == 2){
+                    document.getElementById('M51Name').innerHTML = "";
+                    document.getElementById('M62Name').innerHTML = "";
+                }else if(numPoules == 1){
+                    if(pouleA.finalsDrawn){
+                        document.getElementById('M71Name').innerHTML = "";
+                        document.getElementById('M72Name').innerHTML = "";
+                    }
                 }
             }
         }
@@ -963,6 +1365,14 @@ function startPoulesSorting(){
                     document.getElementById('M61Name').innerHTML = pouleB.winner;
                     document.getElementById('M52Name').innerHTML = pouleB.secondPlace;
                 }
+            }else{
+                if(numPoules >= 3){
+                    document.getElementById('M21Name').innerHTML = "";
+                    document.getElementById('M32Name').innerHTML = "";
+                }else if(numPoules == 2){
+                    document.getElementById('M61Name').innerHTML = "";
+                    document.getElementById('M52Name').innerHTML = "";
+                }
             }
         }
     
@@ -977,6 +1387,14 @@ function startPoulesSorting(){
                     document.getElementById('M31Name').innerHTML = pouleC.winner;
                     document.getElementById('M12Name').innerHTML = pouleC.secondPlace;
                 }
+            }else{
+                if(numPoules == 4){
+                    document.getElementById('M31Name').innerHTML = "";
+                    document.getElementById('M42Name').innerHTML = "";
+                }else if(numPoules == 3){
+                    document.getElementById('M31Name').innerHTML = "";
+                    document.getElementById('M12Name').innerHTML = "";
+                }
             }
         }
     
@@ -986,9 +1404,13 @@ function startPoulesSorting(){
             if(pouleD.allGamesPlayed()){
                 document.getElementById('M41Name').innerHTML = pouleD.winner;
                 document.getElementById('M12Name').innerHTML = pouleD.secondPlace;
+            }else{
+                document.getElementById('M41Name').innerHTML = "";
+                document.getElementById('M12Name').innerHTML = "";
             }
         }
 
+        var finalsMsg = [];
         switch(parseInt(numPoules)){
             case 4:
                 getFinalsWinner("M11", "M12", "M51");
@@ -1000,6 +1422,20 @@ function startPoulesSorting(){
                 getFinalsWinner("M61", "M62", "M72");
 
                 getFinalsWinner("M71", "M72", "M81");
+
+                for(let i = 0; i < 7; i++){
+                    var gameType = '';
+
+                    if(4 < i < 0){
+                        gameType = 'quart';
+                    }else if(6 < i < 3){
+                        gameType = 'half';
+                    }else{
+                        gameType = 'final';
+                    }
+
+                    finalsMsg.push(finalsGameToApp(i+1, gameType));
+                }
             break;
             case 3:
                 getFinalsWinner("M11", "M12", "M51");
@@ -1009,17 +1445,32 @@ function startPoulesSorting(){
 
                 getFinalsWinner("M51", "M52", "M71");
                 getFinalsWinner("M71", "M72", "M81");
+
+                finalsMsg.push(finalsGameToApp(1, 'quart'));
+                finalsMsg.push(finalsGameToApp(2, 'quart'));
+                finalsMsg.push(finalsGameToApp(3, 'quart'));
+                finalsMsg.push(finalsGameToApp(5, 'half'));
+                finalsMsg.push(finalsGameToApp(7, 'final'));
             break;
             case 2:
                 getFinalsWinner("M51", "M52", "M71");
                 getFinalsWinner("M61", "M62", "M72");
 
                 getFinalsWinner("M71", "M72", "M81");
+
+                finalsMsg.push(finalsGameToApp(5, 'half'));
+                finalsMsg.push(finalsGameToApp(6, 'half'));
+                finalsMsg.push(finalsGameToApp(7, 'final'));
             break;
             case 1:
-                getFinalsWinner("M71", "M72", "M81");
+                if(pouleA.finalsDrawn){
+                    getFinalsWinner("M71", "M72", "M81");
+
+                    finalsMsg.push(finalsGameToApp(7, 'final'));
+                }
             break;
         }
+        io.emit('finalsInfo', finalsMsg);
     }, 500);
 }
 
@@ -1046,6 +1497,30 @@ function pouleExists(poule){
     }
 }
 
+function finalsGameToApp(gameNum, gameType){
+    var tempArray = [];
+    var gamePlayed = false;
+    let player1Name = document.getElementById(`M${gameNum}1Name`).innerHTML;
+    let player2Name = document.getElementById(`M${gameNum}2Name`).innerHTML;
+
+    let player1Score = parseInt(document.getElementById(`M${gameNum}1Score`).value);
+    let player2Score = parseInt(document.getElementById(`M${gameNum}2Score`).value);
+
+    if(!isNaN(player1Score) || !isNaN(player2Score)){
+        gamePlayed = true;
+    }else if(player1Name == "" || player2Name == ""){
+        gamePlayed = true;
+    }
+
+    tempArray.push(`M${gameNum}`);
+    tempArray.push(player1Name);
+    tempArray.push(player2Name);
+    tempArray.push(gamePlayed);
+    tempArray.push(gameType);
+
+    return tempArray;
+}
+
 function exportFinalsGame(gameNum){
     let player1Score = parseInt(document.getElementById(`M${gameNum}1Score`).value);
     let player1Name = document.getElementById(`M${gameNum}1Name`).innerHTML;
@@ -1055,27 +1530,27 @@ function exportFinalsGame(gameNum){
     return [player1Score, player1Name, player2Score, player2Name];
 }
 
-function exportGameInfo(){
-    var gameFileName = getGameFileName("save");
+function exportGameInfo(writeToFile = true){
+    var gameFileName;
+    if(writeToFile){
+        gameFileName = getGameFileName("save");
 
-    if(gameFileName === null){
-        console.log("No file name given")
-        return -1;
+        if(gameFileName === null){
+            return -1;
+        }
+
+        if(!gameFileName.includes(".darts")){
+            gameFileName = gameFileName + ".darts"
+        }
     }
 
-    if(!gameFileName.includes(".darts")){
-        gameFileName = gameFileName + ".darts"
-    }
-
-    var jsonObj = {"poules":[], "games":[]};
+    var jsonObj = {"poules":[], "games":[], "appSettings":[]};
 
     if(pouleExists(pouleA)){
         jsonObj["poules"].push({"pouleA":[]})
         jsonObj["poules"][0]["pouleA"].push({"numPlayers": pouleA.players.length})
         jsonObj["poules"][0]["pouleA"].push({"players":[]});
         for(let i = 0; i < pouleA.players.length; i++){
-            console.log(i)
-            console.log(jsonObj)
 
             let player = pouleA.players[i][0];
             let points = parseInt(pouleA.players[i][1]);
@@ -1108,8 +1583,6 @@ function exportGameInfo(){
 
             jsonObj["poules"][0]["pouleA"][2]["games"].push({"player1": player1, "score1": score1, "player2": player2, "score2": score2});
         }
-
-        console.log(jsonObj);
     }
 
     if(pouleExists(pouleB)){
@@ -1117,8 +1590,6 @@ function exportGameInfo(){
         jsonObj["poules"][1]["pouleB"].push({"numPlayers": pouleB.players.length});
         jsonObj["poules"][1]["pouleB"].push({"players":[]});
         for(let i = 0; i < pouleB.players.length; i++){
-            console.log(i)
-            console.log(jsonObj)
 
             let player = pouleB.players[i][0];
             let points = parseInt(pouleB.players[i][1]);
@@ -1151,8 +1622,6 @@ function exportGameInfo(){
 
             jsonObj["poules"][1]["pouleB"][2]["games"].push({"player1": player1, "score1": score1, "player2": player2, "score2": score2});
         }
-
-        console.log(jsonObj);
     }
 
     if(pouleExists(pouleC)){
@@ -1160,8 +1629,6 @@ function exportGameInfo(){
         jsonObj["poules"][2]["pouleC"].push({"numPlayers": pouleC.players.length});
         jsonObj["poules"][2]["pouleC"].push({"players":[]});
         for(let i = 0; i < pouleC.players.length; i++){
-            console.log(i)
-            console.log(jsonObj)
 
             let player = pouleC.players[i][0];
             let points = parseInt(pouleC.players[i][1]);
@@ -1195,7 +1662,6 @@ function exportGameInfo(){
             jsonObj["poules"][2]["pouleC"][2]["games"].push({"player1": player1, "score1": score1, "player2": player2, "score2": score2});
         }
 
-        console.log(jsonObj);
     }
 
     if(pouleExists(pouleD)){
@@ -1203,8 +1669,6 @@ function exportGameInfo(){
         jsonObj["poules"][3]["pouleD"].push({"numPlayers": pouleD.players.length});
         jsonObj["poules"][3]["pouleD"].push({"players":[]});
         for(let i = 0; i < pouleD.players.length; i++){
-            console.log(i)
-            console.log(jsonObj)
 
             let player = pouleD.players[i][0];
             let points = parseInt(pouleD.players[i][1]);
@@ -1237,8 +1701,6 @@ function exportGameInfo(){
 
             jsonObj["poules"][3]["pouleD"][2]["games"].push({"player1": player1, "score1": score1, "player2": player2, "score2": score2});
         }
-
-        console.log(jsonObj);
     }
 
     switch(parseInt(numPoules)){
@@ -1252,8 +1714,6 @@ function exportGameInfo(){
             games.push(exportFinalsGame("5"));
             games.push(exportFinalsGame("6"));
             games.push(exportFinalsGame("7"));
-
-            console.log(games);
 
             for(let i = 0; i < 7; i++){
                 let game1Name = `M${i+1}1Name`;
@@ -1316,11 +1776,143 @@ function exportGameInfo(){
         break;
     }
 
-    fs.writeFile(path.resolve(gameFileName), JSON.stringify(jsonObj, null, 4), function(err){
-        if(err){
-            console.log(err);
-        }else{
-            console.log(`Game saved to ${gameFileName}.`);
+    jsonObj['appSettings'].push(appSettings);
+
+    if(writeToFile){
+        fs.writeFile(path.resolve(gameFileName), JSON.stringify(jsonObj, null, 4), function(err){
+            if(err){
+                console.log(err);
+            }else{
+                console.log(`Game saved to ${gameFileName}.`);
+            }
+        });
+    }
+
+    return jsonObj;
+}
+
+function openNav(){
+    for(let i=0; i<appSettings.length; i++){
+        document.getElementById(appOptions[i]+"Input").value = appSettings[i];
+    }
+
+    document.getElementById("sideNav").style.right = "0px";
+}
+
+function closeNav(){
+    document.getElementById("sideNav").style.right = "-250px";
+    updateSettings();
+}
+
+function handle(e){
+    key = e.keyCode || e.which;
+    if(key == 13){
+        e.preventDefault();
+        updateSettings();
+    }
+}
+
+function updateSettings(){
+    for(let i=0; i<appSettings.length; i++){
+        appSettings[i] = document.getElementById(appOptions[i]+"Input").value;
+    }
+    io.emit("settingsUpdate", appSettings);
+
+    if(pouleExists(pouleA)){
+        for(let i = 0; i < pouleA.players.length; i++){
+            pouleA.players[i][0] = document.getElementById(`playerA${i}Input`).value;
         }
-    });
+        pouleA.reloadPlayers();
+    }
+
+    if(pouleExists(pouleB)){
+        for(let i = 0; i < pouleB.players.length; i++){
+            pouleB.players[i][0] = document.getElementById(`playerB${i}Input`).value;
+        }
+        pouleB.reloadPlayers();
+    }
+
+    if(pouleExists(pouleC)){
+        for(let i = 0; i < pouleC.players.length; i++){
+            pouleC.players[i][0] = document.getElementById(`playerC${i}Input`).value;
+        }
+        pouleC.reloadPlayers();
+    }
+
+    if(pouleExists(pouleD)){
+        for(let i = 0; i < pouleD.players.length; i++){
+            pouleD.players[i][0] = document.getElementById(`playerD${i}Input`).value;
+        }
+        pouleD.reloadPlayers();
+    }
+
+    document.getElementById('appSettingsArrow').style.transform = "rotate(0deg)";
+    document.getElementById('playerSettingsArrow').style.transform = "rotate(0deg)";
+    $("#playerSettingsDiv").slideUp(300);
+    $("#appSettingsDiv").slideUp(300);
+}
+
+function showAppSettings(){
+    if(document.getElementById("appSettingsArrow").style.transform == "rotate(0deg)"){
+        document.getElementById("appSettingsArrow").style.transform = "rotate(180deg)";
+        document.getElementById("playerSettingsArrow").style.transform = "rotate(0deg)";
+        document.getElementById("activeGamesArrow").style.transform = "rotate(0deg)";
+
+        $("#activeGamesSideDiv").slideUp(300);
+        $("#playerSettingsDiv").slideUp(300);
+        $("#appSettingsDiv").slideDown(300);
+    }else{
+        document.getElementById("appSettingsArrow").style.transform = "rotate(0deg)";
+        $("#appSettingsDiv").slideUp(300);
+    }
+}
+
+function showPlayerSettings(){
+    if(document.getElementById("playerSettingsArrow").style.transform == "rotate(0deg)"){
+        document.getElementById("playerSettingsArrow").style.transform = "rotate(180deg)";
+        document.getElementById("appSettingsArrow").style.transform = "rotate(0deg)";
+        document.getElementById("activeGamesArrow").style.transform = "rotate(0deg)";
+
+        $("#activeGamesSideDiv").slideUp(300);
+        $("#appSettingsDiv").slideUp(300);
+        $("#playerSettingsDiv").slideDown(300);
+    }else{
+        document.getElementById("playerSettingsArrow").style.transform = "rotate(0deg)";
+        $("#playerSettingsDiv").slideUp(300);
+    }
+}
+
+function showActiveGames(){
+    if(document.getElementById("activeGamesArrow").style.transform == "rotate(0deg)"){
+        document.getElementById("playerSettingsArrow").style.transform = "rotate(0deg)";
+        document.getElementById("appSettingsArrow").style.transform = "rotate(0deg)";
+        document.getElementById("activeGamesArrow").style.transform = "rotate(180deg)";
+
+        $("#appSettingsDiv").slideUp(300);
+        $("#playerSettingsDiv").slideUp(300);
+        $("#activeGamesSideDiv").slideDown(300);
+    }else{
+        document.getElementById("activeGamesArrow").style.transform = "rotate(0deg)";
+        $(document.getElementById('activeGamesSideDiv')).slideUp(300);
+    }
+}
+
+function stopGame(gameID){
+    gameID = gameID.replace('stop', '');
+    console.log("Stopping game: " + gameID);
+
+    for(let i = 0; i < activeGames.length; i++){
+        if(activeGames[i] == gameID){
+            activeGames.splice(i, 1);
+            console.log(`Game ${gameID} stopped`);
+        }
+        $(document.getElementById(gameID)).remove();
+        $(document.getElementById(`stop${gameID}`)).remove();
+        $(document.getElementById(`${gameID}VL`)).remove();
+
+        if(activeGames.length == 0){
+            $(document.getElementById('activeGamesDiv')).hide();
+        }
+        console.log(activeGames);
+    }
 }
