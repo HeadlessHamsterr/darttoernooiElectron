@@ -1127,12 +1127,13 @@ class _PouleGameBodyState extends State<PouleGameBody> {
     String msg =
         '${widget.game.gameID},${player1.currentScore},${player1.legsWon},${player2.currentScore},${player2.legsWon},$firstMsg,$startingPlayer';
     print(msg);
+    print(activeStartingPlayer);
     socket.emit('activeGameInfo', msg);
   }
 
   Widget bodyContainer() {
-    activeStartingPlayer = chosenPlayer;
     if (!gameStarted) {
+      activeStartingPlayer = chosenPlayer;
       switch (chosenPlayer) {
         case ChosenPlayerEnum.player1:
           player1.myTurn = true;
