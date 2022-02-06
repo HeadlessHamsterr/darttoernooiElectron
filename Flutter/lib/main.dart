@@ -514,7 +514,7 @@ class _PoulesOverviewState extends State<PoulesOverview> {
         return Scaffold(
           appBar: AppBar(
             title: const Text('Poules'),
-            backgroundColor: Color(PRIMARY_COLOR),
+            backgroundColor: const Color(PRIMARY_COLOR),
             leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () {
@@ -526,7 +526,7 @@ class _PoulesOverviewState extends State<PoulesOverview> {
               children: pouleNames.map((String data) {
                 return ElevatedButton(
                   style: ElevatedButton.styleFrom(
-                    primary: Color(DEFAULT_BTN_COLOR),
+                    primary: const Color(DEFAULT_BTN_COLOR),
                   ),
                   onPressed: () {
                     pouleBtnPress(data, context);
@@ -621,7 +621,7 @@ class _PouleScreenState extends State<PouleScreen> {
           return Scaffold(
             appBar: AppBar(
               title: getPouleName(activePoule),
-              backgroundColor: Color(PRIMARY_COLOR),
+              backgroundColor: const Color(PRIMARY_COLOR),
               leading: IconButton(
                   icon: const Icon(Icons.arrow_back),
                   onPressed: () {
@@ -762,7 +762,7 @@ class PouleGame extends StatelessWidget {
             appBar: AppBar(
               title: const Text('Wedstrijd'),
               centerTitle: true,
-              backgroundColor: Color(PRIMARY_COLOR),
+              backgroundColor: const Color(PRIMARY_COLOR),
               leading: IconButton(
                 icon: const Icon(Icons.arrow_back),
                 onPressed: () {
@@ -836,6 +836,10 @@ class _PouleGameBodyState extends State<PouleGameBody> {
     print(widget.game.gameID);
     activeStartingPlayer = ChosenPlayerEnum.undefined;
     chosenPlayer = activeStartingPlayer;
+
+    socket.onConnect((_) => {
+      sendCurrentScores(true)
+    });
   }
 
   void btnPress(String btnType) {
@@ -846,7 +850,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             ScaffoldMessenger.of(widget.context).showSnackBar(
               const SnackBar(content: Text("Geen score ingevuld")),
             );
-          } else if(player1.thrownScore == 'BUST'){
+          } else if (player1.thrownScore == 'BUST') {
             player1.dartsThrown += numDarts;
             player1.scoresThrownHistory.add(0);
             player2.thrownScore = '';
@@ -900,7 +904,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             ScaffoldMessenger.of(widget.context).showSnackBar(
               const SnackBar(content: Text("Geen score ingevuld")),
             );
-          } else if(player2.thrownScore == 'BUST'){
+          } else if (player2.thrownScore == 'BUST') {
             player2.dartsThrown += numDarts;
             player2.scoresThrownHistory.add(0);
             player1.thrownScore = '';
@@ -1127,7 +1131,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
       startingPlayer = 1;
     }
     String msg =
-        '${widget.game.gameID},${player1.currentScore},${player1.legsWon},${player2.currentScore},${player2.legsWon},$firstMsg,$startingPlayer';
+        '${widget.game.gameID},${player1.currentScore},${player1.legsWon},${player2.currentScore},${player2.legsWon},${player1.myTurn},$startingPlayer';
     print(msg);
     print(activeStartingPlayer);
     socket.emit('activeGameInfo', msg);
