@@ -846,6 +846,11 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             ScaffoldMessenger.of(widget.context).showSnackBar(
               const SnackBar(content: Text("Geen score ingevuld")),
             );
+          } else if(player1.thrownScore == 'BUST'){
+            player1.dartsThrown += numDarts;
+            player1.scoresThrownHistory.add(0);
+            player2.thrownScore = '';
+            player1.myTurn = false;
           } else {
             if (int.parse(player1.thrownScore) > 180 ||
                 int.parse(player1.thrownScore) > player1.currentScore) {
@@ -895,6 +900,11 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             ScaffoldMessenger.of(widget.context).showSnackBar(
               const SnackBar(content: Text("Geen score ingevuld")),
             );
+          } else if(player2.thrownScore == 'BUST'){
+            player2.dartsThrown += numDarts;
+            player2.scoresThrownHistory.add(0);
+            player1.thrownScore = '';
+            player1.myTurn = true;
           } else {
             if (int.parse(player2.thrownScore) > 180 ||
                 int.parse(player2.thrownScore) > player2.currentScore) {
@@ -949,16 +959,8 @@ class _PouleGameBodyState extends State<PouleGameBody> {
       case 'BUST':
         if (player1.myTurn) {
           player1.thrownScore = 'BUST';
-          player1.dartsThrown += numDarts;
-          player1.scoresThrownHistory.add(0);
-          player2.thrownScore = '';
-          player1.myTurn = false;
         } else {
           player2.thrownScore = 'BUST';
-          player2.dartsThrown += numDarts;
-          player2.scoresThrownHistory.add(0);
-          player1.thrownScore = '';
-          player1.myTurn = true;
         }
         break;
       default:
