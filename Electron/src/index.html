@@ -26,7 +26,9 @@
       <div id="gameOptions" class="startDiv">
         <h1 class="startScreenLabel">Nieuw spel of spel laden?</h1>
         <button class="sendBtn" id="newGameBtn">Nieuw</button>
-        <button class="sendBtn" id="loadGameBtn">Laden</button>
+        <button class="sendBtn" id="loadGameBtn">Laden</button><br>
+        <label for="panModCheck">Pan modus</label>
+        <input type="checkbox" name="panModCheck" id="panModCheck">
       </div>
     </div>
 
@@ -275,34 +277,36 @@
           </tbody>
         </table>
       </div>
-      <button id='appSettingsBtn' class='sideNavBtn' onclick='showAppSettings()'>App instellingen <i id='appSettingsArrow' class='material-icons' style='transform: rotate(0deg);'>expand_more</i></button>
-      <div id='appSettingsDiv' style="display: none;">
-        <form id="appSettingForm" style="text-align: center; display: block;" onkeypress="handle(event)">
-          <label for="pouleScoreInput" class="settingsLabel">Poule score</label></br>
-          <input id="pouleScoreInput" class="settingInput" type="number" value="0"></br>
-          <label for="pouleLegsInput" class="settingsLabel">Poule best of</label></br>
-          <input id="pouleLegsInput" class="settingInput" type="number" value="1"></br>
-          <label for="quartScoreInput" class="settingsLabel">Kwartfinale score</label></br>
-          <input id="quartScoreInput" class="settingInput" type="number" value="0"></br>
-          <label for="quartLegsInput" class="settingsLabel">Kwartfinale best of</label></br>
-          <input id="quartLegsInput" class="settingInput" type="number" value="1"></br>
-          <label for="halfScoreInput" class="settingsLabel">Halve finale score</label></br>
-          <input id="halfScoreInput" class="settingInput" type="number" value="0"></br>
-          <label for="halfLegsInput" class="settingsLabel">Halve finale best of</label></br>
-          <input id="halfLegsInput" class="settingInput" type="number" value="1"></br>
-          <label for="finalScoreInput" class="settingsLabel">Finale score</label></br>
-          <input id="finalScoreInput" class="settingInput" type="number" value="0"></br>
-          <label for="finalLegsInput" class="settingsLabel">Finale best of</label></br>
-          <input id="finalLegsInput" class="settingInput" type="number" value="1"></br>
-        </form>
-      </div><br><br>
-      <button id='playerSettingsBtn' class='sideNavBtn' onclick='showPlayerSettings()'>Spelers <i id='playerSettingsArrow' class='material-icons' style='transform: rotate(0deg);'>expand_more</i></button>
-      <div id='playerSettingsDiv' style="display: none;">
-        <form id="playerSettingForm" style="text-align: center; display: block;" onkeypress="handle(event)">
-        </form>
-      </div><br><br>
-      <button id='activeGamesBtn' class='sideNavBtn' onclick='showActiveGames()'>Actieve wedstrijden <i id='activeGamesArrow' class='material-icons' style='transform: rotate(0deg);'>expand_more</i></button>
-      <div id='activeGamesSideDiv' style="display: none;">
+      <div id="sideNavMenusDiv">
+        <button id='appSettingsBtn' class='sideNavBtn' onclick='showAppSettings()'>App instellingen <i id='appSettingsArrow' class='material-icons' style='transform: rotate(0deg);'>expand_more</i></button>
+        <div id='appSettingsDiv' style="display: none;">
+          <form id="appSettingForm" style="text-align: center; display: block;" onkeypress="handle(event)">
+            <label for="pouleScoreInput" class="settingsLabel">Poule score</label></br>
+            <input id="pouleScoreInput" class="settingInput" type="number" value="0"></br>
+            <label for="pouleLegsInput" class="settingsLabel">Poule best of</label></br>
+            <input id="pouleLegsInput" class="settingInput" type="number" value="1"></br>
+            <label for="quartScoreInput" class="settingsLabel">Kwartfinale score</label></br>
+            <input id="quartScoreInput" class="settingInput" type="number" value="0"></br>
+            <label for="quartLegsInput" class="settingsLabel">Kwartfinale best of</label></br>
+            <input id="quartLegsInput" class="settingInput" type="number" value="1"></br>
+            <label for="halfScoreInput" class="settingsLabel">Halve finale score</label></br>
+            <input id="halfScoreInput" class="settingInput" type="number" value="0"></br>
+            <label for="halfLegsInput" class="settingsLabel">Halve finale best of</label></br>
+            <input id="halfLegsInput" class="settingInput" type="number" value="1"></br>
+            <label for="finalScoreInput" class="settingsLabel">Finale score</label></br>
+            <input id="finalScoreInput" class="settingInput" type="number" value="0"></br>
+            <label for="finalLegsInput" class="settingsLabel">Finale best of</label></br>
+            <input id="finalLegsInput" class="settingInput" type="number" value="1"></br>
+          </form>
+        </div><br><br>
+        <button id='playerSettingsBtn' class='sideNavBtn' onclick='showPlayerSettings()'>Spelers <i id='playerSettingsArrow' class='material-icons' style='transform: rotate(0deg);'>expand_more</i></button>
+        <div id='playerSettingsDiv' style="display: none;">
+          <form id="playerSettingForm" style="text-align: center; display: block;" onkeypress="handle(event)">
+          </form>
+        </div><br><br>
+        <button id='activeGamesBtn' class='sideNavBtn' onclick='showActiveGames()'>Actieve wedstrijden <i id='activeGamesArrow' class='material-icons' style='transform: rotate(0deg);'>expand_more</i></button>
+        <div id='activeGamesSideDiv' style="display: none;">
+        </div>
       </div>
     </div>
   </body>
