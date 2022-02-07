@@ -739,6 +739,10 @@ function returnToHome(){
     $(document.getElementById('gameDiv')).hide();
     $(document.getElementById('poulesDiv')).hide();
     $(document.getElementById('playerInputDiv')).hide();
+    $(document.getElementById('sideNavMenusDiv')).hide();
+    $(document.getElementById('saveBtnDiv')).hide();
+    $(document.getElementById('exportBtnDiv')).hide();
+    $(document.getElementById('ipAddressDiv')).hide();
     $(document.getElementById('gameOptionsWrapper')).show();
 }
 
@@ -749,9 +753,10 @@ function drawSetup(){
     //$(document.getElementById('controlBtnDiv')).show();
     //$(returnBtn).show();
     $(document.getElementById('controlBtnDiv')).show();
-    $(document.getElementById('saveBtnDiv')).hide();
-    $(document.getElementById('exportBtnDiv')).hide();
+    $(document.getElementById('saveBtn')).hide();
+    $(document.getElementById('exportBtn')).hide();
     $(document.getElementById('ipAddressDiv')).hide();
+    $(document.getElementById('sideNavMenusDiv')).hide();
 }
 
 function getGameFileName(action){
@@ -1027,26 +1032,51 @@ function getGameInfo(){
         appSettings.push(document.getElementById('finalScoreSelect').value);
         appSettings.push(document.getElementById('finalLegSelect').value);
 
-        //$(document.getElementById('gameSetup')).hide();
         $(document.getElementById('gameSetup')).hide();
         $(document.getElementById('playerInputDiv')).show();
         $(document.getElementById('playerInputSubDiv')).show();
         $(document.getElementById('controlBtnDiv')).show();
         $(document.getElementById('returnBtnDiv')).show();
-
-
+        
         var playerInputForm = document.getElementById('playerInputForm');
 
-        for(let i = 0; i < numPlayers; i++){
-            //var playerInput = $(`<input type='text' id='player${i}'></input>`).attr(`Speler ${i}`);
-            var playerInput = document.createElement("input");
-            playerInput.setAttribute("id", `player${i}`);
-            playerInput.setAttribute("placeholder", `Speler ${i+1}`);
-            playerInput.setAttribute("class", "playerInput");
-            $(playerInputForm).append(playerInput);
-        }
+        if(document.getElementById('panModCheck').checked){
+            let playersPerPoule = Math.round(numPlayers/numPoules);
 
-        makePoulesBtn.onclick = makePoules;
+            for(let i = 0; i < numPlayers; i++){
+                //var playerInput = $(`<input type='text' id='player${i}'></input>`).attr(`Speler ${i}`);
+                var playerInput = document.createElement("input");
+                if(i < playersPerPoule){
+                    playerInput.setAttribute("id", `playerA${i}`);
+                    playerInput.setAttribute("placeholder", `A${i+1}`);
+                }else if(playersPerPoule <= i && i < (playersPerPoule*2)){
+                    playerInput.setAttribute("id", `playerB${i-playersPerPoule}`);
+                    playerInput.setAttribute("placeholder", `B${i-playersPerPoule+1}`);
+                }else if((playersPerPoule*2) <= i && i < (playersPerPoule*3)){
+                    playerInput.setAttribute("id", `playerC${i-playersPerPoule*2}`);
+                    playerInput.setAttribute("placeholder", `C${i-playersPerPoule*2+1}`);
+                }else if((playersPerPoule*3) <= i){
+                    playerInput.setAttribute("id", `playerD${i-playersPerPoule*3}`);
+                    playerInput.setAttribute("placeholder", `D${i-playersPerPoule*3+1}`);
+                }
+                playerInput.setAttribute("class", "playerInput");
+                $(playerInputForm).append(playerInput);
+            }
+
+            makePoulesBtn.onclick = makePoulesWithPan;
+        }else{
+            //$(document.getElementById('gameSetup')).hide();
+            for(let i = 0; i < numPlayers; i++){
+                //var playerInput = $(`<input type='text' id='player${i}'></input>`).attr(`Speler ${i}`);
+                var playerInput = document.createElement("input");
+                playerInput.setAttribute("id", `player${i}`);
+                playerInput.setAttribute("placeholder", `Speler ${i+1}`);
+                playerInput.setAttribute("class", "playerInput");
+                $(playerInputForm).append(playerInput);
+            }
+        
+            makePoulesBtn.onclick = makePoules;
+        }
     }
 }
 
@@ -1222,6 +1252,9 @@ function makePoules(){
         $(document.getElementById('mainRosterDiv')).show();
         $(document.getElementById('mainRosterSubDiv')).show();
         $(document.getElementById('gameDiv')).show();
+        $(document.getElementById('sideNavMenusDiv')).show();
+        $(document.getElementById('saveBtn')).show();
+        $(document.getElementById('exportBtn')).show();
         startPoulesSorting();
 
         let winnerTable = $('<table id="winnerTable" class="mainRosterTable"><tr><td colspan="3"><h2>Winnaar:</h2></td></tr><tr><td colspan="3"><h2 id="M81Name"></h2></td></tr></table>');
@@ -1233,6 +1266,135 @@ function makePoules(){
         });
         io.emit('pouleInfo', exportGameInfo(false));
     }
+}
+
+function makePoulesWithPan(){
+    $(document.getElementById('playerInputDiv')).hide();
+    //$(document.getElementById('controlBtnDiv')).show();
+    //$(saveBtn).show();
+    //$(document.getElementById('appSettingForm')).hide();
+    $(document.getElementById('saveBtnDiv')).show();
+    $(document.getElementById('exportBtnDiv')).show();
+    $(document.getElementById('ipAddressDiv')).show();
+
+    let playersPerPoule = numPlayers/numPoules;
+
+    for(let i = 0; i < numPoules; i++){
+        for (let j = 0; j < playersPerPoule; j++){
+            switch(i){
+                case 0:
+                    playerName = document.getElementById(`playerA${j}`).value;
+                    if(playerName != ""){
+                        pouleA.players.push([playerName, 0]);
+                    }
+                break;
+                case 1:
+                    playerName = document.getElementById(`playerB${j}`).value;
+                    if(playerName != ""){
+                        pouleB.players.push([playerName, 0]);
+                    }
+                break;
+                case 2:
+                    playerName = document.getElementById(`playerC${j}`).value;
+                    if(playerName != ""){
+                        pouleC.players.push([playerName, 0]);
+                    }
+                break;
+                case 3:
+                    playerName = document.getElementById(`playerD${j}`).value;
+                    if(playerName != ""){
+                        pouleD.players.push([playerName, 0]);
+                    }
+                break;
+            }
+        }
+    }
+
+    let shouldBePrinted = document.getElementById('printCheckbox').checked;
+    var filePath;
+
+    if(shouldBePrinted){
+        filePath = ipcRenderer.sendSync('selectPDFDirectory');
+    }
+    
+    let playerSettingsForm = document.getElementById('playerSettingsDiv');
+        
+    if(pouleExists(pouleA)){
+        pouleA.makePoule();
+        pouleA.makeGames();
+        for(var i = 0; i < pouleA.players.length; i++){
+            let input = $(`<input id="playerA${i}Input" class="settingInput" type="text" value="${pouleA.players[i][0]}"></br>`)
+            $(playerSettingsForm).append(input)
+        }
+        if(shouldBePrinted){
+            exportPDF(pouleA, filePath, true);
+        }
+        $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleA')));
+    }
+
+    if(pouleExists(pouleB)){
+        pouleB.makePoule();
+        pouleB.makeGames();
+        for(var i = 0; i < pouleB.players.length; i++){
+            let input = $(`<input id="playerB${i}Input" class="settingInput" type="text" value="${pouleB.players[i][0]}"></br>`)
+            $(playerSettingsForm).append(input)
+        }
+        if(shouldBePrinted){
+            exportPDF(pouleB, filePath, true);
+        }
+        $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleB')));
+    }
+
+    if(pouleExists(pouleC)){
+        pouleC.makePoule();
+        pouleC.makeGames();
+        for(var i = 0; i < pouleC.players.length; i++){
+            let input = $(`<input id="playerC${i}Input" class="settingInput" type="text" value="${pouleC.players[i][0]}"></br>`)
+            $(playerSettingsForm).append(input)
+        }
+        if(shouldBePrinted){
+            exportPDF(pouleC, filePath, true);
+        }
+        $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleC')));
+    }
+
+    if(pouleExists(pouleD)){
+        pouleD.makePoule();
+        pouleD.makeGames();
+        for(var i = 0; i < pouleD.players.length; i++){
+            let input = $(`<input id="playerD${i}Input" class="settingInput" type="text" value="${pouleD.players[i][0]}"></br>`)
+            $(playerSettingsForm).append(input)
+        }
+        if(shouldBePrinted){
+            exportPDF(pouleD, filePath, true);
+        }
+        $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleD')));
+    }
+    $(document.getElementById('activeGamesDiv')).hide();
+
+    if(numPoules > 1){
+        makeFinals(numPoules);
+    }
+    
+    $(poulesDiv).show();
+    //$(saveBtn).show();
+    //$(document.getElementById('appSettingForm')).hide();
+    $(document.getElementById('mainRosterDiv')).show();
+    $(document.getElementById('mainRosterSubDiv')).show();
+    $(document.getElementById('gameDiv')).show();
+    $(document.getElementById('sideNavMenusDiv')).show();
+    $(document.getElementById('saveBtn')).show();
+    $(document.getElementById('exportBtn')).show();
+    startPoulesSorting();
+
+    let winnerTable = $('<table id="winnerTable" class="mainRosterTable"><tr><td colspan="3"><h2>Winnaar:</h2></td></tr><tr><td colspan="3"><h2 id="M81Name"></h2></td></tr></table>');
+    $("#mainRosterSubDiv").append(winnerTable);
+
+    document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
+    httpServer.listen(PORT, () => {
+        console.log(`Server listening on http://${address()}:${PORT}`);
+    });
+    io.emit('pouleInfo', exportGameInfo(false));
 }
 
 function preparePDFExport(){
