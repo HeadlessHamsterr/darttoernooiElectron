@@ -10,10 +10,12 @@ const {address} = require('ip');
 const { PassThrough } = require('stream');
 const httpServer = require('http').createServer();
 const {createHttpTerminator} = require('http-terminator');
+/*
 const updater = require('update-electron-app')({
     repo: 'https://github.com/HeadlessHamsterr/darttoernooiElectron',
     updateInterval: '1 hour',
-});
+})
+*/;
 const io = require('socket.io')(httpServer, {
     cors: {
         methods: ["GET", "POST"],
@@ -174,8 +176,16 @@ io.on('connection', (socket) => {
             }*/
             div = document.getElementById('activeTablesDiv1');
             //Bij finales (M games) zoeken op M(gameNummer)(spelerNummer)
-            let player1 = document.getElementById(`game${dataArray[0]}1Name`).innerHTML;
-            let player2 = document.getElementById(`game${dataArray[0]}2Name`).innerHTML;
+            var player1;
+            var player2;
+
+            if(dataArray[0][0] == 'M'){
+                player1 = document.getElementById(`${dataArray[0]}1Name`).innerHTML;
+                player2 = document.getElementById(`${dataArray[0]}2Name`).innerHTML;
+            }else{
+                player1 = document.getElementById(`game${dataArray[0]}1Name`).innerHTML;
+                player2 = document.getElementById(`game${dataArray[0]}2Name`).innerHTML;
+            }
 
             console.log(`numActiveGames: ${activeGames.length}`);
             if(activeGames.length > 0){
@@ -580,27 +590,37 @@ class pouleGames{
             }
         }
 
-        
-        let newTiedPlayers = this.isTie();
-    
-        if(newTiedPlayers.length != 0 && this.newTieDetected(this.tiedPlayers, newTiedPlayers)){
-            this.tiedPlayers = newTiedPlayers;
-            this.tieDetected = true;
-        }
+        if(numPoules == 1 || tieBreakersEnabled){
+            let newTiedPlayers = this.isTie();
+            
+            if(newTiedPlayers.length != 0 && this.newTieDetected(this.tiedPlayers, newTiedPlayers)){
+                this.tiedPlayers = newTiedPlayers;
+                this.tieDetected = true;
+            }
 
-        if(this.tieDetected && numPoules == 1 && !this.finalsDrawn){
-            makeFinals(1);
-            $("#winnerTable").insertAfter("#finalsTable");
-            this.finalsDrawn = true;
-        }else if(this.tieDetected && tieBreakersEnabled){
-            this.drawTiedPoules();
-            for(let i = 0; i < this.numTiedGames; i++){
-                var points1 = document.getElementById(`tie${this.pouleNum}${i+1}1Score`).value;
-                var points2 = document.getElementById(`tie${this.pouleNum}${i+1}2Score`).value
-                points1 = parseInt(points1);
-                points2 = parseInt(points2)
-                if(isNaN(points1) || isNaN(points2)){
-                    return false;
+            if(this.tieDetected && numPoules == 1 && !this.finalsDrawn){
+                makeFinals(1);
+                $("#winnerTable").insertAfter("#finalsTable");
+                this.finalsDrawn = true;
+            }else if(this.tieDetected && tieBreakersEnabled){
+                this.drawTiedPoules();
+                for(let i = 0; i < this.numTiedGames; i++){
+                    var points1 = document.getElementById(`tie${this.pouleNum}${i+1}1Score`).value;
+                    var points2 = document.getElementById(`tie${this.pouleNum}${i+1}2Score`).value
+                    points1 = parseInt(points1);
+                    points2 = parseInt(points2)
+                    if(isNaN(points1) || isNaN(points2)){
+                        return false;
+                    }
+                }
+            }else{
+                var playersCopy = [];
+                Array.prototype.push.apply(playersCopy, this.players);
+                playersCopy.sort(function(a,b){return b[1] - a[1]});
+                this.winner = playersCopy[0][0];
+                this.secondPlace = playersCopy[1][0];
+                if(!this.finalsDrawn){
+                    document.getElementById("M81Name").innerHTML = this.winner;
                 }
             }
         }else{
@@ -609,9 +629,6 @@ class pouleGames{
             playersCopy.sort(function(a,b){return b[1] - a[1]});
             this.winner = playersCopy[0][0];
             this.secondPlace = playersCopy[1][0];
-            if(!this.finalsDrawn){
-                document.getElementById("M81Name").innerHTML = this.winner;
-            }
         }
 
         return true;
@@ -1257,9 +1274,6 @@ function makePoules(){
         $(document.getElementById('exportBtn')).show();
         startPoulesSorting();
 
-        let winnerTable = $('<table id="winnerTable" class="mainRosterTable"><tr><td colspan="3"><h2>Winnaar:</h2></td></tr><tr><td colspan="3"><h2 id="M81Name"></h2></td></tr></table>');
-        $("#mainRosterSubDiv").append(winnerTable);
-
         document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
         httpServer.listen(PORT, () => {
             console.log(`Server listening on http://${address()}:${PORT}`);
@@ -1480,6 +1494,8 @@ function makeFinals(numberOfPoules){
             $(rosterDiv).append(finals);
         break;
     }
+    let winnerTable = $('<table id="winnerTable" class="mainRosterTable"><tr><td colspan="3"><h2>Winnaar:</h2></td></tr><tr><td colspan="3"><h2 id="M81Name"></h2></td></tr></table>');
+    $("#mainRosterSubDiv").append(winnerTable);
 }
 
 function startPoulesSorting(){
