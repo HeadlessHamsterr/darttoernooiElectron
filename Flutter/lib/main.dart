@@ -22,6 +22,7 @@ const PRIMARY_COLOR = 0xFF4A0000;
 const DEFAULT_BTN_COLOR = 0xFF4A0000;
 const BACKGROUND_COLOR = 0xFF181818;
 bool firstStart = false;
+bool gameActive = false;
 
 List<String> possibleOuts = [
   'T20 T20 BULL',
@@ -747,6 +748,7 @@ class PouleGame extends StatelessWidget {
   }
 
   void stopCurrentGame() {
+    gameActive = false;
     String msg = game.gameID;
     socket.emit('stopActiveGame', msg);
   }
@@ -838,8 +840,8 @@ class _PouleGameBodyState extends State<PouleGameBody> {
     chosenPlayer = activeStartingPlayer;
 
     socket.onConnect((_) => {
-      sendCurrentScores(true)
-    });
+          if (gameActive){sendCurrentScores(true)}
+        });
   }
 
   void btnPress(String btnType) {
@@ -1014,6 +1016,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
               String msg =
                   "${widget.game.gameID},${player1.legsWon.toString()},${player2.legsWon.toString()}";
               socket.emit('gamePlayed', msg);
+              gameStarted = false;
               Navigator.pop(context, 'Bevestigd');
               Navigator.of(widget.context).push(
                 MaterialPageRoute(
@@ -1143,11 +1146,11 @@ class _PouleGameBodyState extends State<PouleGameBody> {
       switch (chosenPlayer) {
         case ChosenPlayerEnum.player1:
           player1.myTurn = true;
-          gameStarted = true;
+          gameActive = gameStarted = true;
           return playerChosen(widget.game.player1);
         case ChosenPlayerEnum.player2:
           player1.myTurn = false;
-          gameStarted = true;
+          gameActive = gameStarted = true;
           return playerChosen(widget.game.player2);
         case ChosenPlayerEnum.undefined:
           return defaultLayout();
