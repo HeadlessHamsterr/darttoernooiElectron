@@ -814,7 +814,7 @@ class pouleGames{
             }
 
             if(this.tieDetected && numPoules == 1 && !this.finalsDrawn){
-                makeFinals(1);
+                makeFinals(0);
                 $("#winnerTable").insertAfter("#finalsTable");
                 this.finalsDrawn = true;
             }else if(this.tieDetected && tieBreakersEnabled){
@@ -1719,8 +1719,10 @@ function makeFinals(numberOfPoules){
     let finals = $('<table id="finalsTable" class="mainRosterTable"><tr><th colspan="3"><h2>Finale</h2></th></tr><tr><td><h2 id="M71Name"></h2></td><td><h2>-</h2></td><td><h2 id="M72Name"></h2></td></tr><tr><td><input id="M71Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M72Score" class="gameScore"></td></tr></table>');
     $(rosterDiv).append(finals);
 
-    let winnerTable = $('<table id="winnerTable" class="mainRosterTable"><tr><td colspan="3"><h2>Winnaar:</h2></td></tr><tr><td colspan="3"><h2 id="M81Name"></h2></td></tr></table>');
-    $("#mainRosterSubDiv").append(winnerTable);
+    if(numberOfPoules > 0){
+        let winnerTable = $('<table id="winnerTable" class="mainRosterTable"><tr><td colspan="3"><h2>Winnaar:</h2></td></tr><tr><td colspan="3"><h2 id="M81Name"></h2></td></tr></table>');
+        $("#mainRosterSubDiv").append(winnerTable);
+    }
 }
 
 function startPoulesSorting(){

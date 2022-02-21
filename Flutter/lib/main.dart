@@ -986,6 +986,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             ScaffoldMessenger.of(widget.context).showSnackBar(
               const SnackBar(content: Text('Standaard is te hoog')),
             );
+            player2.thrownScore = '';
           } else {
             player1.thrownScore = 'Standaard';
             player1.dartsThrown += numDarts;
@@ -1000,6 +1001,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             ScaffoldMessenger.of(widget.context).showSnackBar(
               const SnackBar(content: Text('Standaard is te hoog')),
             );
+            player1.thrownScore = '';
           } else {
             player2.thrownScore = 'Standaard';
             player2.dartsThrown += numDarts;
