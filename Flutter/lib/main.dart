@@ -840,7 +840,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
     chosenPlayer = activeStartingPlayer;
 
     socket.onConnect((_) => {
-          if (gameActive){sendCurrentScores(true)}
+          if (gameActive) {sendCurrentScores(true)}
         });
   }
 
@@ -965,9 +965,52 @@ class _PouleGameBodyState extends State<PouleGameBody> {
       case 'BUST':
         if (player1.myTurn) {
           player1.thrownScore = 'BUST';
+          player1.dartsThrown += numDarts;
+          player1.scoresThrownHistory.add(0);
+          player2.thrownScore = '';
+          player1.myTurn = false;
+          player2.myTurn = true;
         } else {
           player2.thrownScore = 'BUST';
+          player2.dartsThrown += numDarts;
+          player2.scoresThrownHistory.add(0);
+          player1.thrownScore = '';
+          player2.myTurn = false;
+          player1.myTurn = true;
         }
+        sendCurrentScores(false);
+        break;
+      case 'ST':
+        if (player1.myTurn) {
+          if (player1.currentScore < 26) {
+            ScaffoldMessenger.of(widget.context).showSnackBar(
+              const SnackBar(content: Text('Standaard is te hoog')),
+            );
+          } else {
+            player1.thrownScore = 'Standaard';
+            player1.dartsThrown += numDarts;
+            player1.currentScore -= 26;
+            player1.scoresThrownHistory.add(26);
+            player2.thrownScore = '';
+            player1.myTurn = false;
+            player2.myTurn = true;
+          }
+        } else {
+          if (player2.currentScore < 26) {
+            ScaffoldMessenger.of(widget.context).showSnackBar(
+              const SnackBar(content: Text('Standaard is te hoog')),
+            );
+          } else {
+            player2.thrownScore = 'Standaard';
+            player2.dartsThrown += numDarts;
+            player2.currentScore -= 26;
+            player2.scoresThrownHistory.add(26);
+            player1.thrownScore = '';
+            player2.myTurn = false;
+            player1.myTurn = true;
+          }
+        }
+        sendCurrentScores(false);
         break;
       default:
         if (player1.myTurn) {
@@ -1134,9 +1177,8 @@ class _PouleGameBodyState extends State<PouleGameBody> {
       startingPlayer = 1;
     }
     String msg =
-        '${widget.game.gameID},${player1.currentScore},${player1.legsWon},${player2.currentScore},${player2.legsWon},${player1.myTurn},$startingPlayer';
+        '${widget.game.gameID},${player1.currentScore},${player1.legsWon},${player2.currentScore},${player2.legsWon},${player1.myTurn},$startingPlayer,${player1.dartsThrown},${player2.dartsThrown}';
     print(msg);
-    print(activeStartingPlayer);
     socket.emit('activeGameInfo', msg);
   }
 
@@ -1145,11 +1187,9 @@ class _PouleGameBodyState extends State<PouleGameBody> {
       activeStartingPlayer = chosenPlayer;
       switch (chosenPlayer) {
         case ChosenPlayerEnum.player1:
-          player1.myTurn = true;
           gameActive = gameStarted = true;
           return playerChosen(widget.game.player1);
         case ChosenPlayerEnum.player2:
-          player1.myTurn = false;
           gameActive = gameStarted = true;
           return playerChosen(widget.game.player2);
         case ChosenPlayerEnum.undefined:
@@ -1321,8 +1361,9 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                           : const Color(0xFF303030),
                       alignment: Alignment.center,
                       child: Center(
-                        child: Text(
+                        child: AutoSizeText(
                           player1.thrownScore,
+                          maxLines: 1,
                           style: TextStyle(
                             color:
                                 player1.myTurn ? Colors.black : Colors.black38,
@@ -1343,8 +1384,9 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                           : Colors.white,
                       alignment: Alignment.center,
                       child: Center(
-                        child: Text(
+                        child: AutoSizeText(
                           player2.thrownScore,
+                          maxLines: 1,
                           style: TextStyle(
                             color:
                                 player1.myTurn ? Colors.black38 : Colors.black,
@@ -1660,7 +1702,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                       child: ElevatedButton(
                         style: numBtnStyle,
                         onPressed: () {
-                          btnPress('26');
+                          btnPress('ST');
                         },
                         child: const Text(
                           "Standaard",
@@ -1735,6 +1777,8 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                     setState(() {
                       chosenPlayer = ChosenPlayerEnum.player1;
                       activeStartingPlayer = chosenPlayer;
+                      player1.myTurn = true;
+                      player2.myTurn = false;
                       sendCurrentScores(true);
                     });
                   },
@@ -1756,8 +1800,11 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                 child: ElevatedButton(
                   onPressed: () {
                     setState(() {
-                      sendCurrentScores(true);
                       chosenPlayer = ChosenPlayerEnum.player2;
+                      activeStartingPlayer = chosenPlayer;
+                      player1.myTurn = false;
+                      player2.myTurn = true;
+                      sendCurrentScores(true);
                     });
                   },
                   child: Text(
