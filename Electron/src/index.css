@@ -730,17 +730,21 @@ input.settingInput{
   padding-right: 20px;
 }
 
-.activeGameTable tr:last-child{
+.activeGameTable tr:nth-child(4){
   font-size: 60px;
 }
 
-.activeGameTable td:nth-child(3){
+.activeGameTable td:nth-child(4){
   padding-left: 5px;
   padding-right: 5px;
 }
 
-.activeGameTable tr:nth-child(2){
+.activeGameTable tr:nth-child(3){
   font-size: 20px;
+}
+
+.activeGameTable tr:last-child{
+  font-size: 25px;
 }
 
 #ipAddress{

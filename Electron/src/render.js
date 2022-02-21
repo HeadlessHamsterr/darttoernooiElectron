@@ -10,10 +10,12 @@ const {address} = require('ip');
 const { PassThrough } = require('stream');
 const httpServer = require('http').createServer();
 const {createHttpTerminator} = require('http-terminator');
+/*
 const updater = require('update-electron-app')({
     repo: 'https://github.com/HeadlessHamsterr/darttoernooiElectron',
     updateInterval: '1 hour',
-});
+})
+*/;
 const io = require('socket.io')(httpServer, {
     cors: {
         methods: ["GET", "POST"],
@@ -28,11 +30,185 @@ var numPoules = 0;
 var appSettings = [];
 var appOptions = ["pouleScore", "pouleLegs", "quartScore", "quartLegs", "halfScore", "halfLegs", "finalScore", "finalLegs"];
 var activeGames = [];
+let outs = [  'T20 T20 BULL',
+'',
+'',
+'T20 T19 BULL',
+'',
+'',
+'T20 T18 BULL',
+'',
+'',
+'T20 T17 BULL',
+'T20 T20 D20',
+'',
+'T20 T20 D19',
+'T20 T19 D20',
+'T20 T20 D18',
+'T20 T19 D19',
+'T20 T18 D20',
+'T20 T19 D18',
+'T20 T20 D16',
+'T20 T17 D20',
+'T20 T18 D18',
+'T20 T19 D16',
+'T20 T16 D20',
+'T20 T17 D18',
+'T20 T18 D16',
+'T20 T15 D20',
+'T20 T20 D12',
+'T20 T17 D16',
+'T20 T14 D20',
+'T20 T19 D12',
+'T20 T16 D16',
+'T19 T14 D20',
+'T20 T18 D12',
+'T19 T16 D16',
+'T20 T20 D8',
+'T20 T17 D12',
+'T20 T14 D16',
+'T20 T19 D8',
+'BULL T14 D20',
+'T20 T13 D16',
+'T20 T20 D5',
+'T19 T20 D6',
+'T18 T14 D16',
+'T20 T17 D8',
+'T19 T19 D6',
+'25 T20 D20',
+'T20 T14 D11',
+'T19 T16 D9',
+'T18 T18 D7',
+'T20 T11 D14',
+'T20 20 D20',
+'T19 T12 D13',
+'T20 18 D20',
+'T20 17 D20',
+'T20 16 D20',
+'T20 15 D20',
+'T20 14 D20',
+'T20 13 D20',
+'T20 12 D20',
+'T20 11 D20',
+'T20 10 D20',
+'T19 12 D20',
+'T20 16 D16',
+'T19 10 D20',
+'T20 10 D18',
+'T20 13 D16',
+'T20 12 D16',
+'T19 10 D18',
+'T20 10 D16',
+'T17 10 D20',
+'T20 D20',
+'T19 10 D16',
+'T20 D19',
+'T19 D20',
+'T20 D18',
+'T19 D19',
+'T18 D20',
+'T19 D18',
+'T20 D16',
+'T17 D20',
+'T20 D15',
+'T19 D16',
+'T20 D14',
+'T17 D18',
+'T18 D16',
+'T15 D20',
+'T16 D18',
+'T17 D16',
+'T14 D20',
+'T15 D18',
+'T20 D10',
+'T13 D20',
+'T18 D12',
+'T15 D16',
+'T20 D8',
+'T13 D18',
+'T14 D16',
+'T19 D8',
+'T16 D12',
+'T13 D16',
+'T18 D8',
+'T19 D6',
+'T20 D4',
+'T17 D8',
+'T10 D18',
+'T19 D4',
+'T16 D8',
+'T13 D12',
+'T10 D16',
+'T15 D8',
+'20 D20',
+'19 D20',
+'18 D20',
+'17 D20',
+'16 D20',
+'15 D20',
+'14 D20',
+'13 D20',
+'12 D20',
+'19 D16',
+'10 D20',
+'17 D16',
+'16 D16',
+'15 D16',
+'6 D20',
+'13 D16',
+'12 D16',
+'3 D20',
+'10 D16',
+'9 D16',
+'D20',
+'7 D16',
+'D19',
+'5 D16',
+'D18',
+'3 D16',
+'D17',
+'1 D16',
+'D16',
+'15 D8',
+'D15',
+'13 D8',
+'D14',
+'19 D4',
+'D13',
+'9 D8',
+'D12',
+'7 D8',
+'D11',
+'5 D8',
+'D10',
+'3 D8',
+'D9',
+'9 D4',
+'D8',
+'7 D4',
+'D7',
+'5 D4',
+'D6',
+'3 D4',
+'D5',
+'1 D4',
+'D4',
+'3 D2',
+'D3',
+'1 D2',
+'D2',
+'1 D1',
+'D1'
+];
 
 io.on('connection', (socket) => {
     sockets.add(socket);
     console.log("Websocket connection astablished");
 
+    socket.on('disconnect', () => {
+        console.log("Websocket connection closed");
+        sockets.delete(socket);
+    });
     socket.on('allPouleInfoRequest', (data) => {
         var msg = [];
         var pouleTempArray = [];
@@ -53,7 +229,7 @@ io.on('connection', (socket) => {
         msg.push(pouleTempArray);
         msg.push(appSettings);
         socket.emit('pouleInfo', msg);
-    })
+    });
     socket.on('pouleAInfoRequest', (data) => {
           if(pouleExists(pouleA)){
                 pouleA.updatePoints();
@@ -141,15 +317,45 @@ io.on('connection', (socket) => {
         }
 
         for(let i = 0; i < activeGames.length; i++){
+            console.log(`${activeGames[i]} ${dataArray[0]}`);
             if(activeGames[i] == dataArray[0]){
                 activeGames.splice(i, 1);
-            }
-            $(document.getElementById(dataArray[0])).remove();
+                console.log(`Game ${dataArray[0]} stopped`);
 
-            if(activeGames.length == 0){
-                $(document.getElementById('activeGamesDiv')).hide();
+                $(document.getElementById(dataArray[0])).remove();
+                $(document.getElementById(`stop${dataArray[0]}`)).remove();
+                $(document.getElementById(`${dataArray[0]}VL`)).remove();
+
+                if(activeGames.length == 0){
+                    $(document.getElementById('activeGamesDiv')).hide();
+                }
+                console.log(activeGames);
+                break;
             }
-            console.log(activeGames);
+        }
+
+        var msg;
+        switch(data[0]){
+            case 'A':
+                pouleA.updatePoints();
+                msg = [pouleA.rankings, pouleA.sendPouleGames(), 'poule'];
+                io.emit('pouleARanks', msg);
+            break;
+            case 'B':
+                pouleB.updatePoints();
+                msg = [pouleB.rankings, pouleB.sendPouleGames(), 'poule'];
+                io.emit('pouleBRanks', msg);
+            break;
+            case 'C':
+                pouleC.updatePoints();
+                msg = [pouleC.rankings, pouleC.sendPouleGames(), 'poule'];
+                io.emit('pouleCRanks', msg);
+            break;
+            case 'D':
+                pouleD.updatePoints();
+                msg = [pouleD.rankings, pouleD.sendPouleGames(), 'poule'];
+                io.emit('pouleDRanks', msg);
+            break;
         }
     });
     socket.on('activeGameInfo', (data) => {
@@ -174,15 +380,22 @@ io.on('connection', (socket) => {
             }*/
             div = document.getElementById('activeTablesDiv1');
             //Bij finales (M games) zoeken op M(gameNummer)(spelerNummer)
-            let player1 = document.getElementById(`game${dataArray[0]}1Name`).innerHTML;
-            let player2 = document.getElementById(`game${dataArray[0]}2Name`).innerHTML;
+            var player1;
+            var player2;
 
-            console.log(`numActiveGames: ${activeGames.length}`);
+            if(dataArray[0][0] == 'M'){
+                player1 = document.getElementById(`${dataArray[0]}1Name`).innerHTML;
+                player2 = document.getElementById(`${dataArray[0]}2Name`).innerHTML;
+            }else{
+                player1 = document.getElementById(`game${dataArray[0]}1Name`).innerHTML;
+                player2 = document.getElementById(`game${dataArray[0]}2Name`).innerHTML;
+            }
+
             if(activeGames.length > 0){
                 $(div).append(`<div id="${dataArray[0]}VL" class="vl">`)
             }
 
-            $(div).append(`<table id="${dataArray[0]}" class="activeGameTable"><tr><td id="activePlayer${dataArray[0]}1">${player1}</td><td><i id="${dataArray[0]}TurnArrow" class="material-icons turnArrow">expand_more</i></td><td id="activePlayer${dataArray[0]}2">${player2}</td></tr><tr><td id="activeLeg${dataArray[0]}1">${dataArray[2]}</td><td>legs</td><td id="activeLeg${dataArray[0]}2">${dataArray[4]}</td></tr><tr><td id="activeScore${dataArray[0]}1">${dataArray[1]}</td><td></td><td id="activeScore${dataArray[0]}2">${dataArray[3]}</td></tr></table>`)
+            $(div).append(`<table id="${dataArray[0]}" class="activeGameTable"><tr><td id="activePlayer${dataArray[0]}1">${player1}</td><td><i id="${dataArray[0]}TurnArrow" class="material-icons turnArrow">expand_more</i></td><td id="activePlayer${dataArray[0]}2">${player2}</td></tr><tr><td id="activeDarts${dataArray[0]}1"></td><td>Darts</td><td id="activeDarts${dataArray[0]}2"></td></tr><tr><td id="activeLeg${dataArray[0]}1">${dataArray[2]}</td><td>Legs</td><td id="activeLeg${dataArray[0]}2">${dataArray[4]}</td></tr><tr><td id="activeScore${dataArray[0]}1">${dataArray[1]}</td><td></td><td id="activeScore${dataArray[0]}2">${dataArray[3]}</td></tr><tr><td id="out${dataArray[0]}1"></td><td></td><td id="out${dataArray[0]}2"></td></tr></table>`)
             activeGames.push(dataArray[0]);
             
             let stopGameDiv = document.getElementById('activeGamesSideDiv');
@@ -217,6 +430,8 @@ io.on('connection', (socket) => {
         document.getElementById(`activeLeg${dataArray[0]}2`).innerHTML = dataArray[4];
         document.getElementById(`activeScore${dataArray[0]}1`).innerHTML = dataArray[1];
         document.getElementById(`activeScore${dataArray[0]}2`).innerHTML = dataArray[3];
+        document.getElementById(`activeDarts${dataArray[0]}1`).innerHTML = dataArray[7];
+        document.getElementById(`activeDarts${dataArray[0]}2`).innerHTML = dataArray[8];
 
         if(dataArray[6] == '0'){
             document.getElementById(`activePlayer${dataArray[0]}1`).style.color = 'green';
@@ -232,22 +447,37 @@ io.on('connection', (socket) => {
             document.getElementById(`${dataArray[0]}TurnArrow`).style.transform = 'rotate(270deg)';
         }
 
+        if(dataArray[1] <= 170 && dataArray[1] > 0){
+            document.getElementById(`out${dataArray[0]}1`).innerHTML = outs[170-dataArray[1]];
+        }else{
+            document.getElementById(`out${dataArray[0]}1`).innerHTML = '';
+        }
+
+        if(dataArray[3] <= 170 && dataArray[3] > 0){
+            document.getElementById(`out${dataArray[0]}2`).innerHTML = outs[170-dataArray[3]];
+        }else{
+            document.getElementById(`out${dataArray[0]}2`).innerHTML = '';
+        }
+
         console.log(dataArray);
     });
     socket.on('stopActiveGame', (data) => {
         for(let i = 0; i < activeGames.length; i++){
+            console.log(`${activeGames[i]} ${data}`);
             if(activeGames[i] == data){
                 activeGames.splice(i, 1);
                 console.log(`Game ${data} stopped`);
-            }
-            $(document.getElementById(data)).remove();
-            $(document.getElementById(`stop${data}`)).remove();
-            $(document.getElementById(`${data}VL`)).remove();
 
-            if(activeGames.length == 0){
-                $(document.getElementById('activeGamesDiv')).hide();
+                $(document.getElementById(data)).remove();
+                $(document.getElementById(`stop${data}`)).remove();
+                $(document.getElementById(`${data}VL`)).remove();
+
+                if(activeGames.length == 0){
+                    $(document.getElementById('activeGamesDiv')).hide();
+                }
+                console.log(activeGames);
+                break;
             }
-            console.log(activeGames);
         }
 
         var msg;
@@ -274,11 +504,6 @@ io.on('connection', (socket) => {
             break;
         }
     });
-
-});
-
-io.on('disconnection', () => {
-    console.log('Websocket Disconnected');
 });
 
 const PORT = process.env.PORT || 11520;
@@ -580,27 +805,37 @@ class pouleGames{
             }
         }
 
-        
-        let newTiedPlayers = this.isTie();
-    
-        if(newTiedPlayers.length != 0 && this.newTieDetected(this.tiedPlayers, newTiedPlayers)){
-            this.tiedPlayers = newTiedPlayers;
-            this.tieDetected = true;
-        }
+        if(numPoules == 1 || tieBreakersEnabled){
+            let newTiedPlayers = this.isTie();
+            
+            if(newTiedPlayers.length != 0 && this.newTieDetected(this.tiedPlayers, newTiedPlayers)){
+                this.tiedPlayers = newTiedPlayers;
+                this.tieDetected = true;
+            }
 
-        if(this.tieDetected && numPoules == 1 && !this.finalsDrawn){
-            makeFinals(1);
-            $("#winnerTable").insertAfter("#finalsTable");
-            this.finalsDrawn = true;
-        }else if(this.tieDetected && tieBreakersEnabled){
-            this.drawTiedPoules();
-            for(let i = 0; i < this.numTiedGames; i++){
-                var points1 = document.getElementById(`tie${this.pouleNum}${i+1}1Score`).value;
-                var points2 = document.getElementById(`tie${this.pouleNum}${i+1}2Score`).value
-                points1 = parseInt(points1);
-                points2 = parseInt(points2)
-                if(isNaN(points1) || isNaN(points2)){
-                    return false;
+            if(this.tieDetected && numPoules == 1 && !this.finalsDrawn){
+                makeFinals(1);
+                $("#winnerTable").insertAfter("#finalsTable");
+                this.finalsDrawn = true;
+            }else if(this.tieDetected && tieBreakersEnabled){
+                this.drawTiedPoules();
+                for(let i = 0; i < this.numTiedGames; i++){
+                    var points1 = document.getElementById(`tie${this.pouleNum}${i+1}1Score`).value;
+                    var points2 = document.getElementById(`tie${this.pouleNum}${i+1}2Score`).value
+                    points1 = parseInt(points1);
+                    points2 = parseInt(points2)
+                    if(isNaN(points1) || isNaN(points2)){
+                        return false;
+                    }
+                }
+            }else{
+                var playersCopy = [];
+                Array.prototype.push.apply(playersCopy, this.players);
+                playersCopy.sort(function(a,b){return b[1] - a[1]});
+                this.winner = playersCopy[0][0];
+                this.secondPlace = playersCopy[1][0];
+                if(!this.finalsDrawn){
+                    document.getElementById("M81Name").innerHTML = this.winner;
                 }
             }
         }else{
@@ -609,9 +844,6 @@ class pouleGames{
             playersCopy.sort(function(a,b){return b[1] - a[1]});
             this.winner = playersCopy[0][0];
             this.secondPlace = playersCopy[1][0];
-            if(!this.finalsDrawn){
-                document.getElementById("M81Name").innerHTML = this.winner;
-            }
         }
 
         return true;
@@ -706,7 +938,7 @@ let pouleD = new pouleGames("D");
 function returnToHome(){
     closeNav();
     for(const socket in sockets){
-        socket.destroy();
+        socket.disconnect();
         sockets.delete(socket);
     }
     httpServer.close();
@@ -714,7 +946,18 @@ function returnToHome(){
     document.getElementById('numPlayers').value = null;
     document.getElementById('numPoules').value = null;
     $("#playerInputForm").empty();
-    $("#poulesDiv").empty()
+    switch(numPoules){
+        case 4:
+            $('#pouleD').remove();
+        case 3:
+            $('#pouleC').remove();
+        case 2:
+            $('#pouleB').remove();
+        case 1:
+            $('#pouleA').remove();
+        break;
+    }
+    $('#activeGamesDiv').hide();
     $("#mainRosterSubDiv").empty();
     $("#pouleGames").empty();
 
@@ -1187,7 +1430,7 @@ function makePoules(){
             filePath = ipcRenderer.sendSync('selectPDFDirectory');
         }
 
-        let playerSettingsForm = document.getElementById('playerSettingsDiv');
+        let playerSettingsForm = document.getElementById('playerSettingForm');
         
         if(pouleExists(pouleA)){
             pouleA.makePoule();
@@ -1244,6 +1487,9 @@ function makePoules(){
 
         if(numPoules > 1){
             makeFinals(numPoules);
+        }else{
+            let winnerTable = $('<table id="winnerTable" class="mainRosterTable"><tr><td colspan="3"><h2>Winnaar:</h2></td></tr><tr><td colspan="3"><h2 id="M81Name"></h2></td></tr></table>');
+            $("#mainRosterSubDiv").append(winnerTable);
         }
         
         $(poulesDiv).show();
@@ -1256,9 +1502,6 @@ function makePoules(){
         $(document.getElementById('saveBtn')).show();
         $(document.getElementById('exportBtn')).show();
         startPoulesSorting();
-
-        let winnerTable = $('<table id="winnerTable" class="mainRosterTable"><tr><td colspan="3"><h2>Winnaar:</h2></td></tr><tr><td colspan="3"><h2 id="M81Name"></h2></td></tr></table>');
-        $("#mainRosterSubDiv").append(winnerTable);
 
         document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
         httpServer.listen(PORT, () => {
@@ -1374,6 +1617,9 @@ function makePoulesWithPan(){
 
     if(numPoules > 1){
         makeFinals(numPoules);
+    }else{
+        let winnerTable = $('<table id="winnerTable" class="mainRosterTable"><tr><td colspan="3"><h2>Winnaar:</h2></td></tr><tr><td colspan="3"><h2 id="M81Name"></h2></td></tr></table>');
+        $("#mainRosterSubDiv").append(winnerTable);
     }
     
     $(poulesDiv).show();
@@ -1387,8 +1633,7 @@ function makePoulesWithPan(){
     $(document.getElementById('exportBtn')).show();
     startPoulesSorting();
 
-    let winnerTable = $('<table id="winnerTable" class="mainRosterTable"><tr><td colspan="3"><h2>Winnaar:</h2></td></tr><tr><td colspan="3"><h2 id="M81Name"></h2></td></tr></table>');
-    $("#mainRosterSubDiv").append(winnerTable);
+    
 
     document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
     httpServer.listen(PORT, () => {
@@ -1471,15 +1716,11 @@ function makeFinals(numberOfPoules){
         $(rosterDiv).append(halves);
     }
 
-    switch(numberOfPoules){
-        case 4:
-        case 3:
-        case 2:
-        case 1:
-            let finals = $('<table id="finalsTable" class="mainRosterTable"><tr><th colspan="3"><h2>Finale</h2></th></tr><tr><td><h2 id="M71Name"></h2></td><td><h2>-</h2></td><td><h2 id="M72Name"></h2></td></tr><tr><td><input id="M71Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M72Score" class="gameScore"></td></tr></table>');
-            $(rosterDiv).append(finals);
-        break;
-    }
+    let finals = $('<table id="finalsTable" class="mainRosterTable"><tr><th colspan="3"><h2>Finale</h2></th></tr><tr><td><h2 id="M71Name"></h2></td><td><h2>-</h2></td><td><h2 id="M72Name"></h2></td></tr><tr><td><input id="M71Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M72Score" class="gameScore"></td></tr></table>');
+    $(rosterDiv).append(finals);
+
+    let winnerTable = $('<table id="winnerTable" class="mainRosterTable"><tr><td colspan="3"><h2>Winnaar:</h2></td></tr><tr><td colspan="3"><h2 id="M81Name"></h2></td></tr></table>');
+    $("#mainRosterSubDiv").append(winnerTable);
 }
 
 function startPoulesSorting(){
