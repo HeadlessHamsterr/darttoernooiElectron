@@ -963,14 +963,14 @@ class _PouleGameBodyState extends State<PouleGameBody> {
         }
         break;
       case 'BUST':
-        if (player1.myTurn) {
+        if (player1.myTurn && player1.thrownScore == '') {
           player1.thrownScore = 'BUST';
           player1.dartsThrown += numDarts;
           player1.scoresThrownHistory.add(0);
           player2.thrownScore = '';
           player1.myTurn = false;
           player2.myTurn = true;
-        } else {
+        } else if(player2.myTurn && player2.thrownScore == ''){
           player2.thrownScore = 'BUST';
           player2.dartsThrown += numDarts;
           player2.scoresThrownHistory.add(0);
@@ -981,7 +981,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
         sendCurrentScores(false);
         break;
       case 'ST':
-        if (player1.myTurn) {
+        if (player1.myTurn && player1.thrownScore == '') {
           if (player1.currentScore < 26) {
             ScaffoldMessenger.of(widget.context).showSnackBar(
               const SnackBar(content: Text('Standaard is te hoog')),
@@ -996,7 +996,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             player1.myTurn = false;
             player2.myTurn = true;
           }
-        } else {
+        } else if(player2.myTurn && player2.thrownScore == '') {
           if (player2.currentScore < 26) {
             ScaffoldMessenger.of(widget.context).showSnackBar(
               const SnackBar(content: Text('Standaard is te hoog')),
