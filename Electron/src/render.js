@@ -10,6 +10,8 @@ const {address} = require('ip');
 const { PassThrough } = require('stream');
 const httpServer = require('http').createServer();
 const {createHttpTerminator} = require('http-terminator');
+const { Socket } = require('socket.io');
+const uuid = require('uuid')
 /*
 const updater = require('update-electron-app')({
     repo: 'https://github.com/HeadlessHamsterr/darttoernooiElectron',
@@ -202,12 +204,17 @@ let outs = [  'T20 T20 BULL',
 ];
 
 io.on('connection', (socket) => {
-    sockets.add(socket);
-    console.log("Websocket connection astablished");
+    console.log(`Websocket ${socket.id} connection astablished`);
+    sockets.add(socket.id);
 
     socket.on('disconnect', () => {
-        console.log("Websocket connection closed");
-        sockets.delete(socket);
+        console.log(`Websocket ${socket.id} connection closed`);
+        for(let i = 0; i < activeGames.length; i++){
+            if(activeGames[i][1] == socket.id){
+                stopGame(activeGames[i][0]);
+            }
+        }
+        sockets.delete(socket.id);
     });
     socket.on('allPouleInfoRequest', (data) => {
         var msg = [];
@@ -317,8 +324,7 @@ io.on('connection', (socket) => {
         }
 
         for(let i = 0; i < activeGames.length; i++){
-            console.log(`${activeGames[i]} ${dataArray[0]}`);
-            if(activeGames[i] == dataArray[0]){
+            if(activeGames[i][0] == dataArray[0]){
                 activeGames.splice(i, 1);
                 console.log(`Game ${dataArray[0]} stopped`);
 
@@ -329,7 +335,6 @@ io.on('connection', (socket) => {
                 if(activeGames.length == 0){
                     $(document.getElementById('activeGamesDiv')).hide();
                 }
-                console.log(activeGames);
                 break;
             }
         }
@@ -364,7 +369,7 @@ io.on('connection', (socket) => {
         var newGame = true
 
         for(let i = 0; i < activeGames.length; i++){
-            if(activeGames[i] == dataArray[0]){
+            if(activeGames[i][0] == dataArray[0]){
                 newGame = false;
                 break;
             }
@@ -396,7 +401,9 @@ io.on('connection', (socket) => {
             }
 
             $(div).append(`<table id="${dataArray[0]}" class="activeGameTable"><tr><td id="activePlayer${dataArray[0]}1">${player1}</td><td><i id="${dataArray[0]}TurnArrow" class="material-icons turnArrow">expand_more</i></td><td id="activePlayer${dataArray[0]}2">${player2}</td></tr><tr><td id="activeDarts${dataArray[0]}1"></td><td>Darts</td><td id="activeDarts${dataArray[0]}2"></td></tr><tr><td id="activeLeg${dataArray[0]}1">${dataArray[2]}</td><td>Legs</td><td id="activeLeg${dataArray[0]}2">${dataArray[4]}</td></tr><tr><td id="activeScore${dataArray[0]}1">${dataArray[1]}</td><td></td><td id="activeScore${dataArray[0]}2">${dataArray[3]}</td></tr><tr><td id="out${dataArray[0]}1"></td><td></td><td id="out${dataArray[0]}2"></td></tr></table>`)
-            activeGames.push(dataArray[0]);
+            
+            let tempArray = [dataArray[0], socket.id];
+            activeGames.push(tempArray);
             
             let stopGameDiv = document.getElementById('activeGamesSideDiv');
             $(stopGameDiv).append(`<button id="stop${dataArray[0]}" class="stopGameButton" onclick="stopGame(this.id)">${player1} - ${player2} <i id='remGameIcon' class='material-icons'>delete</i></button>`);
@@ -458,13 +465,10 @@ io.on('connection', (socket) => {
         }else{
             document.getElementById(`out${dataArray[0]}2`).innerHTML = '';
         }
-
-        console.log(dataArray);
     });
     socket.on('stopActiveGame', (data) => {
         for(let i = 0; i < activeGames.length; i++){
-            console.log(`${activeGames[i]} ${data}`);
-            if(activeGames[i] == data){
+            if(activeGames[i][0] == data){
                 activeGames.splice(i, 1);
                 console.log(`Game ${data} stopped`);
 
@@ -475,7 +479,6 @@ io.on('connection', (socket) => {
                 if(activeGames.length == 0){
                     $(document.getElementById('activeGamesDiv')).hide();
                 }
-                console.log(activeGames);
                 break;
             }
         }
@@ -685,7 +688,6 @@ class pouleGames{
         if(JSON.stringify(this.rankings) != JSON.stringify(this.lastRankings)){
             this.lastRankings = JSON.parse(JSON.stringify(this.rankings));
             let msg = [this.rankings, this.sendPouleGames(), 'poule'];
-            console.log(msg);
             io.emit(`poule${this.pouleNum}Ranks`, msg);
         }
     }
@@ -1333,7 +1335,6 @@ function makePoules(){
     }
 
     for(let i = 0; i < numPlayers; i++){
-        console.log(players[i]);
         if(players[i] == ""){
             $(document.getElementById(`player${i}`)).css('border-color', 'red');
             playerEmpty = true;
@@ -1674,7 +1675,6 @@ function exportPDF(poule, filePath, exportToPDF){
         var games = [];
     }
     for(let i = 0; i < poule.numGames; i++){
-        console.log(`game${poule.pouleNum}${i+1}`);
         let player1 = document.getElementById(`game${poule.pouleNum}${i+1}1Name`).innerHTML;
         let player2 = document.getElementById(`game${poule.pouleNum}${i+1}2Name`).innerHTML;
 
@@ -2307,7 +2307,7 @@ function stopGame(gameID){
     console.log("Stopping game: " + gameID);
 
     for(let i = 0; i < activeGames.length; i++){
-        if(activeGames[i] == gameID){
+        if(activeGames[i][0] == gameID){
             activeGames.splice(i, 1);
             console.log(`Game ${gameID} stopped`);
         }
@@ -2318,6 +2318,5 @@ function stopGame(gameID){
         if(activeGames.length == 0){
             $(document.getElementById('activeGamesDiv')).hide();
         }
-        console.log(activeGames);
     }
 }
