@@ -2,7 +2,7 @@ let $ = require('jquery');
 let fs = require('fs');
 let path = require('path');
 const { parse } = require('path');
-const {app, ipcRenderer} = require('electron');
+const {app, ipcRenderer, BrowserWindow, electron} = require('electron');
 const exp = require('constants');
 const { randomInt } = require('crypto');
 const { default: jsPDF } = require('jspdf');
@@ -32,6 +32,7 @@ var numPoules = 0;
 var appSettings = [];
 var appOptions = ["pouleScore", "pouleLegs", "quartScore", "quartLegs", "halfScore", "halfLegs", "finalScore", "finalLegs"];
 var activeGames = [];
+var activeGamesWindowOpen = false;
 let outs = [  'T20 T20 BULL',
 '',
 '',
@@ -365,6 +366,10 @@ io.on('connection', (socket) => {
     });
     socket.on('activeGameInfo', (data) => {
         var dataArray = data.split(',');
+        var activeGamesArray = [];
+        for(let i = 0; i < dataArray.length; i++){
+            activeGamesArray.push(dataArray[i]);
+        }
         $(document.getElementById('activeGamesDiv')).show();
         var newGame = true
 
@@ -456,15 +461,21 @@ io.on('connection', (socket) => {
 
         if(dataArray[1] <= 170 && dataArray[1] > 0){
             document.getElementById(`out${dataArray[0]}1`).innerHTML = outs[170-dataArray[1]];
+            activeGamesArray.push(outs[170-dataArray[1]]);
         }else{
             document.getElementById(`out${dataArray[0]}1`).innerHTML = '';
+            activeGamesArray.push('');
         }
 
         if(dataArray[3] <= 170 && dataArray[3] > 0){
             document.getElementById(`out${dataArray[0]}2`).innerHTML = outs[170-dataArray[3]];
+            activeGamesArray.push(outs[170-dataArray[3]]);
         }else{
             document.getElementById(`out${dataArray[0]}2`).innerHTML = '';
+            activeGamesArray.push('');
         }
+
+        ipcRenderer.send("sendActiveGameInfo", activeGamesArray);
     });
     socket.on('stopActiveGame', (data) => {
         for(let i = 0; i < activeGames.length; i++){
@@ -2317,6 +2328,77 @@ function stopGame(gameID){
 
         if(activeGames.length == 0){
             $(document.getElementById('activeGamesDiv')).hide();
+        }
+    }
+}
+
+function openNewWindow(){
+    let result = ipcRenderer.sendSync("openActiveGamesWindow");
+    activeGamesWindowOpen = result;
+    if(activeGamesWindowOpen){
+        if(activeGames.length > 0){
+            var activeGameData = [];
+            for(let i = 0; i < activeGames.length; i++){
+                var gameDataTempArray = [];
+                let gameID = activeGames[i][0];
+
+                gameDataTempArray.push(gameID);
+                gameDataTempArray.push(document.getElementById(`activeScore${gameID}1`).innerHTML);
+                gameDataTempArray.push(document.getElementById(`activeLeg${gameID}1`).innerHTML);
+                gameDataTempArray.push(document.getElementById(`activeScore${gameID}2`).innerHTML);
+                gameDataTempArray.push(document.getElementById(`activeLeg${gameID}2`).innerHTML);
+
+                var startingPlayer;
+                if(document.getElementById(`activePlayer${gameID}1`).style.color == 'green'){
+                    startingPlayer = '0';
+                }else{
+                    startingPlayer = '1';
+                }
+                gameDataTempArray.push(startingPlayer);
+
+                var player1Turn;
+                if(document.getElementById(`${gameID}TurnArrow`).style.transform == 'rotate(90deg)'){
+                    player1Turn = 'true';
+                }else{
+                    player1Turn = 'false';
+                }
+                gameDataTempArray.push(player1Turn);
+
+                gameDataTempArray.push(document.getElementById(`activeDarts${gameID}1`).innerHTML);
+                gameDataTempArray.push(document.getElementById(`activeDarts${gameID}2`).innerHTML);
+
+                if(gameDataTempArray[1] <= 170 && gameDataTempArray[1] > 0){
+                    gameDataTempArray.push(outs[170-gameDataTempArray[1]]);
+                }else{
+                    gameDataTempArray.push('');
+                }
+        
+                if(gameDataTempArray[3] <= 170 && gameDataTempArray[3] > 0){
+                    gameDataTempArray.push(outs[170-gameDataTempArray[3]]);
+                }else{
+                    gameDataTempArray.push('');
+                }
+
+                var player1;
+                var player2;
+
+                if(gameID[0] == 'M'){
+                    player1 = document.getElementById(`${gameID}1Name`).innerHTML;
+                    player2 = document.getElementById(`${gameID}2Name`).innerHTML;
+                }else{
+                    player1 = document.getElementById(`game${gameID}1Name`).innerHTML;
+                    player2 = document.getElementById(`game${gameID}2Name`).innerHTML;
+                }
+
+                gameDataTempArray.push(player1);
+                gameDataTempArray.push(player2);
+
+                activeGameData.push(gameDataTempArray);
+            }
+
+            console.log(activeGameData);
+            console.log(`Number of active games: ${activeGameData.length}`);
+            ipcRenderer.send("sendAlreadyActiveGames", activeGameData);
         }
     }
 }

@@ -32,7 +32,39 @@ ipcMain.on('selectPDFDirectory', async(event) =>{
   }else{
     event.returnValue = result["filePaths"];
   }
-})
+});
+
+ipcMain.on('openActiveGamesWindow', async(event) => {
+  const activeGamesWindow = new BrowserWindow({
+    width: 800,
+    height: 800,
+    webPreferences:{
+      nodeIntegration: true,
+      contextIsolation: false
+    },
+    autoHideMenuBar: true,
+    icon: path.join(__dirname, 'icons/appIcon.ico'),
+    frame: true
+  });
+  activeGamesWindow.loadFile(path.join(__dirname, 'activeGames.html'));
+
+  activeGamesWindow.once('ready-to-show', () => {
+    console.log("ActiveGamesWindow ready");
+    ipcMain.on('sendActiveGameInfo', (event, arg) => {
+      activeGamesWindow.webContents.send('activeGameInfo', arg);
+    });
+    ipcMain.on('sendAlreadyActiveGames', (event, arg) => {
+      activeGamesWindow.webContents.send('alreadyActiveGames', arg);
+    });
+    event.returnValue = true;
+  });
+
+  activeGamesWindow.on('closed', (e) => {
+    console.log(`ActiveGamesWindow closed (${e})`);
+    ipcMain.removeAllListeners('sendActiveGameInfo');
+    ipcMain.removeAllListeners('sendAlreadyActiveGames');
+  })
+});
 
 function showLoadDialog(){
   var filePath = app.getPath("documents");
