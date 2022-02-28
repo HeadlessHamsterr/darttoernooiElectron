@@ -243,6 +243,7 @@ io.on('connection', (socket) => {
                 pouleA.updatePoints();
                 let msg = [pouleA.rankings, pouleA.sendPouleGames(), 'poule'];
                 socket.emit('pouleARanks', msg);
+                console.log(msg);
           }else{
                 let msg = [["No active", "game"]];
                 socket.emit('pouleARanks', msg);
@@ -336,6 +337,7 @@ io.on('connection', (socket) => {
                 if(activeGames.length == 0){
                     $(document.getElementById('activeGamesDiv')).hide();
                 }
+                ipcRenderer.send('sendStopActiveGame', dataArray[0]);
                 break;
             }
         }
@@ -475,7 +477,14 @@ io.on('connection', (socket) => {
             activeGamesArray.push('');
         }
 
-        ipcRenderer.send("sendActiveGameInfo", activeGamesArray);
+        activeGamesArray.push(player1);
+        activeGamesArray.push(player2);
+
+        if(newGame){
+            ipcRenderer.send("sendNewActiveGameInfo", activeGamesArray);
+        }else{
+            ipcRenderer.send("sendActiveGameInfo", activeGamesArray);
+        }
     });
     socket.on('stopActiveGame', (data) => {
         for(let i = 0; i < activeGames.length; i++){
@@ -493,7 +502,8 @@ io.on('connection', (socket) => {
                 break;
             }
         }
-
+        ipcRenderer.send('sendStopActiveGame', data);
+        
         var msg;
         switch(data[0]){
             case 'A':
@@ -716,7 +726,8 @@ class pouleGames{
             var gameActive = false;
 
             for(let j=0; j < activeGames.length; j++){
-                if(activeGames[j] == `${this.pouleNum}${i+1}`){
+                console.log(`Looking at game ${activeGames[j]} for active game`)
+                if(activeGames[j][0] == `${this.pouleNum}${i+1}`){
                     gameActive = true;
                     break;
                 }
@@ -2330,6 +2341,7 @@ function stopGame(gameID){
             $(document.getElementById('activeGamesDiv')).hide();
         }
     }
+    ipcRenderer.send("sendStopActiveGame", gameID);
 }
 
 function openNewWindow(){

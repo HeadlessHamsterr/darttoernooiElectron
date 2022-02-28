@@ -56,6 +56,12 @@ ipcMain.on('openActiveGamesWindow', async(event) => {
     ipcMain.on('sendAlreadyActiveGames', (event, arg) => {
       activeGamesWindow.webContents.send('alreadyActiveGames', arg);
     });
+    ipcMain.on('sendNewActiveGameInfo', (event, arg) => {
+      activeGamesWindow.webContents.send('newActiveGameInfo', arg);
+    });
+    ipcMain.on('sendStopActiveGame', (event, arg) => {
+      activeGamesWindow.webContents.send('stopActiveGame', arg);
+    });
     event.returnValue = true;
   });
 
@@ -63,7 +69,9 @@ ipcMain.on('openActiveGamesWindow', async(event) => {
     console.log(`ActiveGamesWindow closed (${e})`);
     ipcMain.removeAllListeners('sendActiveGameInfo');
     ipcMain.removeAllListeners('sendAlreadyActiveGames');
-  })
+    ipcMain.removeAllListeners('sendNewActiveGameInfo');
+    ipcMain.removeAllListeners('sendStopActiveGame');
+  });
 });
 
 function showLoadDialog(){

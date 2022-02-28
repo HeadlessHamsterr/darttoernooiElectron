@@ -681,8 +681,13 @@
     margin-bottom: 20px;
   }
   
-  .activeTablesDiv{
+  .activeTablesDiv1{
     display: flex;
+  }
+
+  #noActiveGames{
+    padding-left: 10px;
+    padding-right: 10px;
   }
   
   .stopGameButton{
