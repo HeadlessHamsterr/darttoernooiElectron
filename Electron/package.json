@@ -91,7 +91,6 @@
     "http-terminator": "^3.0.3",
     "ip": "^1.1.5",
     "monitor.io": "^0.1.0",
-    "socket.io": "^4.3.2",
-    "update-electron-app": "^2.0.1"
+    "socket.io": "^4.3.2"
   }
 }
