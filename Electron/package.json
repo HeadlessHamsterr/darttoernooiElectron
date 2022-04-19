@@ -1,7 +1,7 @@
 {
   "name": "darttoernooi",
   "productName": "Darttoernooi",
-  "version": "1.8.0",
+  "version": "1.7.5",
   "description": "Speelschema voor darttoernooien (of een ander toernooi met poules).",
   "main": "src/index.js",
   "scripts": {
@@ -73,8 +73,7 @@
     "jquery": "^3.6.0",
     "jspdf": "^2.4.0",
     "monitor.io": "^0.1.0",
-    "socket.io": "^4.3.2",
-    "xmlhttprequest": "^1.8.0"
+    "socket.io": "^4.3.2"
   },
   "devDependencies": {
     "@electron-forge/cli": "^6.0.0-beta.60",
@@ -88,6 +87,7 @@
     "electron-compile": "^6.4.4",
     "electron-forge": "^5.2.4",
     "electron-json-storage": "^4.5.0",
+    "electron-prebuilt-compile": "8.2.0",
     "http-terminator": "^3.0.3",
     "ip": "^1.1.5",
     "monitor.io": "^0.1.0",
