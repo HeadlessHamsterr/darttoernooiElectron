@@ -19,6 +19,10 @@ ipcRenderer.on("stopActiveGame", (event, arg) => {
     updateGames(arg, 2);
 });
 
+ipcRenderer.on('pouleData', (event, arg) => {
+    makePoules(arg);
+});
+
 /*infoType is het de reden van function call
 0 = normale update van actieve game
 1 = nieuwe game
@@ -154,4 +158,27 @@ function initiateActiveGames(data){
             document.getElementById(`out${data[i][0+i]}2`).innerHTML = '';
         }
     }
+}
+
+function makePoules(pouleData){
+    console.log(pouleData);
+    var poulesDiv = document.getElementById('poulesDiv');
+
+    if(typeof this.players !== 'undefined' && this.players.length > 0){
+        var playerDiv = $(`<div id="poule${this.pouleNum}" class="pouleDiv"></div>`);
+        var pouleHeader = $(`<header class="pouleHeader"><h2>Poule ${this.pouleNum}:</h2><hr/><header>`);
+        var pouleTable = $(`<table class="pouleTable" id="poule${this.pouleNum}Table"></table>`);
+        var pouleTableHeader = $('<tr><th>Speler</th><th>Score</th></tr>');
+
+        $(poulesDiv).append(playerDiv);
+        $(playerDiv).append(pouleHeader);
+        $(playerDiv).append(pouleTable);
+        $(pouleTable).append(pouleTableHeader);
+
+        for(let i in this.players){
+            var tableEntry = $(`<tr><td>${this.players[i][0]}</td><td>${this.players[i][1]}</td></tr>`);
+            $(pouleTable).append(tableEntry);
+        }
+    }
+    
 }

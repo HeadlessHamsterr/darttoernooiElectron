@@ -673,7 +673,6 @@ input.settingInput{
   min-width: 150px;
   max-width: 2000px;
   text-align: center;
-  max-height: 350px;
   display: inline;
 }
 

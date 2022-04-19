@@ -272,6 +272,12 @@ class PlayerClass {
   String possibleOut;
   String thrownScore;
   int dartsThrown;
+  int turnsThisLeg;
+  int turnsThisGame;
+  double gameAverage;
+  double legAverage;
+  int totalPointsThisLeg;
+  int totalPointsThisGame;
   List<int> scoresThrownHistory = [];
   List<int> dartsThrownHistory = [];
 
@@ -282,7 +288,13 @@ class PlayerClass {
       this.setsWon = 0,
       this.thrownScore = '',
       this.possibleOut = '',
-      this.dartsThrown = 0});
+      this.dartsThrown = 0,
+      this.turnsThisGame = 0,
+      this.turnsThisLeg = 0,
+      this.gameAverage = 0,
+      this.legAverage = 0,
+      this.totalPointsThisLeg = 0,
+      this.totalPointsThisGame = 0});
 }
 
 class PouleRanking {
@@ -889,6 +901,10 @@ class _PouleGameBodyState extends State<PouleGameBody> {
               player1.dartsThrownHistory.add(numDarts);
               player2.thrownScore = '';
             }
+            player1.turnsThisGame += 1;
+            player1.turnsThisLeg += 1;
+            player1.totalPointsThisLeg += int.parse(player1.thrownScore);
+            player1.totalPointsThisGame += int.parse(player1.thrownScore);
 
             if (player1.currentScore == 0) {
               endLeg(widget.game.player1, player1);
@@ -941,6 +957,11 @@ class _PouleGameBodyState extends State<PouleGameBody> {
               player1.thrownScore = '';
             }
 
+            player2.turnsThisGame += 1;
+            player2.turnsThisLeg += 1;
+            player2.totalPointsThisLeg += int.parse(player2.thrownScore);
+            player2.totalPointsThisGame += int.parse(player2.thrownScore);
+
             if (player2.currentScore == 0) {
               endLeg(widget.game.player2, player2);
             } else {
@@ -967,6 +988,8 @@ class _PouleGameBodyState extends State<PouleGameBody> {
           player1.thrownScore = 'BUST';
           player1.dartsThrown += numDarts;
           player1.scoresThrownHistory.add(0);
+          player1.turnsThisLeg += 1;
+          player1.turnsThisGame += 1;
           player2.thrownScore = '';
           player1.myTurn = false;
           player2.myTurn = true;
@@ -974,6 +997,8 @@ class _PouleGameBodyState extends State<PouleGameBody> {
           player2.thrownScore = 'BUST';
           player2.dartsThrown += numDarts;
           player2.scoresThrownHistory.add(0);
+          player2.turnsThisGame += 1;
+          player2.turnsThisLeg += 1;
           player1.thrownScore = '';
           player2.myTurn = false;
           player1.myTurn = true;
@@ -992,6 +1017,10 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             player1.dartsThrown += numDarts;
             player1.currentScore -= 26;
             player1.scoresThrownHistory.add(26);
+            player1.turnsThisGame += 1;
+            player1.turnsThisLeg += 1;
+            player1.totalPointsThisGame += 26;
+            player1.totalPointsThisLeg += 26;
             player2.thrownScore = '';
             player1.myTurn = false;
             player2.myTurn = true;
@@ -1007,6 +1036,10 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             player2.dartsThrown += numDarts;
             player2.currentScore -= 26;
             player2.scoresThrownHistory.add(26);
+            player2.turnsThisGame += 1;
+            player2.turnsThisLeg += 1;
+            player2.totalPointsThisGame += 26;
+            player2.totalPointsThisLeg += 26;
             player1.thrownScore = '';
             player2.myTurn = false;
             player1.myTurn = true;
@@ -1037,6 +1070,26 @@ class _PouleGameBodyState extends State<PouleGameBody> {
           }
         }
         break;
+    }
+
+    player1.legAverage = player1.totalPointsThisLeg / player1.turnsThisLeg;
+    if (player1.legAverage.toStringAsFixed(1) == "NaN") {
+      player1.legAverage = 0;
+    }
+
+    player1.gameAverage = player1.totalPointsThisGame / player1.turnsThisGame;
+    if (player1.gameAverage.toStringAsFixed(1) == "NaN") {
+      player1.gameAverage = 0;
+    }
+
+    player2.legAverage = player2.totalPointsThisLeg / player2.turnsThisLeg;
+    if (player2.legAverage.toStringAsFixed(1) == "NaN") {
+      player2.legAverage = 0;
+    }
+
+    player2.gameAverage = player2.totalPointsThisGame / player2.turnsThisGame;
+    if (player2.gameAverage.toStringAsFixed(1) == "NaN") {
+      player2.gameAverage = 0;
     }
     setState(() {
       null;
@@ -1120,10 +1173,16 @@ class _PouleGameBodyState extends State<PouleGameBody> {
     player1.thrownScore = '';
     player1.dartsThrown = 0;
     player1.scoresThrownHistory.clear();
+    player1.legAverage = 0;
+    player1.turnsThisLeg = 0;
+    player1.totalPointsThisLeg = 0;
     player2.currentScore = activeGameInfo[1];
     player2.possibleOut = '';
     player2.thrownScore = '';
     player2.dartsThrown = 0;
+    player2.legAverage = 0;
+    player2.turnsThisLeg = 0;
+    player2.totalPointsThisLeg = 0;
     player2.scoresThrownHistory.clear();
     numDarts = 3;
 
@@ -1153,6 +1212,20 @@ class _PouleGameBodyState extends State<PouleGameBody> {
 
   void resetLastScore(PlayerClass player) {
     if (player.scoresThrownHistory.isNotEmpty) {
+      player.totalPointsThisGame -= player.scoresThrownHistory.last;
+      player.totalPointsThisLeg -= player.scoresThrownHistory.last;
+      player.turnsThisGame -= 1;
+      player.turnsThisLeg -= 1;
+      player.legAverage = player.totalPointsThisLeg / player.turnsThisLeg;
+      if (player.legAverage.toStringAsFixed(1) == "NaN") {
+        player.legAverage = 0;
+      }
+
+      player.gameAverage = player.totalPointsThisGame / player.turnsThisGame;
+      if (player.gameAverage.toStringAsFixed(1) == "NaN") {
+        player.gameAverage = 0;
+      }
+
       player.currentScore += player.scoresThrownHistory.removeLast();
       player.dartsThrown -= player.dartsThrownHistory.removeLast();
       player.thrownScore = '';
@@ -1226,10 +1299,10 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                   Table(
                     defaultColumnWidth: const FixedColumnWidth(50),
                     children: [
-                      TableRow(children: <Widget>[
+                      /*TableRow(children: <Widget>[
                         Center(
                           child: Text(
-                            player1.setsWon.toString(),
+                            player1.dartsThrown.toString(),
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 20,
@@ -1238,7 +1311,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                         ),
                         const Center(
                           child: Text(
-                            "Sets",
+                            "Darts",
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 20,
@@ -1247,14 +1320,14 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                         ),
                         Center(
                           child: Text(
-                            player2.setsWon.toString(),
+                            player2.dartsThrown.toString(),
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 20,
                             ),
                           ),
                         ),
-                      ]),
+                      ]),*/
                       TableRow(children: <Widget>[
                         Center(
                           child: Text(
@@ -1355,9 +1428,51 @@ class _PouleGameBodyState extends State<PouleGameBody> {
               ]),
               TableRow(children: <Widget>[
                 Center(
+                  child: Container(
+                    color: const Color(BACKGROUND_COLOR),
+                    alignment: Alignment.center,
+                    child: Center(
+                      child: AutoSizeText(
+                        'wg: ${player1.gameAverage.toStringAsFixed(1)} | lg: ${player1.legAverage.toStringAsFixed(1)}',
+                        maxLines: 1,
+                        style: const TextStyle(
+                          color: Color(0xFFFFFFFF),
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                Center(
+                  child: Container(
+                    color: const Color(BACKGROUND_COLOR),
+                    alignment: Alignment.center,
+                    child: Center(
+                      child: AutoSizeText(
+                        'wg: ${player2.gameAverage.toStringAsFixed(1)} | lg: ${player2.legAverage.toStringAsFixed(1)}',
+                        maxLines: 1,
+                        style: const TextStyle(
+                          color: Color(0xFFFFFFFF),
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ]),
+              const TableRow(children: <Widget>[
+                SizedBox(
+                  height: 10,
+                ),
+                SizedBox(
+                  height: 10,
+                ),
+              ]),
+              TableRow(children: <Widget>[
+                Center(
                   child: SizedBox(
-                    width: 150,
-                    height: 50,
+                    width: 200,
+                    height: 60,
                     child: Container(
                       color: player1.myTurn
                           ? Colors.white
@@ -1365,12 +1480,15 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                       alignment: Alignment.center,
                       child: Center(
                         child: AutoSizeText(
-                          player1.thrownScore,
+                          player1.myTurn
+                              ? player1.thrownScore
+                              : 'Laatste: ${player1.thrownScore}',
                           maxLines: 1,
                           style: TextStyle(
-                            color:
-                                player1.myTurn ? Colors.black : Colors.black38,
-                            fontSize: 30,
+                            color: player1.myTurn
+                                ? Colors.black
+                                : const Color.fromARGB(255, 138, 138, 138),
+                            fontSize: player1.myTurn ? 30 : 20,
                           ),
                         ),
                       ),
@@ -1379,8 +1497,8 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                 ),
                 Center(
                   child: SizedBox(
-                    width: 150,
-                    height: 50,
+                    width: 200,
+                    height: 60,
                     child: Container(
                       color: player1.myTurn
                           ? const Color(0xFF303030)
@@ -1388,12 +1506,15 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                       alignment: Alignment.center,
                       child: Center(
                         child: AutoSizeText(
-                          player2.thrownScore,
+                          player1.myTurn
+                              ? 'Laatste: ${player2.thrownScore}'
+                              : player2.thrownScore,
                           maxLines: 1,
                           style: TextStyle(
-                            color:
-                                player1.myTurn ? Colors.black38 : Colors.black,
-                            fontSize: 30,
+                            color: player1.myTurn
+                                ? const Color.fromARGB(255, 138, 138, 138)
+                                : Colors.black,
+                            fontSize: player1.myTurn ? 20 : 30,
                           ),
                         ),
                       ),

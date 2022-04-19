@@ -87,7 +87,6 @@
     "electron-compile": "^6.4.4",
     "electron-forge": "^5.2.4",
     "electron-json-storage": "^4.5.0",
-    "electron-prebuilt-compile": "8.2.0",
     "http-terminator": "^3.0.3",
     "ip": "^1.1.5",
     "monitor.io": "^0.1.0",

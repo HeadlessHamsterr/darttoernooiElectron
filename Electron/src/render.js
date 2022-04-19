@@ -2,7 +2,7 @@ let $ = require('jquery');
 let fs = require('fs');
 let path = require('path');
 const { parse } = require('path');
-const {app, ipcRenderer, BrowserWindow, electron} = require('electron');
+const {app, ipcRenderer, BrowserWindow, electron, webContents} = require('electron');
 const exp = require('constants');
 const { randomInt } = require('crypto');
 const { default: jsPDF } = require('jspdf');
@@ -317,6 +317,7 @@ io.on('connection', (socket) => {
     });
     socket.on('gamePlayed', (data) => {
         var dataArray = data.split(',');
+        console.log(dataArray);
         if(dataArray[0][0] == 'M'){
             document.getElementById(`${dataArray[0]}1Score`).value = dataArray[1];
             document.getElementById(`${dataArray[0]}2Score`).value = dataArray[2];
@@ -346,6 +347,7 @@ io.on('connection', (socket) => {
         switch(data[0]){
             case 'A':
                 pouleA.updatePoints();
+                pouleA.calculateHiddenPoints(dataArray[0], 1, 1);
                 msg = [pouleA.rankings, pouleA.sendPouleGames(), 'poule'];
                 io.emit('pouleARanks', msg);
             break;
@@ -477,9 +479,20 @@ io.on('connection', (socket) => {
             activeGamesArray.push('');
         }
 
+        var player1;
+        var player2;
+
+        if(dataArray[0][0] == 'M'){
+            player1 = document.getElementById(`${dataArray[0]}1Name`).innerHTML;
+            player2 = document.getElementById(`${dataArray[0]}2Name`).innerHTML;
+        }else{
+            player1 = document.getElementById(`game${dataArray[0]}1Name`).innerHTML;
+            player2 = document.getElementById(`game${dataArray[0]}2Name`).innerHTML;
+        }
+
         activeGamesArray.push(player1);
         activeGamesArray.push(player2);
-
+        console.log(activeGamesArray);
         if(newGame){
             ipcRenderer.send("sendNewActiveGameInfo", activeGamesArray);
         }else{
@@ -566,6 +579,7 @@ class pouleGames{
     constructor(pouleNum){
         this.pouleNum = pouleNum;
         this.players = [];
+        this.hiddenPoints = [];
         this.tiedPlayers = [];
         this.winner = "";
         this.secondPlace = "";
@@ -582,6 +596,7 @@ class pouleGames{
 
     reset(){
         this.players = [];
+        this.hiddenPoints = [];
         this.tiedPlayers = [];
         this.rankings = [];
         this.lastRankings = [];
@@ -747,6 +762,7 @@ class pouleGames{
         var points = [];
         for(let i = 0; i < this.players.length; i++){
             points.push(0);
+            this.hiddenPoints.push(0);
         }
 
         for(let i = 0; i < this.numGames; i++){
@@ -951,6 +967,14 @@ class pouleGames{
             document.getElementById(`game${this.pouleNum}${i+1}1Name`).innerHTML = this.players[this.gameFormat[i][0]][0];
             document.getElementById(`game${this.pouleNum}${i+1}2Name`).innerHTML = this.players[this.gameFormat[i][1]][0];
         }
+    }
+
+    //Hidden points zijn de punten die niet worden getoond in de tabel met de ranks,
+    //maar wel gebruikt worden voor het bepalen van de positie van de spelers in de ranks.
+    //Op basis van het aantal punten per dart (PPD).
+    calculateHiddenPoints(gameID, player1PPD, player2PPD){
+        console.log(`Game id: ${gameID}`);
+        console.log(gameID[1]);
     }
 }
 
@@ -2410,7 +2434,24 @@ function openNewWindow(){
 
             console.log(activeGameData);
             console.log(`Number of active games: ${activeGameData.length}`);
+
             ipcRenderer.send("sendAlreadyActiveGames", activeGameData);
         }
+        
+        var poulesData = [];
+        if(pouleExists(pouleA)){
+            poulesData.push(pouleA.rankings);
+        }
+        if(pouleExists(pouleB)){
+            poulesData.push(pouleB.rankings);
+        }
+        if(pouleExists(pouleC)){
+            poulesData.push(pouleC.rankings);
+        }
+        if(pouleExists(pouleD)){
+            poulesData.push(pouleD.rankings);
+        }
+        console.log(poulesData);
+        ipcRenderer.send('returnPouleData', poulesData);
     }
 }

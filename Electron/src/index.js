@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const {networkInterfaces} = require('os');
+let mainWindow = null;
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) { // eslint-disable-line global-require
@@ -40,13 +41,16 @@ ipcMain.on('openActiveGamesWindow', async(event) => {
     height: 800,
     webPreferences:{
       nodeIntegration: true,
-      contextIsolation: false
+      contextIsolation: false,
+
     },
     autoHideMenuBar: true,
     icon: path.join(__dirname, 'icons/appIcon.ico'),
     frame: true
   });
   activeGamesWindow.loadFile(path.join(__dirname, 'activeGames.html'));
+
+  
 
   activeGamesWindow.once('ready-to-show', () => {
     console.log("ActiveGamesWindow ready");
@@ -61,6 +65,9 @@ ipcMain.on('openActiveGamesWindow', async(event) => {
     });
     ipcMain.on('sendStopActiveGame', (event, arg) => {
       activeGamesWindow.webContents.send('stopActiveGame', arg);
+    });
+    ipcMain.on('returnPouleData', (event, arg) => {
+      activeGamesWindow.webContents.send('pouleData', arg);
     });
     event.returnValue = true;
   });
@@ -146,7 +153,7 @@ function showOpenDialog(){
 const createWindow = () => {
   // Create the browser window.
 
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 800,
     height: 800,
     webPreferences:{
