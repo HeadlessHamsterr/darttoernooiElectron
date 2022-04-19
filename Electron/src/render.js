@@ -2,7 +2,7 @@ let $ = require('jquery');
 let fs = require('fs');
 let path = require('path');
 const { parse } = require('path');
-const {app, ipcRenderer, BrowserWindow, electron, webContents} = require('electron');
+const {app, ipcRenderer, BrowserWindow, electron, webContents, remote} = require('electron');
 const exp = require('constants');
 const { randomInt } = require('crypto');
 const { default: jsPDF } = require('jspdf');
@@ -11,7 +11,7 @@ const { PassThrough } = require('stream');
 const httpServer = require('http').createServer();
 const {createHttpTerminator} = require('http-terminator');
 const { Socket } = require('socket.io');
-const uuid = require('uuid')
+const { fork, spawn } = require('child_process');
 /*
 const updater = require('update-electron-app')({
     repo: 'https://github.com/HeadlessHamsterr/darttoernooiElectron',
@@ -26,6 +26,8 @@ const io = require('socket.io')(httpServer, {
     allowEIO3: true
 });
 
+var makePoulesBtn;
+var tieBreakersEnabled;
 const sockets = new Set();
 var numPlayers = 0;
 var numPoules = 0;
@@ -543,37 +545,28 @@ io.on('connection', (socket) => {
     });
 });
 
+ipcRenderer.on("noUpdateAvailable", (event, arg) => {
+    continueToGame();
+});
+
+ipcRenderer.on("updateAvailable", (event, arg) => {
+    console.log("Update beschikbaar");
+    console.log(arg[0]);
+    let yesBtn = document.getElementById('update');
+    let noBtn = document.getElementById('noUpdate');
+
+    yesBtn.addEventListener('click', function(){
+        updateAvailable(arg);
+    });
+
+    noBtn.addEventListener('click', function(){
+        ipcRenderer.send('loadIndex');
+    });
+});
+
 const PORT = process.env.PORT || 11520;
 
 var players = [];
-
-let tieBreakersEnabled = document.getElementById('tieBreakerCheckbox').checked;
-
-const newGameBtn = document.getElementById('newGameBtn');
-newGameBtn.onclick = drawSetup;
-
-const loadGameBtn = document.getElementById('loadGameBtn');
-loadGameBtn.onclick = loadGame;
-
-const subBtn = document.getElementById('subBtn');
-subBtn.onclick = getGameInfo;
-
-const exportBtn = document.getElementById('exportBtn');
-exportBtn.onclick = preparePDFExport;
-
-const saveBtn = document.getElementById('saveBtn');
-saveBtn.onclick = exportGameInfo;
-
-const returnBtn = document.getElementById('returnBtn');
-returnBtn.onclick = returnToHome;
-
-const makePoulesBtn = document.getElementById('mkPoulesBtn');
-
-$(document.getElementById('gameSetup')).hide();
-$(document.getElementById('controlBtnDiv')).hide();
-$(document.getElementById('playerInputDiv')).hide();
-$(document.getElementById('poulesDiv')).hide();
-$(document.getElementById('gameDiv')).hide();
 
 class pouleGames{
     constructor(pouleNum){
@@ -982,6 +975,142 @@ let pouleA = new pouleGames("A");
 let pouleB = new pouleGames("B");
 let pouleC = new pouleGames("C");
 let pouleD = new pouleGames("D");
+
+async function updateAvailable(msg){
+    let downloadUrl = msg[0];
+    let fileName = msg[1];
+    savePath = ipcRenderer.sendSync('downloadPath') + `/${fileName}`;
+    console.log(`Selected save directory: ${savePath}`);
+    $(document.getElementById('updateDiv')).hide();
+    $(document.getElementById('progressDiv')).show();
+    await download(downloadUrl, savePath, (bytes, percent) => updateProgress(percent));
+
+    $(document.getElementById('progressDiv')).hide();
+
+    if(process.platform == "win32"){
+        $(document.getElementById('updateDoneWindows')).show();
+        let installBtn = document.getElementById('install');
+        let quitBtn = document.getElementById('quit');
+
+        installBtn.addEventListener('click', function(){
+            console.log("Quit Windows");
+            const handle = spawn(savePath, {
+                detached: true,
+                stdio: [null, null, null, 'ipc']
+            });
+            handle.on('message', (msg) => {
+                handle.unref();
+                handle.off('message');
+                handle.disconnect();
+                ipcRenderer.send('klaarErmee');
+            });
+        });
+        quitBtn.addEventListener('click', function(){
+            ipcRenderer.send("klaarErmee");
+        });
+    }else if(process.platform == 'linux'){
+        $(document.getElementById('updateDoneLinux')).show();
+        document.getElementById('updatePath').innerHTML = savePath;
+        let quitBtn = document.getElementById('quitLinux');
+        quitBtn.addEventListener('click', function(){
+            console.log("Quit");
+            ipcRenderer.send("klaarErmee");
+        });
+    }
+}
+
+function updateProgress(progress){
+    document.getElementById('progressBar').style.width = `${progress}%`;
+    document.getElementById('downloadPerc').innerHTML = `${progress}%`;
+}
+
+async function download(
+  sourceUrl,
+  targetFile,
+  progressCallback,
+  length
+) {
+  const request = new Request(sourceUrl, {
+    headers: new Headers({ "Content-Type": "application/octet-stream" }),
+  });
+
+  const response = await fetch(request);
+  if (!response.ok) {
+    throw Error(
+      `Unable to download, server returned ${response.status} ${response.statusText}`
+    );
+  }
+
+  const body = response.body;
+  if (body == null) {
+    throw Error("No response body");
+  }
+
+  const finalLength =
+    length || parseInt(response.headers.get("Content-Length" || "0"), 10);
+  const reader = body.getReader();
+  const writer = fs.createWriteStream(targetFile);
+
+  await streamWithProgress(finalLength, reader, writer, progressCallback);
+  writer.end();
+}
+
+async function streamWithProgress(length, reader, writer, progressCallback) {
+  let bytesDone = 0;
+
+  while (true) {
+    const result = await reader.read();
+    if (result.done) {
+      if (progressCallback != null) {
+        progressCallback(length, 100);
+      }
+      return;
+    }
+
+    const chunk = result.value;
+    if (chunk == null) {
+      throw Error("Empty chunk received during download");
+    } else {
+      writer.write(Buffer.from(chunk));
+      if (progressCallback != null) {
+        bytesDone += chunk.byteLength;
+        const percent =
+          length === 0 ? null : Math.floor((bytesDone / length) * 100);
+        progressCallback(bytesDone, percent);
+      }
+    }
+  }
+}
+
+function continueToGame(){
+    tieBreakersEnabled = document.getElementById('tieBreakerCheckbox').checked;
+
+    const newGameBtn = document.getElementById('newGameBtn');
+    newGameBtn.onclick = drawSetup;
+    
+    const loadGameBtn = document.getElementById('loadGameBtn');
+    loadGameBtn.onclick = loadGame;
+    
+    const subBtn = document.getElementById('subBtn');
+    subBtn.onclick = getGameInfo;
+    
+    const exportBtn = document.getElementById('exportBtn');
+    exportBtn.onclick = preparePDFExport;
+    
+    const saveBtn = document.getElementById('saveBtn');
+    saveBtn.onclick = exportGameInfo;
+    
+    const returnBtn = document.getElementById('returnBtn');
+    returnBtn.onclick = returnToHome;
+    
+    makePoulesBtn = document.getElementById('mkPoulesBtn');
+
+    $(document.getElementById('gameSetup')).hide();
+    $(document.getElementById('controlBtnDiv')).hide();
+    $(document.getElementById('playerInputDiv')).hide();
+    $(document.getElementById('poulesDiv')).hide();
+    $(document.getElementById('gameDiv')).hide();
+}
 
 function returnToHome(){
     closeNav();

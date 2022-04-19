@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const {networkInterfaces} = require('os');
 let mainWindow = null;
+let XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) { // eslint-disable-line global-require
@@ -16,7 +17,14 @@ ipcMain.on('enterFileName', async (event)=>{
     event.returnValue = result["filePath"];
   }
 });
-
+ipcMain.on('downloadPath', async(event)=>{
+  const result = await showSaveDialogForDownload();
+  if(result["canceled"]){
+    event.returnValue = null;
+  }else{
+    event.returnValue = result["filePaths"];
+  }
+});
 ipcMain.on('selectSaveFile', async(event) =>{
   const result = await showLoadDialog();
   if(result["canceled"]){
@@ -33,6 +41,14 @@ ipcMain.on('selectPDFDirectory', async(event) =>{
   }else{
     event.returnValue = result["filePaths"];
   }
+});
+
+ipcMain.on('loadIndex', () =>{
+  createWindow(false);
+});
+
+ipcMain.on("klaarErmee", ()=>{
+  app.quit();
 });
 
 ipcMain.on('openActiveGamesWindow', async(event) => {
@@ -129,6 +145,27 @@ function showSaveDialog(){
   });
 }
 
+function showSaveDialogForDownload(){
+  var filePath = app.getPath("downloads");
+  return new Promise((resolve, reject) => {
+    dialog.showOpenDialog({
+      buttonLabel: "Locatie selecteren",
+      properties: [
+        'openDirectory',
+        'createDirectory'
+      ],
+      defaultPath: filePath
+    }).then(fileNames=>{
+      if(fileNames === undefined){
+        console.log("Failed to open directory.");
+        reject("No directory selected");
+      }else{
+        resolve(fileNames);
+      }
+    });
+  });
+}
+
 function showOpenDialog(){
   var filePath = app.getPath("documents");
   return new Promise((resolve, reject) => {
@@ -150,7 +187,7 @@ function showOpenDialog(){
   });
 }
 
-const createWindow = () => {
+const createWindow = (shouldCheckUpdate = true) => {
   // Create the browser window.
 
   mainWindow = new BrowserWindow({
@@ -162,15 +199,77 @@ const createWindow = () => {
     },
     autoHideMenuBar: true,
     icon: path.join(__dirname, 'icons/appIcon.ico'),
-    frame: true
+    frame: true,
+    show: false
   });
 
-  // and load the index.html of the app.
-  mainWindow.loadFile(path.join(__dirname, 'index.html'));
+  var updateAvailable = false;
+  if(!app.getVersion().includes('b') && shouldCheckUpdate){
+    var updateUrl;
+    var fileName;
+    
+    let request = new XMLHttpRequest();
 
-  // Open the DevTools.
-  //mainWindow.webContents.openDevTools();
-  mainWindow.maximize();
+    request.onreadystatechange = function() {
+      if (this.readyState == 4 && this.status == 200) {
+        let response = JSON.parse(this.responseText);
+        //console.log(response);
+        latestVersion = response["tag_name"]
+
+        if(parseInt(latestVersion[1]) > parseInt(app.getVersion()[0])){
+          updateAvailable = true;
+        }else if(parseInt(latestVersion[3]) > parseInt(app.getVersion()[2]) && parseInt(latestVersion[1]) >= parseInt(app.getVersion()[0])){
+          updateAvailable = true;
+        }else if(parseInt(latestVersion[5]) > parseInt(app.getVersion()[4]) && (parseInt(latestVersion[3]) >= parseInt(app.getVersion()[2]) && parseInt(latestVersion[1]) >= parseInt(app.getVersion()[0]))){
+          updateAvailable = true;
+        }
+
+        if(updateAvailable){
+          var wantedExtension;
+          if(process.platform == "win32"){
+            wantedExtension = 'exe';
+          }else if(process.platform == 'linux'){
+            wantedExtension = 'AppImage';
+          }
+          for(asset in response["assets"]){
+            if(response["assets"][asset]["name"].includes(wantedExtension)){
+              updateUrl = response["assets"][asset]["browser_download_url"];
+              fileName = response["assets"][asset]["name"];
+              break;
+            }
+          }
+          console.log(updateUrl);
+          mainWindow.loadFile(path.join(__dirname, 'updateCheck.html'));
+          mainWindow.maximize();
+          //mainWindow.webContents.send('updateAvailable', updateUrl);
+        }else{
+          console.log("No update available");
+          //mainWindow.webContents.send("noUpdateAvailable");
+          mainWindow.loadFile(path.join(__dirname, 'index.html'));
+          mainWindow.maximize();
+        }
+      }
+    }
+
+    request.open("GET", "https://api.github.com/repos/HeadlessHamsterr/darttoernooiElectron/releases/latest", true);
+    request.send();
+  }else{
+    mainWindow.loadFile(path.join(__dirname, 'index.html'));
+    mainWindow.maximize();
+  }
+
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+    
+    if(updateAvailable == true){
+      console.log(`Sending ${updateUrl} to mainWindow via updateAvailable`);
+      let msg = [updateUrl, fileName, process.platform];
+      mainWindow.webContents.send('updateAvailable', msg);
+    }else{
+      console.log("Sending noUpdateAvailable to mainWindow");
+      mainWindow.webContents.send('noUpdateAvailable');
+    }
+  });
 };
 
 // This method will be called when Electron has finished
