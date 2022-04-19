@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="stylesheet" href="updateCheck.css">
+    <script defer src="render.js"></script>
+</head>
+<body>
+    <div id="updateDiv" class="startDivWrapper">
+        <div class="startDiv">
+            <h1 class="startScreenLabel">Update beschikbaar</h1>
+            <h2 class=""startScreenLabel>Downloaden?</h2>
+            <button id="update" class="sendBtn">Ja</button>
+            <button id="noUpdate" class="sendBtn">Nee</button>
+        </div>
+    </div>
+    <div id="progressDiv" class="startDivWrapper" style="display:none;">
+        <div class="startDiv">
+            <h1 class="startScreenLabel">Update aan het downloaden</h1>
+            <div class="progressBarBackground">
+                <div id="progressBar" class="progressBar" style="width:0%">
+                </div>
+                <p class="downloadPerc" id="downloadPerc"></p>
+            </div>
+        </div>
+    </div>
+    <div id="updateDoneWindows" class="startDivWrapper" style="display:none;">
+        <div class="startDiv">
+            <h1 class="startScreenLabel">Update gedownload</h1>
+            <button id="install" class="sendBtn">Installeren</button>
+            <button id="quit" class="sendBtn">Afsluiten</button>
+        </div>
+    </div>
+    <div id="updateDoneLinux" class="startDivWrapper" style="display:none;">
+        <div class="startDiv">
+            <h1 class="startScreenLabel">Update gedownload naar:</h1>
+            <h3 id="updatePath" class="startScreenLabel"></h3>
+            <button id="quitLinux" class="sendBtn">Afsluiten</button>
+        </div>
+    </div>
+</body>
+</html>
