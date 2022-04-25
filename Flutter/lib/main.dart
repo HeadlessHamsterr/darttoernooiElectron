@@ -4,6 +4,7 @@ import 'package:flutter/rendering.dart';
 // ignore: library_prefixes
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:auto_size_text/auto_size_text.dart';
+import 'package:scan/scan.dart';
 
 String serverIP = '';
 String activePoule = '';
@@ -335,7 +336,28 @@ Widget getPouleName(pouleName) {
 }
 
 class StartScreen extends StatelessWidget {
-  StartScreen({Key? key}) : super(key: key);
+  const StartScreen({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      theme: ThemeData(
+        scaffoldBackgroundColor: const Color(0xFF181818),
+      ),
+      home: Builder(builder: (context) {
+        return Scaffold(
+            appBar: AppBar(
+              title: const Text('Darttoernooi companion'),
+              backgroundColor: const Color(PRIMARY_COLOR),
+            ),
+            body: startScreenBody());
+      }),
+    );
+  }
+}
+
+class startScreenBody extends StatelessWidget {
+  startScreenBody({Key? key}) : super(key: key);
 
   final ipAddressController = TextEditingController(text: serverIP);
 
@@ -364,58 +386,110 @@ class StartScreen extends StatelessWidget {
     });
   }
 
+  void startQRScanner(BuildContext context) async {
+    final result = await Navigator.push(
+        context, MaterialPageRoute(builder: (context) => const qrScanScreen()));
+    print(result);
+    ipAddressController.text = result;
+    enterIP(context);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      theme: ThemeData(
-        scaffoldBackgroundColor: const Color(0xFF181818),
-      ),
-      home: Builder(builder: (context) {
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('Darttoernooi companion'),
-            backgroundColor: const Color(PRIMARY_COLOR),
-          ),
-          body: ListView(
-            children: [
-              Container(
-                  child: Column(
-                    //mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      TextField(
-                        controller: ipAddressController,
-                        decoration: InputDecoration(
-                          labelText: 'IP adres',
-                          labelStyle: const TextStyle(color: Colors.white),
-                          enabledBorder: const OutlineInputBorder(
-                            borderSide: BorderSide(color: Color(0xFF505050)),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderSide:
-                                const BorderSide(color: Color(0xFF505050)),
-                            borderRadius: BorderRadius.circular(10.0),
-                          ),
-                        ),
-                        style: const TextStyle(color: Colors.white),
-                        keyboardType: const TextInputType.numberWithOptions(
-                            decimal: true),
-                      ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          primary: const Color(DEFAULT_BTN_COLOR),
-                        ),
-                        child: const Text('Verbinden'),
+    return ListView(
+      children: [
+        Container(
+            child: Column(
+              //mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                TextField(
+                  controller: ipAddressController,
+                  decoration: InputDecoration(
+                    suffixIcon: IconButton(
                         onPressed: () {
-                          enterIP(context);
+                          startQRScanner(context);
                         },
-                      ),
-                    ],
+                        icon: const Icon(Icons.qr_code_scanner_rounded),
+                        color: Colors.grey),
+                    labelText: 'IP adres',
+                    labelStyle: const TextStyle(color: Colors.white),
+                    enabledBorder: const OutlineInputBorder(
+                      borderSide: BorderSide(color: Color(0xFF505050)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: const BorderSide(color: Color(0xFF505050)),
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
                   ),
-                  padding: const EdgeInsets.fromLTRB(50, 200, 50, 200)),
-            ],
+                  style: const TextStyle(color: Colors.white),
+                  keyboardType:
+                      const TextInputType.numberWithOptions(decimal: true),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    primary: const Color(DEFAULT_BTN_COLOR),
+                  ),
+                  child: const Text('Verbinden'),
+                  onPressed: () {
+                    enterIP(context);
+                  },
+                ),
+              ],
+            ),
+            padding: const EdgeInsets.fromLTRB(50, 200, 50, 200)),
+      ],
+    );
+  }
+}
+
+class qrScanScreen extends StatefulWidget {
+  const qrScanScreen({Key? key}) : super(key: key);
+
+  @override
+  _qrScanScreenState createState() => _qrScanScreenState();
+}
+
+class _qrScanScreenState extends State<qrScanScreen> {
+  ScanController controller = ScanController();
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      /*appBar: AppBar(
+        title: const Text("Scan de QR-code"),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context, "192.168.1.14");
+                },
+                child: const Text("Terug"),
+              ),
+            ),
+          ],
+        ),
+      ),*/
+          width: 250,
+          height: 250,
+          child: ScanView(
+            controller: controller,
+            scanAreaScale: 0.8,
+            scanLineColor: Colors.blue.shade800,
+            onCapture: (data) {
+              controller.resume();
+              print(data);
+              Navigator.pop(context, data);
+            },
           ),
-        );
-      }),
     );
   }
 }
@@ -1299,35 +1373,6 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                   Table(
                     defaultColumnWidth: const FixedColumnWidth(50),
                     children: [
-                      /*TableRow(children: <Widget>[
-                        Center(
-                          child: Text(
-                            player1.dartsThrown.toString(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                            ),
-                          ),
-                        ),
-                        const Center(
-                          child: Text(
-                            "Darts",
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                            ),
-                          ),
-                        ),
-                        Center(
-                          child: Text(
-                            player2.dartsThrown.toString(),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                            ),
-                          ),
-                        ),
-                      ]),*/
                       TableRow(children: <Widget>[
                         Center(
                           child: Text(

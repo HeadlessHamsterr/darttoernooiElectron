@@ -238,7 +238,7 @@
       </div>
     </div>
   
-    <div id='poulesDiv' class='cardPoules'>
+    <div id='poulesDiv' class='cardPoules' onclick="closeNav()">
       <div id="activeGamesDiv" class="activeGamesDiv">
         <header class="pouleHeader">
           <h2>Live scores:</h2>
@@ -249,7 +249,7 @@
       </div>
     </div>
     
-    <div id='gameDiv' class='cardPoules'>
+    <div id='gameDiv' class='cardPoules' onclick="closeNav()">
       <div id='pouleGames' class='cardPouleGames'></div>
       <div id="mainRosterDiv" class="mainRosterDiv">
         <div id="mainRosterSubDiv" class="mainRosterSubDiv">
@@ -272,6 +272,9 @@
               </td>  
               <td>
                 <a class="material-icons md-36" id="exportBtn">picture_as_pdf</a>
+              </td>
+              <td>
+                <a class="material-icons md-36" id="showQR">qr_code_2</a>
               </td>
               <!--
               <td>
@@ -313,6 +316,10 @@
         <div id='activeGamesSideDiv' style="display: none;">
         </div>
       </div>
+    </div>
+
+    <div id="qrCodeOverlay" onclick="hideQR()">
+      <canvas id="qrCode"></canvas>
     </div>
   </body>
 
