@@ -1,17 +1,12 @@
 let $ = require('jquery');
 let fs = require('fs');
 let path = require('path');
-const { parse } = require('path');
-const {app, ipcRenderer, BrowserWindow, electron, webContents, remote} = require('electron');
-const exp = require('constants');
-const { randomInt } = require('crypto');
+const { ipcRenderer } = require('electron');
 const { default: jsPDF } = require('jspdf');
-const {address} = require('ip');
-const { PassThrough } = require('stream');
+const { address } = require('ip');
 const httpServer = require('http').createServer();
-const {createHttpTerminator} = require('http-terminator');
-const { Socket } = require('socket.io');
-const { fork, spawn } = require('child_process');
+const { spawn } = require('child_process');
+const qr = require('qrcode');
 /*
 const updater = require('update-electron-app')({
     repo: 'https://github.com/HeadlessHamsterr/darttoernooiElectron',
@@ -1102,6 +1097,9 @@ function continueToGame(){
     
     const returnBtn = document.getElementById('returnBtn');
     returnBtn.onclick = returnToHome;
+
+    const qrBtn = document.getElementById('showQR');
+    qrBtn.onclick = showQR;
     
     makePoulesBtn = document.getElementById('mkPoulesBtn');
 
@@ -1110,6 +1108,25 @@ function continueToGame(){
     $(document.getElementById('playerInputDiv')).hide();
     $(document.getElementById('poulesDiv')).hide();
     $(document.getElementById('gameDiv')).hide();
+}
+
+function showQR(){
+    document.getElementById('qrCodeOverlay').style.display = "block";
+    let canvas = document.getElementById('qrCode');
+    let opts = {
+        width: 500,
+    }
+    qr.toCanvas(canvas, address(), opts, function(error){
+        if(error){
+            console.log(error);
+        }else{
+            console.log("QR code generated");
+        }
+    });
+}
+
+function hideQR(){
+    document.getElementById('qrCodeOverlay').style.display = "none";
 }
 
 function returnToHome(){
@@ -2381,6 +2398,7 @@ function openNav(){
 
 function closeNav(){
     document.getElementById("sideNav").style.right = "-250px";
+    document.getElementById('qrCodeOverlay').style.display = "none";
     updateSettings();
 }
 
