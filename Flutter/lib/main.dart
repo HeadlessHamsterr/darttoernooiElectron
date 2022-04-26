@@ -459,37 +459,18 @@ class _qrScanScreenState extends State<qrScanScreen> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      /*appBar: AppBar(
-        title: const Text("Scan de QR-code"),
+      width: 250,
+      height: 250,
+      child: ScanView(
+        controller: controller,
+        scanAreaScale: 0.8,
+        scanLineColor: Colors.blue.shade800,
+        onCapture: (data) {
+          String ip = data.split(':')[0];
+          print(ip);
+          Navigator.pop(context, ip);
+        },
       ),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(context, "192.168.1.14");
-                },
-                child: const Text("Terug"),
-              ),
-            ),
-          ],
-        ),
-      ),*/
-          width: 250,
-          height: 250,
-          child: ScanView(
-            controller: controller,
-            scanAreaScale: 0.8,
-            scanLineColor: Colors.blue.shade800,
-            onCapture: (data) {
-              controller.resume();
-              print(data);
-              Navigator.pop(context, data);
-            },
-          ),
     );
   }
 }

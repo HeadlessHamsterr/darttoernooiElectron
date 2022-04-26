@@ -4,7 +4,8 @@ let path = require('path');
 const { ipcRenderer } = require('electron');
 const { default: jsPDF } = require('jspdf');
 const { address } = require('ip');
-const httpServer = require('http').createServer();
+const websocketServer = require('http').createServer();
+const http = require('http');
 const { spawn } = require('child_process');
 const qr = require('qrcode');
 /*
@@ -13,7 +14,7 @@ const updater = require('update-electron-app')({
     updateInterval: '1 hour',
 })
 */;
-const io = require('socket.io')(httpServer, {
+const io = require('socket.io')(websocketServer, {
     cors: {
         methods: ["GET", "POST"],
         transports: ['websocket', 'polling']
@@ -559,7 +560,7 @@ ipcRenderer.on("updateAvailable", (event, arg) => {
     });
 });
 
-const PORT = process.env.PORT || 11520;
+var PORT = 11520;
 
 var players = [];
 
@@ -1116,7 +1117,8 @@ function showQR(){
     let opts = {
         width: 500,
     }
-    qr.toCanvas(canvas, address(), opts, function(error){
+    let qrText = `${address()}:8000`
+    qr.toCanvas(canvas, qrText, opts, function(error){
         if(error){
             console.log(error);
         }else{
@@ -1135,7 +1137,7 @@ function returnToHome(){
         socket.disconnect();
         sockets.delete(socket);
     }
-    httpServer.close();
+    websocketServer.close();
 
     document.getElementById('numPlayers').value = null;
     document.getElementById('numPoules').value = null;
@@ -1362,9 +1364,21 @@ function loadGame(){
 
     startPoulesSorting();
     document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
-    httpServer.listen(PORT, () => {
+
+    websocketServer.listen(PORT, () => {
         console.log(`Server listening on http://${address()}:${PORT}`);
+        serverStarted = true;
     });
+
+    const requestListener = function(req, res){
+        res.writeHead(301, {"Location": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"});
+        return res.end();
+    }
+    const webserver = http.createServer(requestListener);
+    webserver.listen(8000, () => {
+        console.log(`Server listening on http://${address()}:80`);
+    });
+
     io.emit('pouleInfo', exportGameInfo(false));
 }
 
@@ -1697,7 +1711,7 @@ function makePoules(){
         startPoulesSorting();
 
         document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
-        httpServer.listen(PORT, () => {
+        websocketServer.listen(PORT, () => {
             console.log(`Server listening on http://${address()}:${PORT}`);
         });
         io.emit('pouleInfo', exportGameInfo(false));
@@ -1829,7 +1843,7 @@ function makePoulesWithPan(){
     
 
     document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
-    httpServer.listen(PORT, () => {
+    websocketServer.listen(PORT, () => {
         console.log(`Server listening on http://${address()}:${PORT}`);
     });
     io.emit('pouleInfo', exportGameInfo(false));
