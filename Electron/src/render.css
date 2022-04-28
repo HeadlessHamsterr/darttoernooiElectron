@@ -1,0 +1,16 @@
+:root{
+    --background: #000000;
+}
+
+body{
+    background-color: var(--background);
+    overflow: hidden;
+}
+
+video{
+    width: 100%;
+}
+
+.videoWrapper{
+    text-align: center;
+}
