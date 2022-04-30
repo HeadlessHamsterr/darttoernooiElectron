@@ -1,7 +1,7 @@
 let $ = require('jquery');
 let fs = require('fs');
 let path = require('path');
-const { ipcRenderer } = require('electron');
+const { ipcRenderer, app } = require('electron');
 const { default: jsPDF } = require('jspdf');
 const { address } = require('ip');
 const websocketServer = require('http').createServer();
@@ -231,9 +231,10 @@ io.on('connection', (socket) => {
         if(pouleExists(pouleD)){
             pouleTempArray.push('pouleD');
         }
-    
+        
         msg.push(pouleTempArray);
         msg.push(appSettings);
+        console.log(msg);
         socket.emit('pouleInfo', msg);
     });
     socket.on('pouleAInfoRequest', (data) => {
@@ -311,6 +312,7 @@ io.on('connection', (socket) => {
                 finalsMsg.push(finalsGameToApp(7, 'final'));
                 break;
         }
+        console.log(finalsMsg)
         socket.emit('finalsInfo', finalsMsg);
     });
     socket.on('gamePlayed', (data) => {
@@ -612,12 +614,7 @@ class pouleGames{
             $(poulesDiv).append(playerDiv);
             $(playerDiv).append(pouleHeader);
             $(playerDiv).append(pouleTable);
-            $(pouleTable).append(pouleTableHeader);
-
-            for(let i in this.players){
-                var tableEntry = $(`<tr><td>${this.players[i][0]}</td><td>${this.players[i][1]}</td></tr>`);
-                $(pouleTable).append(tableEntry);
-            }
+            $(pouleTable).append(pouleTableHeader);false
         }
     }
 
@@ -1362,7 +1359,7 @@ function loadGame(){
         break;
     }
 
-    startPoulesSorting();
+    startPeriodicStuff();
     document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
 
     websocketServer.listen(PORT, () => {
@@ -1708,7 +1705,7 @@ function makePoules(){
         $(document.getElementById('sideNavMenusDiv')).show();
         $(document.getElementById('saveBtn')).show();
         $(document.getElementById('exportBtn')).show();
-        startPoulesSorting();
+        startPeriodicStuff();
 
         document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
         websocketServer.listen(PORT, () => {
@@ -1838,7 +1835,7 @@ function makePoulesWithPan(){
     $(document.getElementById('sideNavMenusDiv')).show();
     $(document.getElementById('saveBtn')).show();
     $(document.getElementById('exportBtn')).show();
-    startPoulesSorting();
+    startPeriodicStuff();
 
     
 
@@ -1931,7 +1928,7 @@ function makeFinals(numberOfPoules){
     }
 }
 
-function startPoulesSorting(){
+function startPeriodicStuff(){
     setInterval(function sortPoules(){
         if(pouleExists(pouleA)){
             pouleA.updatePoints();
@@ -2083,6 +2080,9 @@ function startPoulesSorting(){
         }
         io.emit('finalsInfo', finalsMsg);
     }, 500);
+    setInterval(function quickSaveGame(){
+        exportGameInfo(false, true);
+    }, 300000);
 }
 
 function getFinalsWinner(player1, player2, destination){
@@ -2141,9 +2141,9 @@ function exportFinalsGame(gameNum){
     return [player1Score, player1Name, player2Score, player2Name];
 }
 
-function exportGameInfo(writeToFile = true){
+function exportGameInfo(writeToFile = true, quickSave = false){
     var gameFileName;
-    if(writeToFile){
+    if(writeToFile && !quickSave){
         gameFileName = getGameFileName("save");
 
         if(gameFileName === null){
@@ -2155,9 +2155,54 @@ function exportGameInfo(writeToFile = true){
         }
     }
 
+    if(quickSave){
+        let today = new Date();
+        console.log("Quicksaving...");
+        
+        fs.access(path.join(__dirname, 'quicksaves'), (err) => {
+            if(err){
+                fs.mkdirSync(path.join(__dirname, 'quicksaves'), (err) => {
+                    if(err){
+                        console.log(`Error creating quicksaves folder: ${err}`);
+                    }else{
+                        console.log("Created quicksaves folder");
+                    }
+                });
+            }else{
+                console.log("Quicksaves folder exists");
+            }
+        });
+        fs.readdir(path.join(__dirname, 'quicksaves'), (err, files) => {
+            if(err){
+                console.log(`Error reading quicksaves folder: ${err}`);
+            }else{
+                if(files.length){
+                    for(let i = 0; i < files.length; i++){
+                        if(files[i].includes('.darts')){
+                            fs.unlink(path.join(__dirname, 'quicksaves', files[i]), (err) => {
+                                if(err){
+                                    console.log(`Error deleting quicksave: ${err}`);
+                                }else{
+                                    console.log(`Deleted quicksave: ${files[i]}`);
+                                }
+                            });
+                        }else{
+                            console.log(`Skipping file: ${files[i]}`);
+                        }
+                    }
+                }else{
+                    console.log("No quicksaves found");
+                }
+            }
+        });
+        gameFileName = path.join(__dirname, 'quicksaves', `${today.getDay()}-${today.getMonth()}-${today.getFullYear()}_${today.getHours()}-${today.getMinutes()}-${today.getSeconds()}.darts`);
+        console.log(`Quicksaving to: ${gameFileName}`);
+    }
+
     var jsonObj = {"poules":[], "games":[], "appSettings":[]};
 
     if(pouleExists(pouleA)){
+        console.log("Poule A exists");
         jsonObj["poules"].push({"pouleA":[]})
         jsonObj["poules"][0]["pouleA"].push({"numPlayers": pouleA.players.length})
         jsonObj["poules"][0]["pouleA"].push({"players":[]});
@@ -2176,6 +2221,7 @@ function exportGameInfo(writeToFile = true){
         jsonObj["poules"][0]["pouleA"].push({"games":[]});
 
         for(let i = 0; i < pouleA.numGames; i++){
+            console.log("Poule A game " + i);
             var player1 = document.getElementById(`gameA${i+1}1Name`).innerHTML;
             var score1 = document.getElementById(`gameA${i+1}1Score`).value;
             var player2 = document.getElementById(`gameA${i+1}2Name`).innerHTML;
@@ -2194,6 +2240,7 @@ function exportGameInfo(writeToFile = true){
 
             jsonObj["poules"][0]["pouleA"][2]["games"].push({"player1": player1, "score1": score1, "player2": player2, "score2": score2});
         }
+        console.log("Poule A exported");
     }
 
     if(pouleExists(pouleB)){
@@ -2389,7 +2436,7 @@ function exportGameInfo(writeToFile = true){
 
     jsonObj['appSettings'].push(appSettings);
 
-    if(writeToFile){
+    if(writeToFile || quickSave){
         fs.writeFile(path.resolve(gameFileName), JSON.stringify(jsonObj, null, 4), function(err){
             if(err){
                 console.log(err);
@@ -2615,4 +2662,8 @@ function openNewWindow(){
         console.log(poulesData);
         ipcRenderer.send('returnPouleData', poulesData);
     }
+}
+
+function connectServer(){
+    ipcRenderer.send('connectServer');
 }

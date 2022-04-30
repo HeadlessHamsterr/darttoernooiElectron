@@ -752,6 +752,12 @@ input.settingInput{
   font-size: 18px;
   margin-left: 20px;
   color: white;
+  cursor: pointer;
+  transition: 0.1s;
+}
+
+#ipAddress:hover{
+  transform: scale(1.05);
 }
 
 .turnArrow{
