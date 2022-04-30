@@ -1,6 +1,7 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const {networkInterfaces} = require('os');
+const { fs } = require('fs');
 let mainWindow = null;
 let XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 
@@ -34,6 +35,10 @@ ipcMain.on('selectSaveFile', async(event) =>{
   }
 });
 
+ipcMain.on('getDocPath', (event) => {
+  event.returnValue = app.getPath("documents");
+});
+
 ipcMain.on('selectPDFDirectory', async(event) =>{
   const result = await showOpenDialog();
   if(result["canceled"]){
@@ -49,6 +54,27 @@ ipcMain.on('loadIndex', () =>{
 
 ipcMain.on("klaarErmee", ()=>{
   app.quit();
+});
+
+ipcMain.on('connectServer', async(event) =>{
+  const rendererWindow = new BrowserWindow({
+    width: 800,
+    height: 800,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+    },
+    autoHideMenuBar: true,
+    icon: path.join(__dirname, 'assets/icons/appIcon.ico'),
+    frame: false,
+    fullscreen: true,
+    minimizable: false,
+    resizable: false,
+  });
+  rendererWindow.loadFile(path.join(__dirname, 'render.html'));
+  rendererWindow.once('ready-to-show', () => {
+    rendererWindow.show();
+  });
 });
 
 ipcMain.on('openActiveGamesWindow', async(event) => {
@@ -189,7 +215,6 @@ function showOpenDialog(){
 
 const createWindow = (shouldCheckUpdate = true) => {
   // Create the browser window.
-
   mainWindow = new BrowserWindow({
     width: 800,
     height: 800,
