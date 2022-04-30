@@ -22,6 +22,8 @@ const io = require('socket.io')(websocketServer, {
     allowEIO3: true
 });
 
+var pouleSortingTimer;
+var quickSaveTimer;
 var makePoulesBtn;
 var tieBreakersEnabled;
 const sockets = new Set();
@@ -1130,6 +1132,8 @@ function hideQR(){
 
 function returnToHome(){
     closeNav();
+    clearInterval(quickSaveTimer);
+    clearInterval(pouleSortingTimer);
     for(const socket in sockets){
         socket.disconnect();
         sockets.delete(socket);
@@ -1929,7 +1933,7 @@ function makeFinals(numberOfPoules){
 }
 
 function startPeriodicStuff(){
-    setInterval(function sortPoules(){
+    pouleSortingTimer = setInterval(function sortPoules(){
         if(pouleExists(pouleA)){
             pouleA.updatePoints();
 
@@ -2080,7 +2084,7 @@ function startPeriodicStuff(){
         }
         io.emit('finalsInfo', finalsMsg);
     }, 500);
-    setInterval(function quickSaveGame(){
+    quickSaveTimer = setInterval(function quickSaveGame(){
         exportGameInfo(false, true);
     }, 300000);
 }

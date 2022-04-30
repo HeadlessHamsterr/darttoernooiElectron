@@ -864,7 +864,6 @@ class _PouleGameBodyState extends State<PouleGameBody> {
   PlayerClass player1 = PlayerClass();
   PlayerClass player2 = PlayerClass();
   ChosenPlayerEnum chosenPlayer = activeStartingPlayer;
-
   var specialBtnStyle = cBtnStyle;
   bool gameStarted = false;
   int setsToPlay = 0;
@@ -1167,7 +1166,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             onPressed: () {
               sendCurrentScores(false);
               String msg =
-                  "${widget.game.gameID},${player1.legsWon.toString()},${player2.legsWon.toString()}";
+                  "${widget.game.gameID},${player1.legsWon.toString()},${player2.legsWon.toString()},${player1.gameAverage},${player2.gameAverage},${player1.dartsThrown},${player2.dartsThrown}";
               socket.emit('gamePlayed', msg);
               gameStarted = false;
               Navigator.pop(context, 'Bevestigd');
