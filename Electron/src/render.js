@@ -8,6 +8,8 @@ const websocketServer = require('http').createServer();
 const http = require('http');
 const { spawn } = require('child_process');
 const qr = require('qrcode');
+const { count } = require('console');
+const { clearInterval } = require('timers');
 /*
 const updater = require('update-electron-app')({
     repo: 'https://github.com/HeadlessHamsterr/darttoernooiElectron',
@@ -349,7 +351,9 @@ io.on('connection', (socket) => {
         switch(data[0]){
             case 'A':
                 pouleA.updatePoints();
-                pouleA.calculateHiddenPoints(dataArray[0], 1, 1);
+                for(let i = 0; i < pouleA.players.length; i++){
+                    console.log(`${pouleA.players[i].name} has ${pouleA.players[i].hiddenPoints} hidden points and played ${pouleA.players[i].gamesPlayed} games`);
+                }
                 msg = [pouleA.rankings, pouleA.sendPouleGames(), 'poule'];
                 io.emit('pouleARanks', msg);
             break;
@@ -568,6 +572,20 @@ var PORT = 11520;
 
 var players = [];
 
+function player(name){
+    this.name = name;
+    this.legsWon = 0;
+    this.legsLost = 0;
+    this.hiddenPoints = 0;
+    this.gamesPlayed = 0;
+    this.convertToArray = function(){
+        return [this.name, this.legsWon, this.legsLost, this.gamesPlayed];
+    }
+    this.calculateHiddenPoints = function(){
+        this.hiddenPoints = this.legsWon - this.legsLost;
+    }
+}
+
 class pouleGames{
     constructor(pouleNum){
         this.pouleNum = pouleNum;
@@ -578,6 +596,7 @@ class pouleGames{
         this.secondPlace = "";
         this.numGames;
         this.tieDetected = false;
+        this.tieResolved = false;
         this.tiedPoulesDrawn = false;
         this.numTiedGames;
         this.gameFormat;
@@ -597,6 +616,7 @@ class pouleGames{
         this.secondPlace = "";
         this.numGames;
         this.tieDetected = false;
+        this.tieResolved = false;
         this.tiedPoulesDrawn = false;
         this.numTiedGames;
         this.gameFormat;
@@ -626,7 +646,7 @@ class pouleGames{
         var gamesDiv;
 
         if(numPlayers == 1){
-            let singlePlayerDiv = $(`<div id="singlePlayerDiv" class="singlePlayerDiv"><h3>Winnaar:</h3><h4>${this.players[0][0]}!</h4><p1>Leuk geprobeerd, hier heb ik aan gedacht</p1></div>`);
+            let singlePlayerDiv = $(`<div id="singlePlayerDiv" class="singlePlayerDiv"><h3>Winnaar:</h3><h4>${this.players[0].name}!</h4><p1>Leuk geprobeerd, hier heb ik aan gedacht</p1></div>`);
             $(singlePlayerDiv).appendTo(document.body);
             $(document.getElementById('saveBtn')).hide();
             $(document.getElementById('exportBtn')).hide();
@@ -664,7 +684,7 @@ class pouleGames{
         }
 
         for(let i = 0; i < this.numGames; i++){
-            var gameLabels = $(`<tr><td><p1 id="game${this.pouleNum}${i+1}1Name">${this.players[this.gameFormat[i][0]][0]}</p1></td><td><p1>-</p1></td><td><p1 id="game${this.pouleNum}${i+1}2Name">${this.players[this.gameFormat[i][1]][0]}</p1></td></tr>`);
+            var gameLabels = $(`<tr><td><p1 id="game${this.pouleNum}${i+1}1Name">${this.players[this.gameFormat[i][0]].name}</p1></td><td><p1>-</p1></td><td><p1 id="game${this.pouleNum}${i+1}2Name">${this.players[this.gameFormat[i][1]].name}</p1></td></tr>`);
             var gameInputs = $(`<tr><td><input id="game${this.pouleNum}${i+1}1Score" type="number" class="gameScore"></td><td><p1>-</p1></td><td><input id="game${this.pouleNum}${i+1}2Score" type="number" class="gameScore"></td></tr><hr>`);
             $(gameTable).append(gameLabels);
             $(gameTable).append(gameInputs);
@@ -691,8 +711,25 @@ class pouleGames{
 
     sort(){
         this.rankings = []
-        Array.prototype.push.apply(this.rankings, this.players);
-        this.rankings.sort(function(a,b){return(b[1]-a[1])});
+        for(let i = 0; i < this.players.length; i++){
+            if(this.players[i].gamesPlayed != 0){
+                let tempArray = [this.players[i].name, this.players[i].hiddenPoints, this.players[i].legsWon];
+                this.rankings.push(tempArray);
+            }
+        }
+        this.rankings.sort(function(a,b){
+            if(b[2] != a[2]){
+                return(b[2]-a[2]);
+            }else{
+                return(b[1]-a[1]);
+            }
+        });
+        for(let i = 0; i < this.players.length; i++){
+            if(this.players[i].gamesPlayed == 0){
+                let tempArray = [this.players[i].name, this.players[i].hiddenPoints, this.players[i].legsWon];
+                this.rankings.push(tempArray);
+            }
+        }
 
         var pouleTable = document.getElementById(`poule${this.pouleNum}Table`);
         var pouleTableHeader = $('<tr><th>Speler</th><th>Score</th></tr>');
@@ -705,7 +742,7 @@ class pouleGames{
                 this.rankings[i][1] = 0;
             }
 
-            var tableEntry = $(`<tr><td>${this.rankings[i][0]}</td><td>${this.rankings[i][1]}</td></tr>`);
+            var tableEntry = $(`<tr><td>${this.rankings[i][0]}</td><td>${this.rankings[i][2]}</td></tr>`);
             $(pouleTable).append(tableEntry);
         }
 
@@ -729,7 +766,6 @@ class pouleGames{
             var gameActive = false;
 
             for(let j=0; j < activeGames.length; j++){
-                console.log(`Looking at game ${activeGames[j]} for active game`)
                 if(activeGames[j][0] == `${this.pouleNum}${i+1}`){
                     gameActive = true;
                     break;
@@ -748,8 +784,12 @@ class pouleGames{
 
     updatePoints(){
         var points = [];
+        var counterPoints = [];
+        var numGamesPlayed = [];
         for(let i = 0; i < this.players.length; i++){
             points.push(0);
+            counterPoints.push(0);
+            numGamesPlayed.push(0);
             this.hiddenPoints.push(0);
         }
 
@@ -762,116 +802,180 @@ class pouleGames{
 
             if(isNaN(points1)){
                 points1 = 0;
+            }else{
+                numGamesPlayed[this.gameFormat[i][0]] += 1;
+            }
+
+            if(isNaN(points2)){
+                points2 = 0;
+            }else{
+                numGamesPlayed[this.gameFormat[i][1]] += 1;
+            }
+
+            points[this.gameFormat[i][0]] = points[this.gameFormat[i][0]] + points1;
+            counterPoints[this.gameFormat[i][0]] = counterPoints[this.gameFormat[i][0]] + points2;
+            points[this.gameFormat[i][1]] = points[this.gameFormat[i][1]] + points2;
+            counterPoints[this.gameFormat[i][1]] = counterPoints[this.gameFormat[i][1]] + points1;
+            //console.log(points);
+            //console.log(counterPoints);
+        }
+
+        try{
+            var points1 = document.getElementById(`tie${this.pouleNum}11Score`).value;
+            var points2 = document.getElementById(`tie${this.pouleNum}12Score`).value;
+
+            points1 = parseInt(points1);
+            points2 = parseInt(points2);
+
+            if(isNaN(points1)){
+                points1 = 0;
             }
 
             if(isNaN(points2)){
                 points2 = 0;
             }
 
-            points[this.gameFormat[i][0]] = points[this.gameFormat[i][0]] + points1;
-            points[this.gameFormat[i][1]] = points[this.gameFormat[i][1]] + points2;
-        }
-
-        if(this.tieDetected && tieBreakersEnabled){
-            for(let i = 0; i < this.numTiedGames; i++){
-                var points1 = document.getElementById(`tie${this.pouleNum}${i+1}1Score`).value;
-                var points2 = document.getElementById(`tie${this.pouleNum}${i+1}2Score`).value;
-    
-                points1 = parseInt(points1);
-                points2 = parseInt(points2);
-    
-                if(isNaN(points1)){
-                    points1 = 0;
+            for(let i = 0; i < this.players.length; i++){
+                if(this.players[i].name == this.tiedPlayers[0]){
+                    console.log("Player 1 found");
+                    points[i] += points1;
+                }else if(this.players[i].name == this.tiedPlayers[1]){
+                    console.log("Player 2 found");
+                    points[i] += points2;
                 }
-    
-                if(isNaN(points2)){
-                    points2 = 0;
-                }
-    
-                //Punten worden berekend door punten te tellen en in array te zetten op de index van de speler (0 voor speler 1, 1 voor speler 2 etc.)
-                //Deze index wordt vervolgens in de players array geplaatst.
-                //Daarom moet de locatie in de tiedPlayers array worden vertaald naar de juiste locatie in de players array, zodat de punten bij de juiste spelers komen.
-                var playersEqIndex1;
-                var playersEqIndex2;
-                for(let j = 0; j < this.players.length; j++){
-                    if(this.players[j][0] === this.tiedPlayers[this.tiedGameFormat[i][0]][0]){
-                        playersEqIndex1 = j;
-                    }else if(this.players[j][0] === this.tiedPlayers[this.tiedGameFormat[i][1]][0]){
-                        playersEqIndex2 = j;
-                    }
-                }
-                points[playersEqIndex1] = points[playersEqIndex1] + points1;    //Punten toewijzen aan die speler
-                points[playersEqIndex2] = points[playersEqIndex2] + points2;
             }
+            //console.log(points);
+            //console.log(counterPoints);
+        }catch(e){
         }
 
         for(let i = 0; i < this.players.length; i++){
-            this.players[i][1] = points[i];
-        }
+            this.players[i].legsWon = points[i];
+            this.players[i].legsLost = counterPoints[i];
+            this.players[i].gamesPlayed = numGamesPlayed[i];
+            this.players[i].calculateHiddenPoints();
+        }  
 
         this.sort();
 
-        if(this.allGamesPlayed() && !this.winnerPrinted){
-            var playersCopy = [];
-            Array.prototype.push.apply(playersCopy, this.players);
-            playersCopy.sort(function(a,b){return(b[1]-a[1])})
+        if(this.allGamesPlayed() && !this.tieDetected){
+            if(!this.tieResolved){
+                this.checkTies();
+            }
+            if(this.tieDetected){
+                return -1;
+            }
+            if(numPoules == 1 && this.tieResolved){
+                var points1 = document.getElementById('M71Score').value;
+                var points2 = document.getElementById('M72Score').value;
+                points1 = parseInt(points1);
+                points2 = parseInt(points2);
 
-            this.winnerPrinted = true;
+                if(isNaN(points1)){
+                    points1 = 0;
+                }
+
+                if(isNaN(points2)){
+                    points2 = 0;
+                }
+
+                if(points1 > points2){
+                    this.winner = document.getElementById('M71Name').innerHTML;
+                    this.secondPlace = document.getElementById('M72Name').innerHTML;
+                }else if(points2 > points1){
+                    this.winner = document.getElementById('M72Name').innerHTML;
+                    this.secondPlace = document.getElementById('M71Name').innerHTML;
+                }
+                document.getElementById("M81Name").innerHTML = this.winner;
+            }else{
+                this.winner = this.rankings[0][0];
+                this.secondPlace = this.rankings[1][0];
+                this.winnerPrinted = true;
+            }
+        }
+    }
+
+    checkTies(){
+        let newTiedPlayers = this.isTie();
+        if(!this.tieDetected && newTiedPlayers.length != 0 && this.newTieDetected(newTiedPlayers, this.tiedPlayers)){
+            this.tieDetected = true;
+            this.tiedPlayers = newTiedPlayers;
+            if(numPoules == 1){
+                makeFinals(0);
+                $("#winnerTable").insertAfter("#finalsTable");
+                console.log(this.tiedPlayers);
+                document.getElementById('M71Name').innerHTML = this.tiedPlayers[0];
+                document.getElementById('M72Name').innerHTML = this.tiedPlayers[1];
+            }else{
+                this.drawTiedPoules();
+            }
         }
     }
 
     allGamesPlayed(){
+        if(this.tieDetected && numPoules > 1){
+            var tiedPoints1 = 0;
+            var tiedPoints2 = 0;
+
+            tiedPoints1 = document.getElementById(`tie${this.pouleNum}11Score`).value;
+            tiedPoints2 = document.getElementById(`tie${this.pouleNum}12Score`).value;
+            tiedPoints1 = parseInt(tiedPoints1);
+            tiedPoints2 = parseInt(tiedPoints2);
+
+            if(isNaN(tiedPoints1) || isNaN(tiedPoints2)){
+                return false;
+            }
+        }
+
         for(let i = 0; i < this.numGames; i++){
             var points1 = document.getElementById(`game${this.pouleNum}${i+1}1Score`).value;
             var points2 = document.getElementById(`game${this.pouleNum}${i+1}2Score`).value;
+            
+            points1 = parseInt(points1);
+            points2 = parseInt(points2);
+            
+            if(isNaN(points1) || isNaN(points2)){
+                return false;
+            }
+        }
+
+        if(numPoules == 1){
+            if(this.tieDetected){
+                var points1 = document.getElementById('M71Score').value;
+                var points2 = document.getElementById('M72Score').value;
+                points1 = parseInt(points1);
+                points2 = parseInt(points2);
+
+                if(isNaN(points1) || isNaN(points2)){
+                    return false;
+                }else{
+                    this.tieDetected = false;
+                    this.tieResolved = true;
+                }
+            }else{
+                //WERKT NOG NIET
+                //DE WINNAAR VAN DE FINALE WORDT DIRECT OP DE PAGINA GEPRINT
+                
+            }
+        }else if(this.tieDetected){
+            var points1 = document.getElementById(`tie${this.pouleNum}11Score`).value;
+            var points2 = document.getElementById(`tie${this.pouleNum}12Score`).value;
 
             points1 = parseInt(points1);
             points2 = parseInt(points2);
 
             if(isNaN(points1) || isNaN(points2)){
                 return false;
-            }
-        }
-
-        if(numPoules == 1 || tieBreakersEnabled){
-            let newTiedPlayers = this.isTie();
-            
-            if(newTiedPlayers.length != 0 && this.newTieDetected(this.tiedPlayers, newTiedPlayers)){
-                this.tiedPlayers = newTiedPlayers;
-                this.tieDetected = true;
-            }
-
-            if(this.tieDetected && numPoules == 1 && !this.finalsDrawn){
-                makeFinals(0);
-                $("#winnerTable").insertAfter("#finalsTable");
-                this.finalsDrawn = true;
-            }else if(this.tieDetected && tieBreakersEnabled){
-                this.drawTiedPoules();
-                for(let i = 0; i < this.numTiedGames; i++){
-                    var points1 = document.getElementById(`tie${this.pouleNum}${i+1}1Score`).value;
-                    var points2 = document.getElementById(`tie${this.pouleNum}${i+1}2Score`).value
-                    points1 = parseInt(points1);
-                    points2 = parseInt(points2)
-                    if(isNaN(points1) || isNaN(points2)){
-                        return false;
-                    }
-                }
             }else{
-                var playersCopy = [];
-                Array.prototype.push.apply(playersCopy, this.players);
-                playersCopy.sort(function(a,b){return b[1] - a[1]});
-                this.winner = playersCopy[0][0];
-                this.secondPlace = playersCopy[1][0];
-                if(!this.finalsDrawn){
-                    document.getElementById("M81Name").innerHTML = this.winner;
-                }
+                this.tieDetected = false;
+                this.tieResolved = true;
             }
         }else{
             var playersCopy = [];
             Array.prototype.push.apply(playersCopy, this.players);
-            playersCopy.sort(function(a,b){return b[1] - a[1]});
-            this.winner = playersCopy[0][0];
-            this.secondPlace = playersCopy[1][0];
+            playersCopy.sort(function(a,b){return b.legsWon - a.legsWon});
+            this.winner = playersCopy[0].name;
+            this.secondPlace = playersCopy[1].name;
         }
 
         return true;
@@ -895,74 +999,57 @@ class pouleGames{
         let pouleGamesDiv = document.getElementById(`poule${this.pouleNum}Games`);
         $(pouleGamesDiv).append(`<hr id="tieBreaker"><header class="pouleGamesHeader" id="tieBreaker"><h1 id="tieBreaker">Tiebreakers:</h1></header><hr><table class="pouleGamesTable" id="poule${this.pouleNum}TiedGames"></table>`);
         let tieBreakerTable = document.getElementById(`poule${this.pouleNum}TiedGames`);
-        switch(this.tiedPlayers.length){
-            case 2:
-                this.tiedGameFormat = [[0, 1]];
-            break;
-            case 3:
-                this.tiedGameFormat = [[0,1], [1,2], [0,2]];
-            break;
-            case 4:
-                this.tiedGameFormat = [[0,1], [0,2], [1,3], [0,3], [1,2], [2,3]];
-            break;
-            case 5:
-                this.tiedGameFormat = [[0,1], [0,2], [1,4], [3,4], [1,2], [2,3], [0,4], [1,3], [2,4], [0,3]]
-        }
-
-        if(this.tiedPlayers.length == 2){
-            this.numTiedGames = 1;
-        }else{
-            this.numTiedGames = (this.factorial(this.tiedPlayers.length)/(2*this.factorial(this.tiedPlayers.length-2)));
-        }
-
-        for(let i = 0; i < this.numTiedGames; i++){
-            $(tieBreakerTable).append(`<tr><td><p1 id="tie${this.pouleNum}${i+1}1Name">${this.tiedPlayers[this.tiedGameFormat[i][0]][0]}</p1></td><td><p1>-</p1></td><td><p1 id="tie${this.pouleNum}${i+1}2Name">${this.tiedPlayers[this.tiedGameFormat[i][1]][0]}</p1></td></tr>`);
-            $(tieBreakerTable).append(`<tr><td><input id="tie${this.pouleNum}${i+1}1Score" type="number" class="gameScore"></td><td><p1>-</p1></td><td><input id="tie${this.pouleNum}${i+1}2Score" type="number" class="gameScore"></td></tr>`);
-        }
+        
+        $(tieBreakerTable).append(`<tr><td><p1 id="tie${this.pouleNum}11Name">${this.tiedPlayers[0]}</p1></td><td><p1>-</p1></td><td><p1 id="tie${this.pouleNum}12Name">${this.tiedPlayers[1]}</p1></td></tr>`);
+        $(tieBreakerTable).append(`<tr><td><input id="tie${this.pouleNum}11Score" type="number" class="gameScore"></td><td><p1>-</p1></td><td><input id="tie${this.pouleNum}12Score" type="number" class="gameScore"></td></tr>`);
     }
 
     isTie(){
-        var playersCopy = [];
-        Array.prototype.push.apply(playersCopy, this.players);
-        playersCopy.sort(function(a,b){return b[1] - a[1]});
-
         let newTiedPlayers = [];
         if(!this.tieDetected){
-            var tiedScore;
-            for(let i = 0; i < numPlayers-1; i++){
-                if(playersCopy[i][1] == playersCopy[i+1][1] && (i==0 || i==1)){
-                    tiedScore = playersCopy[i][1];
-                    break;
+            var playersCopy = []
+            for(let i = 0; i < this.players.length; i++){
+                if(this.players[i].gamesPlayed != 0){
+                    playersCopy.push(this.players[i]);
                 }
             }
-
-            if(tiedScore == "0"){
+            if(playersCopy.length > 1){
+                playersCopy.sort(function(a,b){
+                    if(b.legsWon != a.legsWon){
+                        return(b.legsWon-a.legsWon);
+                    }else{
+                        return(b.hiddenPoints-a.hiddenPoints);
+                    }
+                });
+                for(let i = 0; i < 2%playersCopy.length; i++){
+                    if(playersCopy[i].legsWon == playersCopy[i+1].legsWon && playersCopy[i].legsWon != 0){
+                        console.log(`${playersCopy[i].name} and ${playersCopy[i+1].name} are tied`);
+                        console.log(`${playersCopy[i].legsWon} - ${playersCopy[i+1].legsWon} | ${playersCopy[i].hiddenPoints} - ${playersCopy[i+1].hiddenPoints}`);
+                        newTiedPlayers = [playersCopy[i].name, playersCopy[i+1].name];
+                        break;
+                    }
+                }
                 return newTiedPlayers;
-            }
-
-            for(let i = 0; i < numPlayers; i++){
-                if(playersCopy[i][1] == tiedScore){
-                    newTiedPlayers.push(playersCopy[i]);
-                }
+            }else{
+                return [];
             }
         }
-
-        return newTiedPlayers;
     }
 
     reloadPlayers(){
         for(let i = 0; i < this.numGames; i++){
-            document.getElementById(`game${this.pouleNum}${i+1}1Name`).innerHTML = this.players[this.gameFormat[i][0]][0];
-            document.getElementById(`game${this.pouleNum}${i+1}2Name`).innerHTML = this.players[this.gameFormat[i][1]][0];
+            document.getElementById(`game${this.pouleNum}${i+1}1Name`).innerHTML = this.players[this.gameFormat[i][0]].name;
+            document.getElementById(`game${this.pouleNum}${i+1}2Name`).innerHTML = this.players[this.gameFormat[i][1]].name;
         }
     }
 
     //Hidden points zijn de punten die niet worden getoond in de tabel met de ranks,
     //maar wel gebruikt worden voor het bepalen van de positie van de spelers in de ranks.
     //Op basis van het aantal punten per dart (PPD).
-    calculateHiddenPoints(gameID, player1PPD, player2PPD){
-        console.log(`Game id: ${gameID}`);
-        console.log(gameID[1]);
+    calculateHiddenPoints(){
+        for(let i = 0; i < this.players.length; i++){
+            players[i].calculateHiddenPoints();
+        }
     }
 }
 
@@ -975,7 +1062,6 @@ async function updateAvailable(msg){
     let downloadUrl = msg[0];
     let fileName = msg[1];
     savePath = ipcRenderer.sendSync('downloadPath') + `/${fileName}`;
-    console.log(`Selected save directory: ${savePath}`);
     $(document.getElementById('updateDiv')).hide();
     $(document.getElementById('progressDiv')).show();
     await download(downloadUrl, savePath, (bytes, percent) => updateProgress(percent));
@@ -988,7 +1074,6 @@ async function updateAvailable(msg){
         let quitBtn = document.getElementById('quit');
 
         installBtn.addEventListener('click', function(){
-            console.log("Quit Windows");
             const handle = spawn(savePath, {
                 detached: true,
                 stdio: [null, null, null, 'ipc']
@@ -1008,7 +1093,6 @@ async function updateAvailable(msg){
         document.getElementById('updatePath').innerHTML = savePath;
         let quitBtn = document.getElementById('quitLinux');
         quitBtn.addEventListener('click', function(){
-            console.log("Quit");
             ipcRenderer.send("klaarErmee");
         });
     }
@@ -1078,7 +1162,7 @@ async function streamWithProgress(length, reader, writer, progressCallback) {
 }
 
 function continueToGame(){
-    tieBreakersEnabled = document.getElementById('tieBreakerCheckbox').checked;
+    tieBreakersEnabled = true;
 
     const newGameBtn = document.getElementById('newGameBtn');
     newGameBtn.onclick = drawSetup;
@@ -1120,8 +1204,6 @@ function showQR(){
     qr.toCanvas(canvas, qrText, opts, function(error){
         if(error){
             console.log(error);
-        }else{
-            console.log("QR code generated");
         }
     });
 }
@@ -1375,10 +1457,6 @@ function loadGame(){
         res.writeHead(301, {"Location": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"});
         return res.end();
     }
-    const webserver = http.createServer(requestListener);
-    webserver.listen(8000, () => {
-        console.log(`Server listening on http://${address()}:80`);
-    });
 
     io.emit('pouleInfo', exportGameInfo(false));
 }
@@ -1410,7 +1488,9 @@ function loadPoulGames(pouleLetter, jsonObj){
         let playerName = jsonObj["poules"][indexInJson][`poule${pouleLetter}`][1]["players"][i]["name"];
         let playerScore = jsonObj["poules"][indexInJson][`poule${pouleLetter}`][1]["players"][i]["points"];
 
-        pouleToEdit.players.push([playerName, playerScore]);
+        let newPlayer = new player(playerName);
+        newPlayer.legsWon = playerScore;
+        pouleToEdit.players.push(newPlayer);
     }
 
     pouleToEdit.makePoule();
@@ -1429,7 +1509,7 @@ function loadPoulGames(pouleLetter, jsonObj){
     }
     let playerSettingsForm = document.getElementById('playerSettingForm');
     for(var i = 0; i < pouleToEdit.players.length; i++){
-        let input = $(`<input id="player${pouleLetter}${i}Input" class="settingInput" type="text" value="${pouleToEdit.players[i][0]}"></br>`)
+        let input = $(`<input id="player${pouleLetter}${i}Input" class="settingInput" type="text" value="${pouleToEdit.players[i].name}"></br>`)
         $(playerSettingsForm).append(input)
     }
 }
@@ -1573,17 +1653,13 @@ function makePoules(){
         if(PLAYERS_PER_POULE - PLAYERS_PER_POULE_ROUNDED > 0){
             for(let i = 0; i < numPlayers-1; i++){
                 if(i < PLAYERS_PER_POULE_ROUNDED){
-                    var tempArray = [players[i], 0];
-                    pouleA.players.push(tempArray);
+                    pouleA.players.push(new player(players[i]));
                 }else if(PLAYERS_PER_POULE_ROUNDED <= i && i < (2*PLAYERS_PER_POULE_ROUNDED)){
-                    var tempArray = [players[i], 0];
-                    pouleB.players.push(tempArray);
+                    pouleB.players.push(new player(players[i]));
                 }else if((2*PLAYERS_PER_POULE_ROUNDED) <= i && i < (3*PLAYERS_PER_POULE_ROUNDED)){
-                    var tempArray = [players[i], 0];
-                    pouleC.players.push(tempArray);
+                    pouleC.players.push(new player(players[i]));
                 }else if((3*PLAYERS_PER_POULE_ROUNDED) <= i && i < (4*PLAYERS_PER_POULE_ROUNDED)){
-                    var tempArray = [players[i], 0];
-                    pouleD.players.push(tempArray);
+                    pouleD.players.push(new player(players[i]));
                 }
             }
 
@@ -1597,36 +1673,31 @@ function makePoules(){
             }else if(numPoules == 4){
                 randomNumber = Math.floor(Math.random()*4);
             }
-            let playerArray = [players[numPlayers-1], 0];
 
             switch(randomNumber){
                 case 0:
-                    pouleA.players.push(playerArray);
+                    pouleA.players.push(new player(players[numPlayers - 1]));
                 break;
                 case 1:
-                    pouleB.players.push(playerArray);
+                    pouleB.players.push(new player(players[numPlayers - 1]));
                 break;
                 case 2:
-                    pouleC.players.push(playerArray);
+                    pouleC.players.push(new player(players[numPlayers - 1]));
                 break;
                 case 3:
-                    pouleD.players.push(playerArray);
+                    pouleD.players.push(new player(players[numPlayers - 1]));
                 break;
             }
         }else{
             for(let i = 0; i < numPlayers; i++){
                 if(i < PLAYERS_PER_POULE_ROUNDED){
-                    var tempArray = [players[i], 0];
-                    pouleA.players.push(tempArray);
+                    pouleA.players.push(new player(players[i]));
                 }else if(PLAYERS_PER_POULE_ROUNDED <= i && i < (2*PLAYERS_PER_POULE_ROUNDED)){
-                    var tempArray = [players[i], 0];
-                    pouleB.players.push(tempArray);
+                    pouleB.players.push(new player(players[i]));
                 }else if((2*PLAYERS_PER_POULE_ROUNDED) <= i && i < (3*PLAYERS_PER_POULE_ROUNDED)){
-                    var tempArray = [players[i], 0];
-                    pouleC.players.push(tempArray);
+                    pouleC.players.push(new player(players[i]));
                 }else if((3*PLAYERS_PER_POULE_ROUNDED) <= i && i < (4*PLAYERS_PER_POULE_ROUNDED)){
-                    var tempArray = [players[i], 0];
-                    pouleD.players.push(tempArray);
+                    pouleD.players.push(new player(players[i]));
                 }
             }
         }
@@ -1644,7 +1715,7 @@ function makePoules(){
             pouleA.makePoule();
             pouleA.makeGames();
             for(var i = 0; i < pouleA.players.length; i++){
-                let input = $(`<input id="playerA${i}Input" class="settingInput" type="text" value="${pouleA.players[i][0]}"></br>`)
+                let input = $(`<input id="playerA${i}Input" class="settingInput" type="text" value="${pouleA.players[i].name}"></br>`)
                 $(playerSettingsForm).append(input)
             }
             if(shouldBePrinted){
@@ -1657,7 +1728,7 @@ function makePoules(){
             pouleB.makePoule();
             pouleB.makeGames();
             for(var i = 0; i < pouleB.players.length; i++){
-                let input = $(`<input id="playerB${i}Input" class="settingInput" type="text" value="${pouleB.players[i][0]}"></br>`)
+                let input = $(`<input id="playerB${i}Input" class="settingInput" type="text" value="${pouleB.players[i].name}"></br>`)
                 $(playerSettingsForm).append(input)
             }
             if(shouldBePrinted){
@@ -1670,7 +1741,7 @@ function makePoules(){
             pouleC.makePoule();
             pouleC.makeGames();
             for(var i = 0; i < pouleC.players.length; i++){
-                let input = $(`<input id="playerC${i}Input" class="settingInput" type="text" value="${pouleC.players[i][0]}"></br>`)
+                let input = $(`<input id="playerC${i}Input" class="settingInput" type="text" value="${pouleC.players[i].name}"></br>`)
                 $(playerSettingsForm).append(input)
             }
             if(shouldBePrinted){
@@ -1683,7 +1754,7 @@ function makePoules(){
             pouleD.makePoule();
             pouleD.makeGames();
             for(var i = 0; i < pouleD.players.length; i++){
-                let input = $(`<input id="playerD${i}Input" class="settingInput" type="text" value="${pouleD.players[i][0]}"></br>`)
+                let input = $(`<input id="playerD${i}Input" class="settingInput" type="text" value="${pouleD.players[i].name}"></br>`)
                 $(playerSettingsForm).append(input)
             }
             if(shouldBePrinted){
@@ -2161,19 +2232,14 @@ function exportGameInfo(writeToFile = true, quickSave = false){
 
     if(quickSave){
         let today = new Date();
-        console.log("Quicksaving...");
         
         fs.access(path.join(__dirname, 'quicksaves'), (err) => {
             if(err){
                 fs.mkdirSync(path.join(__dirname, 'quicksaves'), (err) => {
                     if(err){
                         console.log(`Error creating quicksaves folder: ${err}`);
-                    }else{
-                        console.log("Created quicksaves folder");
                     }
                 });
-            }else{
-                console.log("Quicksaves folder exists");
             }
         });
         fs.readdir(path.join(__dirname, 'quicksaves'), (err, files) => {
@@ -2186,27 +2252,19 @@ function exportGameInfo(writeToFile = true, quickSave = false){
                             fs.unlink(path.join(__dirname, 'quicksaves', files[i]), (err) => {
                                 if(err){
                                     console.log(`Error deleting quicksave: ${err}`);
-                                }else{
-                                    console.log(`Deleted quicksave: ${files[i]}`);
                                 }
                             });
-                        }else{
-                            console.log(`Skipping file: ${files[i]}`);
                         }
                     }
-                }else{
-                    console.log("No quicksaves found");
                 }
             }
         });
         gameFileName = path.join(__dirname, 'quicksaves', `${today.getDay()}-${today.getMonth()}-${today.getFullYear()}_${today.getHours()}-${today.getMinutes()}-${today.getSeconds()}.darts`);
-        console.log(`Quicksaving to: ${gameFileName}`);
     }
 
     var jsonObj = {"poules":[], "games":[], "appSettings":[]};
 
     if(pouleExists(pouleA)){
-        console.log("Poule A exists");
         jsonObj["poules"].push({"pouleA":[]})
         jsonObj["poules"][0]["pouleA"].push({"numPlayers": pouleA.players.length})
         jsonObj["poules"][0]["pouleA"].push({"players":[]});
@@ -2225,7 +2283,6 @@ function exportGameInfo(writeToFile = true, quickSave = false){
         jsonObj["poules"][0]["pouleA"].push({"games":[]});
 
         for(let i = 0; i < pouleA.numGames; i++){
-            console.log("Poule A game " + i);
             var player1 = document.getElementById(`gameA${i+1}1Name`).innerHTML;
             var score1 = document.getElementById(`gameA${i+1}1Score`).value;
             var player2 = document.getElementById(`gameA${i+1}2Name`).innerHTML;
@@ -2244,7 +2301,6 @@ function exportGameInfo(writeToFile = true, quickSave = false){
 
             jsonObj["poules"][0]["pouleA"][2]["games"].push({"player1": player1, "score1": score1, "player2": player2, "score2": score2});
         }
-        console.log("Poule A exported");
     }
 
     if(pouleExists(pouleB)){
@@ -2444,8 +2500,6 @@ function exportGameInfo(writeToFile = true, quickSave = false){
         fs.writeFile(path.resolve(gameFileName), JSON.stringify(jsonObj, null, 4), function(err){
             if(err){
                 console.log(err);
-            }else{
-                console.log(`Game saved to ${gameFileName}.`);
             }
         });
     }
@@ -2644,9 +2698,6 @@ function openNewWindow(){
                 activeGameData.push(gameDataTempArray);
             }
 
-            console.log(activeGameData);
-            console.log(`Number of active games: ${activeGameData.length}`);
-
             ipcRenderer.send("sendAlreadyActiveGames", activeGameData);
         }
         
@@ -2663,7 +2714,6 @@ function openNewWindow(){
         if(pouleExists(pouleD)){
             poulesData.push(pouleD.rankings);
         }
-        console.log(poulesData);
         ipcRenderer.send('returnPouleData', poulesData);
     }
 }
