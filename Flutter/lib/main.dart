@@ -645,8 +645,10 @@ class _PouleScreenState extends State<PouleScreen> {
     }
 
     games.clear();
+    print('Checking: ${data[1]}');
     for (var i = 0; i < data[1].length; i++) {
       String gameID = activePoule + (i + 1).toString();
+      print("GameID: $gameID");
       games.add(PouleGames(
           gameID: gameID,
           player1: data[1][i][0],
