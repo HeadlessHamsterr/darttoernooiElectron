@@ -376,6 +376,7 @@ io.on('connection', (socket) => {
     });
     socket.on('activeGameInfo', (data) => {
         var dataArray = data.split(',');
+        console.log(dataArray);
         var activeGamesArray = [];
         for(let i = 0; i < dataArray.length; i++){
             activeGamesArray.push(dataArray[i]);
@@ -713,20 +714,20 @@ class pouleGames{
         this.rankings = []
         for(let i = 0; i < this.players.length; i++){
             if(this.players[i].gamesPlayed != 0){
-                let tempArray = [this.players[i].name, this.players[i].hiddenPoints, this.players[i].legsWon];
+                let tempArray = [this.players[i].name, this.players[i].legsWon, this.players[i].hiddenPoints];
                 this.rankings.push(tempArray);
             }
         }
         this.rankings.sort(function(a,b){
-            if(b[2] != a[2]){
-                return(b[2]-a[2]);
-            }else{
+            if(b[1] != a[1]){
                 return(b[1]-a[1]);
+            }else{
+                return(b[2]-a[2]);
             }
         });
         for(let i = 0; i < this.players.length; i++){
             if(this.players[i].gamesPlayed == 0){
-                let tempArray = [this.players[i].name, this.players[i].hiddenPoints, this.players[i].legsWon];
+                let tempArray = [this.players[i].name, this.players[i].legsWon, this.players[i].hiddenPoints];
                 this.rankings.push(tempArray);
             }
         }
@@ -742,7 +743,7 @@ class pouleGames{
                 this.rankings[i][1] = 0;
             }
 
-            var tableEntry = $(`<tr><td>${this.rankings[i][0]}</td><td>${this.rankings[i][2]}</td></tr>`);
+            var tableEntry = $(`<tr><td>${this.rankings[i][0]}</td><td>${this.rankings[i][1]}</td></tr>`);
             $(pouleTable).append(tableEntry);
         }
 
@@ -779,6 +780,30 @@ class pouleGames{
             var tempArray = [player1, player2, gamePlayed];
             games.push(tempArray);
         }
+        if(this.tieDetected){
+            let player1 = document.getElementById(`game${this.pouleNum}${this.numGames+1}1Name`).innerHTML;
+            let player2 = document.getElementById(`game${this.pouleNum}${this.numGames+1}2Name`).innerHTML;
+            let score1 = document.getElementById(`game${this.pouleNum}${this.numGames+1}1Score`).value;
+            let score2 = document.getElementById(`game${this.pouleNum}${this.numGames+1}2Score`).value;
+
+            var gamePlayed = true;
+            var gameActive = false;
+
+            for(let j=0; j < activeGames.length; j++){
+                if(activeGames[j][0] == `${this.pouleNum}${this.numGames+1}`){
+                    gameActive = true;
+                    break;
+                }
+            }
+
+            if(!score1 && !score2 && !gameActive){
+                gamePlayed = false;
+            }
+
+            var tempArray = [player1, player2, gamePlayed];
+            games.push(tempArray);
+        }
+        console.log(games);
         return games;
     }
 
@@ -821,8 +846,8 @@ class pouleGames{
         }
 
         try{
-            var points1 = document.getElementById(`tie${this.pouleNum}11Score`).value;
-            var points2 = document.getElementById(`tie${this.pouleNum}12Score`).value;
+            var points1 = document.getElementById(`game${this.pouleNum}${this.numGames+1}1Score`).value;
+            var points2 = document.getElementById(`game${this.pouleNum}${this.numGames+1}2Score`).value;
 
             points1 = parseInt(points1);
             points2 = parseInt(points2);
@@ -837,10 +862,8 @@ class pouleGames{
 
             for(let i = 0; i < this.players.length; i++){
                 if(this.players[i].name == this.tiedPlayers[0]){
-                    console.log("Player 1 found");
                     points[i] += points1;
                 }else if(this.players[i].name == this.tiedPlayers[1]){
-                    console.log("Player 2 found");
                     points[i] += points2;
                 }
             }
@@ -913,7 +936,7 @@ class pouleGames{
     }
 
     allGamesPlayed(){
-        if(this.tieDetected && numPoules > 1){
+        /*if(this.tieDetected && numPoules > 1){
             var tiedPoints1 = 0;
             var tiedPoints2 = 0;
 
@@ -925,7 +948,7 @@ class pouleGames{
             if(isNaN(tiedPoints1) || isNaN(tiedPoints2)){
                 return false;
             }
-        }
+        }*/
 
         for(let i = 0; i < this.numGames; i++){
             var points1 = document.getElementById(`game${this.pouleNum}${i+1}1Score`).value;
@@ -952,14 +975,10 @@ class pouleGames{
                     this.tieDetected = false;
                     this.tieResolved = true;
                 }
-            }else{
-                //WERKT NOG NIET
-                //DE WINNAAR VAN DE FINALE WORDT DIRECT OP DE PAGINA GEPRINT
-                
             }
         }else if(this.tieDetected){
-            var points1 = document.getElementById(`tie${this.pouleNum}11Score`).value;
-            var points2 = document.getElementById(`tie${this.pouleNum}12Score`).value;
+            var points1 = document.getElementById(`game${this.pouleNum}${this.numGames+1}1Score`).value;
+            var points2 = document.getElementById(`game${this.pouleNum}${this.numGames+1}2Score`).value;
 
             points1 = parseInt(points1);
             points2 = parseInt(points2);
@@ -1000,8 +1019,11 @@ class pouleGames{
         $(pouleGamesDiv).append(`<hr id="tieBreaker"><header class="pouleGamesHeader" id="tieBreaker"><h1 id="tieBreaker">Tiebreakers:</h1></header><hr><table class="pouleGamesTable" id="poule${this.pouleNum}TiedGames"></table>`);
         let tieBreakerTable = document.getElementById(`poule${this.pouleNum}TiedGames`);
         
-        $(tieBreakerTable).append(`<tr><td><p1 id="tie${this.pouleNum}11Name">${this.tiedPlayers[0]}</p1></td><td><p1>-</p1></td><td><p1 id="tie${this.pouleNum}12Name">${this.tiedPlayers[1]}</p1></td></tr>`);
-        $(tieBreakerTable).append(`<tr><td><input id="tie${this.pouleNum}11Score" type="number" class="gameScore"></td><td><p1>-</p1></td><td><input id="tie${this.pouleNum}12Score" type="number" class="gameScore"></td></tr>`);
+        $(tieBreakerTable).append(`<tr><td><p1 id="game${this.pouleNum}${this.numGames+1}1Name">${this.tiedPlayers[0]}</p1></td><td><p1>-</p1></td><td><p1 id="game${this.pouleNum}${this.numGames+1}2Name">${this.tiedPlayers[1]}</p1></td></tr>`);
+        $(tieBreakerTable).append(`<tr><td><input id="game${this.pouleNum}${this.numGames+1}1Score" type="number" class="gameScore"></td><td><p1>-</p1></td><td><input id="game${this.pouleNum}${this.numGames+1}2Score" type="number" class="gameScore"></td></tr>`);
+        
+        let msg = [this.rankings, this.sendPouleGames(), 'poule'];
+        io.emit(`poule${this.pouleNum}Ranks`, msg);
     }
 
     isTie(){
@@ -1257,14 +1279,11 @@ function returnToHome(){
     numPoules = 0;
 
     $(document.getElementById('gameSetup')).hide();
-    $(document.getElementById('controlBtnDiv')).hide();
     $(document.getElementById('gameDiv')).hide();
     $(document.getElementById('poulesDiv')).hide();
     $(document.getElementById('playerInputDiv')).hide();
-    $(document.getElementById('sideNavMenusDiv')).hide();
-    $(document.getElementById('saveBtnDiv')).hide();
-    $(document.getElementById('exportBtnDiv')).hide();
-    $(document.getElementById('ipAddressDiv')).hide();
+    closeNav();
+    $(document.getElementById('controlBtnDiv')).hide();
     $(document.getElementById('gameOptionsWrapper')).show();
 }
 
@@ -1307,10 +1326,10 @@ function loadGame(){
     //$(returnBtn).show();
     //$(document.getElementById('appSettingForm')).hide();
     $(document.getElementById('controlBtnDiv')).show();
-    $(document.getElementById('saveBtnDiv')).show();
-    $(document.getElementById('exportBtnDiv')).show();
-    $(document.getElementById('returnBtnDiv')).show();
+    $(document.getElementById('saveBtn')).show();
+    $(document.getElementById('exportBtn')).show();
     $(document.getElementById('ipAddressDiv')).show();
+    $(document.getElementById('sideNavMenusDiv')).show();
     $(document.getElementById('mainRosterDiv')).show();
     $(document.getElementById('mainRosterSubDiv')).show();
     $(document.getElementById('gameDiv')).show();
@@ -1637,9 +1656,11 @@ function makePoules(){
         //$(document.getElementById('controlBtnDiv')).show();
         //$(saveBtn).show();
         //$(document.getElementById('appSettingForm')).hide();
-        $(document.getElementById('saveBtnDiv')).show();
-        $(document.getElementById('exportBtnDiv')).show();
+
+        $(document.getElementById('saveBtn')).show();
+        $(document.getElementById('exportBtn')).show();
         $(document.getElementById('ipAddressDiv')).show();
+        $(document.getElementById('sideNavMenusDiv')).show();
 
         var poulesDiv = document.getElementById('poulesDiv');
 
@@ -1807,25 +1828,29 @@ function makePoulesWithPan(){
                 case 0:
                     playerName = document.getElementById(`playerA${j}`).value;
                     if(playerName != ""){
-                        pouleA.players.push([playerName, 0]);
+                        let tempPlayer = new player(playerName);
+                        pouleA.players.push(tempPlayer);
                     }
                 break;
                 case 1:
                     playerName = document.getElementById(`playerB${j}`).value;
                     if(playerName != ""){
-                        pouleB.players.push([playerName, 0]);
+                        let tempPlayer = new player(playerName);
+                        pouleB.players.push(tempPlayer);
                     }
                 break;
                 case 2:
                     playerName = document.getElementById(`playerC${j}`).value;
                     if(playerName != ""){
-                        pouleC.players.push([playerName, 0]);
+                        let tempPlayer = new player(playerName);
+                        pouleC.players.push(tempPlayer);
                     }
                 break;
                 case 3:
                     playerName = document.getElementById(`playerD${j}`).value;
                     if(playerName != ""){
-                        pouleD.players.push([playerName, 0]);
+                        let tempPlayer = new player(playerName);
+                        pouleD.players.push(tempPlayer);
                     }
                 break;
             }
