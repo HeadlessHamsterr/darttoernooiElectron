@@ -5,6 +5,7 @@ import 'package:flutter/rendering.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:scan/scan.dart';
+import 'package:Darttoernooi/size_config.dart';
 
 String serverIP = '';
 String activePoule = '';
@@ -15,15 +16,17 @@ late IO.Socket socket;
 enum ChosenPlayerEnum { player1, player2, undefined }
 List activeGameInfo = [];
 ChosenPlayerEnum activeStartingPlayer = ChosenPlayerEnum.undefined;
-double numBtnWidth = 100;
-double numBtnHeigth = 70;
-double sideBtnWidth = 68;
-double sideBtnHeigth = 70;
+double numBtnWidth = 26.04;
+double numBtnHeigth = 8.57;
+double sideBtnWidth = 17.71;
+double sideBtnHeigth = 8.58;
 const PRIMARY_COLOR = 0xFF4A0000;
 const DEFAULT_BTN_COLOR = 0xFF4A0000;
 const BACKGROUND_COLOR = 0xFF181818;
 bool firstStart = false;
 bool gameActive = false;
+double horizontalScaling = 0;
+double verticalScaling = 0;
 
 List<String> possibleOuts = [
   'T20 T20 BULL',
@@ -345,6 +348,11 @@ class StartScreen extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFF181818),
       ),
       home: Builder(builder: (context) {
+        sizeConfig.init(context);
+        horizontalScaling = sizeConfig.blockSizeHorizontal;
+        verticalScaling = sizeConfig.blockSizeVertical;
+        print("Horizontal scaling : $horizontalScaling");
+        print("Vertical scaling: $verticalScaling");
         return Scaffold(
             appBar: AppBar(
               title: const Text('Darttoernooi companion'),
@@ -390,8 +398,12 @@ class startScreenBody extends StatelessWidget {
     final result = await Navigator.push(
         context, MaterialPageRoute(builder: (context) => const qrScanScreen()));
     print(result);
-    ipAddressController.text = result;
-    enterIP(context);
+    try {
+      ipAddressController.text = result;
+      enterIP(context);
+    } catch (e) {
+      print(e);
+    }
   }
 
   @override
@@ -743,8 +755,8 @@ class _PouleScreenState extends State<PouleScreen> {
                             return IgnorePointer(
                               ignoring: currentGame.gamePlayed,
                               child: Container(
-                                width: 200,
-                                height: 60,
+                                width: 52.08 * horizontalScaling,
+                                height: 7.35 * verticalScaling,
                                 padding: const EdgeInsets.fromLTRB(0, 10, 0, 0),
                                 child: ElevatedButton(
                                     style: ElevatedButton.styleFrom(
@@ -920,6 +932,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             ScaffoldMessenger.of(widget.context).showSnackBar(
               const SnackBar(content: Text("Geen score ingevuld")),
             );
+            break;
           } else if (player1.thrownScore == 'BUST') {
             player1.dartsThrown += numDarts;
             player1.scoresThrownHistory.add(0);
@@ -934,6 +947,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                   duration: const Duration(seconds: 5),
                 ),
               );
+              break;
             } else if (int.parse(player1.thrownScore) / numDarts > 60) {
               ScaffoldMessenger.of(widget.context).showSnackBar(
                 SnackBar(
@@ -943,13 +957,18 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                   duration: const Duration(seconds: 5),
                 ),
               );
+              break;
             } else if (player1.thrownScore != '0') {
-              player1.currentScore -= int.parse(player1.thrownScore);
-              player1.scoresThrownHistory.add(int.parse(player1.thrownScore));
-              player1.myTurn = false;
               player1.dartsThrown += numDarts;
               player1.dartsThrownHistory.add(numDarts);
-              player2.thrownScore = '';
+              player1.scoresThrownHistory.add(int.parse(player1.thrownScore));
+              if (player1.currentScore == int.parse(player1.thrownScore)) {
+                endLeg(widget.game.player1, player1);
+              } else {
+                player1.currentScore -= int.parse(player1.thrownScore);
+                player1.myTurn = false;
+                player2.thrownScore = '';
+              }
             } else {
               player1.myTurn = false;
               player1.scoresThrownHistory.add(int.parse(player1.thrownScore));
@@ -962,15 +981,11 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             player1.totalPointsThisLeg += int.parse(player1.thrownScore);
             player1.totalPointsThisGame += int.parse(player1.thrownScore);
 
-            if (player1.currentScore == 0) {
-              endLeg(widget.game.player1, player1);
+            sendCurrentScores(false);
+            if (170 - player1.currentScore >= 0) {
+              player1.possibleOut = possibleOuts[170 - player1.currentScore];
             } else {
-              sendCurrentScores(false);
-              if (170 - player1.currentScore >= 0) {
-                player1.possibleOut = possibleOuts[170 - player1.currentScore];
-              } else {
-                player1.possibleOut = '';
-              }
+              player1.possibleOut = '';
             }
           }
         } else {
@@ -999,12 +1014,16 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                 ),
               );
             } else if (player2.thrownScore != '0') {
-              player2.currentScore -= int.parse(player2.thrownScore);
-              player2.scoresThrownHistory.add(int.parse(player2.thrownScore));
               player2.dartsThrown += numDarts;
               player2.dartsThrownHistory.add(numDarts);
-              player1.myTurn = true;
-              player1.thrownScore = '';
+              player2.scoresThrownHistory.add(int.parse(player2.thrownScore));
+              if (player2.currentScore == int.parse(player2.thrownScore)) {
+                endLeg(widget.game.player2, player2);
+              } else {
+                player2.currentScore -= int.parse(player2.thrownScore);
+                player1.myTurn = true;
+                player1.thrownScore = '';
+              }
             } else {
               player2.scoresThrownHistory.add(int.parse(player2.thrownScore));
               player2.dartsThrown += numDarts;
@@ -1018,15 +1037,11 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             player2.totalPointsThisLeg += int.parse(player2.thrownScore);
             player2.totalPointsThisGame += int.parse(player2.thrownScore);
 
-            if (player2.currentScore == 0) {
-              endLeg(widget.game.player2, player2);
+            sendCurrentScores(false);
+            if (170 - player2.currentScore >= 0) {
+              player2.possibleOut = possibleOuts[170 - player2.currentScore];
             } else {
-              sendCurrentScores(false);
-              if (170 - player2.currentScore >= 0) {
-                player2.possibleOut = possibleOuts[170 - player2.currentScore];
-              } else {
-                player2.possibleOut = '';
-              }
+              player2.possibleOut = '';
             }
           }
         }
@@ -1069,17 +1084,28 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             );
             player2.thrownScore = '';
           } else {
-            player1.thrownScore = 'Standaard';
             player1.dartsThrown += numDarts;
-            player1.currentScore -= 26;
-            player1.scoresThrownHistory.add(26);
+            player1.dartsThrownHistory.add(numDarts);
             player1.turnsThisGame += 1;
             player1.turnsThisLeg += 1;
-            player1.totalPointsThisGame += 26;
-            player1.totalPointsThisLeg += 26;
-            player2.thrownScore = '';
-            player1.myTurn = false;
-            player2.myTurn = true;
+            player1.scoresThrownHistory.add(26);
+            if (player1.currentScore == 26) {
+              endLeg(widget.game.player1, player1);
+            } else {
+              player1.thrownScore = 'Standaard';
+              player1.currentScore -= 26;
+              player1.totalPointsThisGame += 26;
+              player1.totalPointsThisLeg += 26;
+              player2.thrownScore = '';
+              player1.myTurn = false;
+              player2.myTurn = true;
+            }
+            sendCurrentScores(false);
+            if (170 - player1.currentScore >= 0) {
+              player1.possibleOut = possibleOuts[170 - player1.currentScore];
+            } else {
+              player1.possibleOut = '';
+            }
           }
         } else if (player2.myTurn && player2.thrownScore == '') {
           if (player2.currentScore < 26) {
@@ -1088,20 +1114,31 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             );
             player1.thrownScore = '';
           } else {
-            player2.thrownScore = 'Standaard';
             player2.dartsThrown += numDarts;
-            player2.currentScore -= 26;
+            player2.dartsThrownHistory.add(numDarts);
             player2.scoresThrownHistory.add(26);
             player2.turnsThisGame += 1;
             player2.turnsThisLeg += 1;
-            player2.totalPointsThisGame += 26;
-            player2.totalPointsThisLeg += 26;
-            player1.thrownScore = '';
-            player2.myTurn = false;
-            player1.myTurn = true;
+
+            if (player2.currentScore == 26) {
+              endLeg(widget.game.player2, player2);
+            } else {
+              player2.currentScore -= 26;
+              player2.scoresThrownHistory.add(26);
+              player2.totalPointsThisGame += 26;
+              player2.totalPointsThisLeg += 26;
+              player1.thrownScore = '';
+              player2.myTurn = false;
+              player1.myTurn = true;
+            }
+            sendCurrentScores(false);
+            if (170 - player2.currentScore >= 0) {
+              player2.possibleOut = possibleOuts[170 - player2.currentScore];
+            } else {
+              player2.possibleOut = '';
+            }
           }
         }
-        sendCurrentScores(false);
         break;
       default:
         if (player1.myTurn) {
@@ -1155,6 +1192,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
   void endGame(String winner) {
     showDialog<String>(
       context: widget.context,
+      barrierDismissible: false,
       builder: (BuildContext context) => AlertDialog(
         title: Text("Heeft $winner de wedstrijd gewonnen?"),
         actions: <Widget>[
@@ -1170,6 +1208,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
               String msg =
                   "${widget.game.gameID},${player1.legsWon.toString()},${player2.legsWon.toString()},${player1.gameAverage},${player2.gameAverage},${player1.dartsThrown},${player2.dartsThrown}";
               socket.emit('gamePlayed', msg);
+              activeStartingPlayer = ChosenPlayerEnum.undefined;
               gameStarted = false;
               Navigator.pop(context, 'Bevestigd');
               Navigator.of(widget.context).push(
@@ -1187,6 +1226,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
   void endLeg(String winnerName, PlayerClass winnerType) {
     showDialog<String>(
       context: widget.context,
+      barrierDismissible: false,
       builder: (BuildContext context) => AlertDialog(
         title: Text("Heeft $winnerName de leg gewonnen?"),
         content: Text(
@@ -1195,7 +1235,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
           TextButton(
             onPressed: () {
               sendCurrentScores(false);
-              resetLastScore(winnerType);
+              resetLastScore(winnerType, resetScore: false);
               Navigator.pop(context, 'Cancel');
             },
             child: const Text("Annuleren"),
@@ -1266,8 +1306,11 @@ class _PouleGameBodyState extends State<PouleGameBody> {
     });
   }
 
-  void resetLastScore(PlayerClass player) {
+  void resetLastScore(PlayerClass player, {bool resetScore = true}) {
     if (player.scoresThrownHistory.isNotEmpty) {
+      if (resetScore) {
+        player.currentScore += player.scoresThrownHistory.removeLast();
+      }
       player.totalPointsThisGame -= player.scoresThrownHistory.last;
       player.totalPointsThisLeg -= player.scoresThrownHistory.last;
       player.turnsThisGame -= 1;
@@ -1282,8 +1325,10 @@ class _PouleGameBodyState extends State<PouleGameBody> {
         player.gameAverage = 0;
       }
 
-      player.currentScore += player.scoresThrownHistory.removeLast();
+      
+
       player.dartsThrown -= player.dartsThrownHistory.removeLast();
+
       player.thrownScore = '';
       if (170 - player.currentScore >= 0) {
         player.possibleOut = possibleOuts[170 - player.currentScore];
@@ -1346,9 +1391,9 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                     child: Text(
                       widget.game.player1 +
                           ' (${player1.dartsThrown.toString()})',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
-                        fontSize: 20,
+                        fontSize: 5.21 * horizontalScaling,
                       ),
                     ),
                   ),
@@ -1359,27 +1404,27 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                         Center(
                           child: Text(
                             player1.legsWon.toString(),
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Colors.white,
-                              fontSize: 20,
+                              fontSize: 5.21 * horizontalScaling,
                             ),
                           ),
                         ),
-                        const Center(
+                        Center(
                           child: Text(
                             "Legs",
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 20,
+                              fontSize: 5.21 * horizontalScaling,
                             ),
                           ),
                         ),
                         Center(
                           child: Text(
                             player2.legsWon.toString(),
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Colors.white,
-                              fontSize: 20,
+                              fontSize: 5.21 * horizontalScaling,
                             ),
                           ),
                         ),
@@ -1390,9 +1435,9 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                     child: Text(
                       widget.game.player2 +
                           ' (${player2.dartsThrown.toString()})',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
-                        fontSize: 20,
+                        fontSize: 5.21 * horizontalScaling,
                       ),
                     ),
                   ),
@@ -1408,49 +1453,57 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                   child: AutoSizeText(
                     player1.currentScore.toString(),
                     maxLines: 1,
-                    style: const TextStyle(color: Colors.white, fontSize: 80),
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20.83 * horizontalScaling),
                   ),
                 ),
                 Center(
                   child: AutoSizeText(
                     player2.currentScore.toString(),
                     maxLines: 1,
-                    style: const TextStyle(color: Colors.white, fontSize: 80),
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20.83 * horizontalScaling),
                   ),
                 ),
               ]),
-              const TableRow(children: <Widget>[
+              TableRow(children: <Widget>[
                 Center(
                     child: SizedBox(
-                  height: 20,
+                  height: 2.45 * verticalScaling,
                 )),
                 Center(
                     child: SizedBox(
-                  height: 20,
+                  height: 2.45 * verticalScaling,
                 )),
               ]),
               TableRow(children: <Widget>[
                 Center(
                   child: Text(
                     player1.possibleOut,
-                    style: const TextStyle(color: Colors.white, fontSize: 20),
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 5.21 * horizontalScaling),
                   ),
                 ),
                 Center(
                   child: Text(
                     player2.possibleOut,
-                    style: const TextStyle(color: Colors.white, fontSize: 20),
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 5.21 * horizontalScaling),
                   ),
                 ),
               ]),
-              const TableRow(children: <Widget>[
+              TableRow(children: <Widget>[
                 Center(
                     child: SizedBox(
-                  height: 20,
+                  height: 2.45 * verticalScaling,
                 )),
                 Center(
                     child: SizedBox(
-                  height: 20,
+                  height: 2.45 * verticalScaling,
                 )),
               ]),
               TableRow(children: <Widget>[
@@ -1487,19 +1540,19 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                   ),
                 ),
               ]),
-              const TableRow(children: <Widget>[
+              TableRow(children: <Widget>[
                 SizedBox(
-                  height: 10,
+                  height: 1.23 * verticalScaling,
                 ),
                 SizedBox(
-                  height: 10,
+                  height: 1.23 * verticalScaling,
                 ),
               ]),
               TableRow(children: <Widget>[
                 Center(
                   child: SizedBox(
-                    width: 200,
-                    height: 60,
+                    width: 52.08 * horizontalScaling,
+                    height: 7.35 * verticalScaling,
                     child: Container(
                       color: player1.myTurn
                           ? Colors.white
@@ -1524,8 +1577,8 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                 ),
                 Center(
                   child: SizedBox(
-                    width: 200,
-                    height: 60,
+                    width: 52.08 * horizontalScaling,
+                    height: 7.35 * verticalScaling,
                     child: Container(
                       color: player1.myTurn
                           ? const Color(0xFF303030)
@@ -1551,8 +1604,8 @@ class _PouleGameBodyState extends State<PouleGameBody> {
               ]),
             ],
           ),
-          const SizedBox(
-            height: 10,
+          SizedBox(
+            height: 1.23 * verticalScaling,
           ),
           Expanded(
             child: ListView(
@@ -1560,51 +1613,54 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    const SizedBox(
-                      width: 10,
+                    SizedBox(
+                      width: 2.60 * horizontalScaling,
                     ),
                     SizedBox(
-                      width: numBtnWidth,
-                      height: numBtnHeigth,
+                      width: numBtnWidth * horizontalScaling,
+                      height: numBtnHeigth * verticalScaling,
                       child: ElevatedButton(
                           style: numBtnStyle,
                           onPressed: () {
                             btnPress('1');
                           },
-                          child: const Text(
+                          child: Text(
                             '1',
-                            style: TextStyle(fontSize: 20),
+                            style:
+                                TextStyle(fontSize: 5.21 * horizontalScaling),
                           )),
                     ),
                     SizedBox(
-                      width: numBtnWidth,
-                      height: numBtnHeigth,
+                      width: numBtnWidth * horizontalScaling,
+                      height: numBtnHeigth * verticalScaling,
                       child: ElevatedButton(
                           style: numBtnStyle,
                           onPressed: () {
                             btnPress('2');
                           },
-                          child: const Text(
+                          child: Text(
                             '2',
-                            style: TextStyle(fontSize: 20),
+                            style:
+                                TextStyle(fontSize: 5.21 * horizontalScaling),
                           )),
                     ),
                     SizedBox(
-                      width: numBtnWidth,
-                      height: numBtnHeigth,
+                      width: numBtnWidth * horizontalScaling,
+                      height: numBtnHeigth * verticalScaling,
                       child: ElevatedButton(
                           style: numBtnStyle,
                           onPressed: () {
                             btnPress('3');
                           },
-                          child: const Text(
+                          child: Text(
                             '3',
-                            style: TextStyle(fontSize: 20),
+                            style:
+                                TextStyle(fontSize: 5.21 * horizontalScaling),
                           )),
                     ),
                     SizedBox(
-                      width: sideBtnWidth,
-                      height: sideBtnHeigth,
+                      width: sideBtnWidth * horizontalScaling,
+                      height: sideBtnHeigth * verticalScaling,
                       child: ElevatedButton(
                         style: sideBtnStyle,
                         onPressed: () {
@@ -1622,51 +1678,54 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    const SizedBox(
-                      width: 10,
+                    SizedBox(
+                      width: 2.60 * horizontalScaling,
                     ),
                     SizedBox(
-                      width: numBtnWidth,
-                      height: numBtnHeigth,
+                      width: numBtnWidth * horizontalScaling,
+                      height: numBtnHeigth * verticalScaling,
                       child: ElevatedButton(
                           style: numBtnStyle,
                           onPressed: () {
                             btnPress('4');
                           },
-                          child: const Text(
+                          child: Text(
                             '4',
-                            style: TextStyle(fontSize: 20),
+                            style:
+                                TextStyle(fontSize: 5.21 * horizontalScaling),
                           )),
                     ),
                     SizedBox(
-                      width: numBtnWidth,
-                      height: numBtnHeigth,
+                      width: numBtnWidth * horizontalScaling,
+                      height: numBtnHeigth * verticalScaling,
                       child: ElevatedButton(
                           style: numBtnStyle,
                           onPressed: () {
                             btnPress('5');
                           },
-                          child: const Text(
+                          child: Text(
                             '5',
-                            style: TextStyle(fontSize: 20),
+                            style:
+                                TextStyle(fontSize: 5.21 * horizontalScaling),
                           )),
                     ),
                     SizedBox(
-                      width: numBtnWidth,
-                      height: numBtnHeigth,
+                      width: numBtnWidth * horizontalScaling,
+                      height: numBtnHeigth * verticalScaling,
                       child: ElevatedButton(
                           style: numBtnStyle,
                           onPressed: () {
                             btnPress('6');
                           },
-                          child: const Text(
+                          child: Text(
                             '6',
-                            style: TextStyle(fontSize: 20),
+                            style:
+                                TextStyle(fontSize: 5.21 * horizontalScaling),
                           )),
                     ),
                     SizedBox(
-                      width: sideBtnWidth,
-                      height: sideBtnHeigth,
+                      width: sideBtnWidth * horizontalScaling,
+                      height: sideBtnHeigth * verticalScaling,
                       child: IgnorePointer(
                         ignoring: true,
                         child: ElevatedButton(
@@ -1678,8 +1737,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                             padding: EdgeInsets.all(0.0),
                             child: AutoSizeText(
                               "Darts",
-                              maxLines: 2,
-                              minFontSize: 14,
+                              maxLines: 1,
                             ),
                           ),
                         ),
@@ -1690,51 +1748,54 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    const SizedBox(
-                      width: 10,
+                    SizedBox(
+                      width: 2.60 * horizontalScaling,
                     ),
                     SizedBox(
-                      width: numBtnWidth,
-                      height: numBtnHeigth,
+                      width: numBtnWidth * horizontalScaling,
+                      height: numBtnHeigth * verticalScaling,
                       child: ElevatedButton(
                           style: numBtnStyle,
                           onPressed: () {
                             btnPress('7');
                           },
-                          child: const Text(
+                          child: Text(
                             '7',
-                            style: TextStyle(fontSize: 20),
+                            style:
+                                TextStyle(fontSize: 5.21 * horizontalScaling),
                           )),
                     ),
                     SizedBox(
-                      width: numBtnWidth,
-                      height: numBtnHeigth,
+                      width: numBtnWidth * horizontalScaling,
+                      height: numBtnHeigth * verticalScaling,
                       child: ElevatedButton(
                           style: numBtnStyle,
                           onPressed: () {
                             btnPress('8');
                           },
-                          child: const Text(
+                          child: Text(
                             '8',
-                            style: TextStyle(fontSize: 20),
+                            style:
+                                TextStyle(fontSize: 5.21 * horizontalScaling),
                           )),
                     ),
                     SizedBox(
-                      width: numBtnWidth,
-                      height: numBtnHeigth,
+                      width: numBtnWidth * horizontalScaling,
+                      height: numBtnHeigth * verticalScaling,
                       child: ElevatedButton(
                           style: numBtnStyle,
                           onPressed: () {
                             btnPress('9');
                           },
-                          child: const Text(
+                          child: Text(
                             '9',
-                            style: TextStyle(fontSize: 20),
+                            style:
+                                TextStyle(fontSize: 5.21 * horizontalScaling),
                           )),
                     ),
                     SizedBox(
-                      width: sideBtnWidth,
-                      height: sideBtnHeigth,
+                      width: sideBtnWidth * horizontalScaling,
+                      height: sideBtnHeigth * verticalScaling,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           shape: const RoundedRectangleBorder(
@@ -1752,8 +1813,8 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                             null;
                           });
                         },
-                        child: const Padding(
-                          padding: EdgeInsets.all(0.0),
+                        child: Padding(
+                          padding: const EdgeInsets.all(0.0),
                           child: AutoSizeText(
                             "1",
                             maxLines: 2,
@@ -1767,12 +1828,12 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    const SizedBox(
-                      width: 10,
+                    SizedBox(
+                      width: 2.60 * horizontalScaling,
                     ),
                     SizedBox(
-                      width: numBtnWidth,
-                      height: numBtnHeigth,
+                      width: numBtnWidth * horizontalScaling,
+                      height: numBtnHeigth * verticalScaling,
                       child: ElevatedButton(
                           style: specialBtnStyle,
                           onPressed: () {
@@ -1780,38 +1841,41 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                           },
                           child: Text(
                             specialBtnText,
-                            style: const TextStyle(fontSize: 20),
+                            style:
+                                TextStyle(fontSize: 5.21 * horizontalScaling),
                           )),
                     ),
                     SizedBox(
-                      width: numBtnWidth,
-                      height: numBtnHeigth,
+                      width: numBtnWidth * horizontalScaling,
+                      height: numBtnHeigth * verticalScaling,
                       child: ElevatedButton(
                           style: numBtnStyle,
                           onPressed: () {
                             btnPress('0');
                           },
-                          child: const Text(
+                          child: Text(
                             '0',
-                            style: TextStyle(fontSize: 20),
+                            style:
+                                TextStyle(fontSize: 5.21 * horizontalScaling),
                           )),
                     ),
                     SizedBox(
-                      width: numBtnWidth,
-                      height: numBtnHeigth,
+                      width: numBtnWidth * horizontalScaling,
+                      height: numBtnHeigth * verticalScaling,
                       child: ElevatedButton(
                           style: okBtnStyle,
                           onPressed: () {
                             btnPress('OK');
                           },
-                          child: const Text(
+                          child: Text(
                             'OK',
-                            style: TextStyle(fontSize: 20),
+                            style:
+                                TextStyle(fontSize: 5.21 * horizontalScaling),
                           )),
                     ),
                     SizedBox(
-                      width: sideBtnWidth,
-                      height: sideBtnHeigth,
+                      width: sideBtnWidth * horizontalScaling,
+                      height: sideBtnHeigth * verticalScaling,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           shape: const RoundedRectangleBorder(
@@ -1829,8 +1893,8 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                             null;
                           });
                         },
-                        child: const Padding(
-                          padding: EdgeInsets.all(0.0),
+                        child: Padding(
+                          padding: const EdgeInsets.all(0.0),
                           child: AutoSizeText(
                             "2",
                             maxLines: 2,
@@ -1844,28 +1908,28 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    const SizedBox(
-                      width: 10,
+                    SizedBox(
+                      width: 2.60 * horizontalScaling,
                     ),
                     SizedBox(
-                      width: 300,
-                      height: 60,
+                      width: 78.13 * horizontalScaling,
+                      height: 7.35 * verticalScaling,
                       child: ElevatedButton(
                         style: numBtnStyle,
                         onPressed: () {
                           btnPress('ST');
                         },
-                        child: const Text(
+                        child: Text(
                           "Standaard",
                           style: TextStyle(
-                            fontSize: 20,
+                            fontSize: 5.21 * horizontalScaling,
                           ),
                         ),
                       ),
                     ),
                     SizedBox(
-                      width: sideBtnWidth,
-                      height: sideBtnHeigth,
+                      width: sideBtnWidth * horizontalScaling,
+                      height: sideBtnHeigth * verticalScaling,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           shape: const RoundedRectangleBorder(
@@ -1883,8 +1947,8 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                             null;
                           });
                         },
-                        child: const Padding(
-                          padding: EdgeInsets.all(0.0),
+                        child: Padding(
+                          padding: const EdgeInsets.all(0.0),
                           child: AutoSizeText(
                             "3",
                             maxLines: 2,
