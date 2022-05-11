@@ -1096,6 +1096,9 @@ async function updateAvailable(msg){
         let quitBtn = document.getElementById('quit');
 
         installBtn.addEventListener('click', function(){
+            let sheet = window.document.styleSheets[0];
+            sheet.insertRule('*{cursor: wait;}', sheet.cssRules.length);
+            
             const handle = spawn(savePath, {
                 detached: true,
                 stdio: [null, null, null, 'ipc']
