@@ -962,7 +962,8 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                 1) {
               ScaffoldMessenger.of(widget.context).showSnackBar(
                 SnackBar(
-                  content: Text("${player1.thrownScore} kan niet gegooid worden."),
+                  content:
+                      Text("${player1.thrownScore} kan niet gegooid worden."),
                   duration: const Duration(seconds: 5),
                 ),
               );
@@ -1013,6 +1014,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
               ScaffoldMessenger.of(widget.context).showSnackBar(
                 SnackBar(content: Text(player2.thrownScore + ' is te hoog')),
               );
+              break;
             } else if (int.parse(player2.thrownScore) / numDarts > 60) {
               ScaffoldMessenger.of(widget.context).showSnackBar(
                 SnackBar(
@@ -1022,6 +1024,17 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                   duration: const Duration(seconds: 5),
                 ),
               );
+              break;
+            } else if (player2.currentScore - int.parse(player2.thrownScore) ==
+                1) {
+              ScaffoldMessenger.of(widget.context).showSnackBar(
+                SnackBar(
+                  content:
+                      Text("${player2.thrownScore} kan niet gegooid worden."),
+                  duration: const Duration(seconds: 5),
+                ),
+              );
+              break;
             } else if (player2.thrownScore != '0') {
               player2.dartsThrown += numDarts;
               player2.dartsThrownHistory.add(numDarts);
@@ -1132,6 +1145,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             if (player2.currentScore == 26) {
               endLeg(widget.game.player2, player2);
             } else {
+              player2.thrownScore = 'Standaard';
               player2.currentScore -= 26;
               player2.scoresThrownHistory.add(26);
               player2.totalPointsThisGame += 26;
@@ -1147,6 +1161,8 @@ class _PouleGameBodyState extends State<PouleGameBody> {
               player2.possibleOut = '';
             }
           }
+        } else {
+          print("${player1.myTurn} | ${player2.thrownScore}");
         }
         break;
       default:
@@ -1293,17 +1309,23 @@ class _PouleGameBodyState extends State<PouleGameBody> {
 
     int legsPlayed = player1.legsWon + player2.legsWon;
 
+    print("${legsPlayed % 2} | $chosenPlayer");
+
     if (legsPlayed % 2 == 0) {
       if (chosenPlayer == ChosenPlayerEnum.player1) {
         player1.myTurn = true;
+        player2.myTurn = false;
       } else {
+        player2.myTurn = true;
         player1.myTurn = false;
       }
     } else {
       if (chosenPlayer == ChosenPlayerEnum.player1) {
+        player2.myTurn = true;
         player1.myTurn = false;
       } else {
         player1.myTurn = true;
+        player2.myTurn = false;
       }
     }
     player1.myTurn
@@ -1395,9 +1417,10 @@ class _PouleGameBodyState extends State<PouleGameBody> {
               TableRow(
                 children: <Widget>[
                   Center(
-                    child: Text(
+                    child: AutoSizeText(
                       widget.game.player1 +
                           ' (${player1.dartsThrown.toString()})',
+                      maxLines: 1,
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 5.21 * horizontalScaling,
@@ -1405,12 +1428,14 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                     ),
                   ),
                   Table(
-                    defaultColumnWidth: const FixedColumnWidth(50),
+                    defaultColumnWidth:
+                        FixedColumnWidth(7.81 * horizontalScaling),
                     children: [
                       TableRow(children: <Widget>[
                         Center(
-                          child: Text(
+                          child: AutoSizeText(
                             player1.legsWon.toString(),
+                            maxLines: 1,
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 5.21 * horizontalScaling,
@@ -1418,8 +1443,9 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                           ),
                         ),
                         Center(
-                          child: Text(
+                          child: AutoSizeText(
                             "Legs",
+                            maxLines: 1,
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 5.21 * horizontalScaling,
@@ -1427,8 +1453,9 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                           ),
                         ),
                         Center(
-                          child: Text(
+                          child: AutoSizeText(
                             player2.legsWon.toString(),
+                            maxLines: 1,
                             style: TextStyle(
                               color: Colors.white,
                               fontSize: 5.21 * horizontalScaling,
@@ -1439,9 +1466,10 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                     ],
                   ),
                   Center(
-                    child: Text(
+                    child: AutoSizeText(
                       widget.game.player2 +
                           ' (${player2.dartsThrown.toString()})',
+                      maxLines: 1,
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 5.21 * horizontalScaling,
