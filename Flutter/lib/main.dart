@@ -958,6 +958,15 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                 ),
               );
               break;
+            } else if (player1.currentScore - int.parse(player1.thrownScore) ==
+                1) {
+              ScaffoldMessenger.of(widget.context).showSnackBar(
+                SnackBar(
+                  content: Text("${player1.thrownScore} kan niet gegooid worden."),
+                  duration: const Duration(seconds: 5),
+                ),
+              );
+              break;
             } else if (player1.thrownScore != '0') {
               player1.dartsThrown += numDarts;
               player1.dartsThrownHistory.add(numDarts);
@@ -1324,8 +1333,6 @@ class _PouleGameBodyState extends State<PouleGameBody> {
       if (player.gameAverage.toStringAsFixed(1) == "NaN") {
         player.gameAverage = 0;
       }
-
-      
 
       player.dartsThrown -= player.dartsThrownHistory.removeLast();
 
