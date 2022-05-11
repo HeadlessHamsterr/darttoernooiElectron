@@ -2257,24 +2257,39 @@ function exportGameInfo(writeToFile = true, quickSave = false){
 
     if(quickSave){
         let today = new Date();
-        
-        fs.access(path.join(__dirname, 'quicksaves'), (err) => {
+        let docPath = ipcRenderer.sendSync('getDocPath');
+        fs.access(path.join(docPath, 'darttoernooi'), (err) => {
             if(err){
-                fs.mkdirSync(path.join(__dirname, 'quicksaves'), (err) => {
+                fs.mkdirSync(path.join(docPath, 'darttoernooi'), (err) => {
+                    if(err){
+                        console.log(`Error creating darttoernooi folder: ${err}`);
+                    }
+                });
+                fs.mkdirSync(path.join(docPath, 'darttoernooi/quicksaves'), (err) =>{
                     if(err){
                         console.log(`Error creating quicksaves folder: ${err}`);
                     }
                 });
+            }else{
+                fs.access(path.join(docPath, 'darttoernooi/quicksaves'), (err) =>{
+                    if(err){
+                        fs.mkdirSync(path.join(docPath, 'darttoernooi/quicksaves'), (err) =>{
+                            if(err){
+                                console.log(`Error creating quicksaves folder: ${err}`);
+                            }
+                        });
+                    }
+                });
             }
         });
-        fs.readdir(path.join(__dirname, 'quicksaves'), (err, files) => {
+        fs.readdir(path.join(docPath, 'darttoernooi/quicksaves'), (err, files) => {
             if(err){
                 console.log(`Error reading quicksaves folder: ${err}`);
             }else{
                 if(files.length){
                     for(let i = 0; i < files.length; i++){
                         if(files[i].includes('.darts')){
-                            fs.unlink(path.join(__dirname, 'quicksaves', files[i]), (err) => {
+                            fs.unlink(path.join(docPath, 'darttoernooi/quicksaves', files[i]), (err) => {
                                 if(err){
                                     console.log(`Error deleting quicksave: ${err}`);
                                 }
@@ -2284,7 +2299,7 @@ function exportGameInfo(writeToFile = true, quickSave = false){
                 }
             }
         });
-        gameFileName = path.join(__dirname, 'quicksaves', `${today.getDay()}-${today.getMonth()}-${today.getFullYear()}_${today.getHours()}-${today.getMinutes()}-${today.getSeconds()}.darts`);
+        gameFileName = path.join(docPath, 'darttoernooi/quicksaves', `${today.getDay()}-${today.getMonth()}-${today.getFullYear()}_${today.getHours()}-${today.getMinutes()}-${today.getSeconds()}.darts`);
     }
 
     var jsonObj = {"poules":[], "games":[], "appSettings":[]};
