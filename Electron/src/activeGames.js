@@ -23,6 +23,10 @@ ipcRenderer.on('pouleData', (event, arg) => {
     makePoules(arg);
 });
 
+ipcRenderer.on('pouleDataUpdate', (event, arg) =>{
+    updatePoules(arg);
+});
+
 /*infoType is het de reden van function call
 0 = normale update van actieve game
 1 = nieuwe game
@@ -123,6 +127,7 @@ function initiateActiveGames(data){
     numActiveGames = data.length;
 
     for(let i = 0; i < data.length; i++){
+        $(div).empty();
         $(div).append(`<table id="${data[i][0+i]}" class="activeGameTable"><tr><td id="activePlayer${data[i][0+i]}1">${data[i][11+i]}</td><td><i id="${data[i][0+i]}TurnArrow" class="material-icons turnArrow">expand_more</i></td><td id="activePlayer${data[i][0+i]}2">${data[i][12+i]}</td></tr><tr><td id="activeDarts${data[i][0+i]}1"></td><td>Darts</td><td id="activeDarts${data[i][0+i]}2"></td></tr><tr><td id="activeLeg${data[i][0+i]}1">${data[i][2+i]}</td><td>Legs</td><td id="activeLeg${data[i][0+i]}2">${data[i][4+i]}</td></tr><tr><td id="activeScore${data[i][0+i]}1">${data[i][1+i]}</td><td></td><td id="activeScore${data[i][0+i]}2">${data[i][3+i]}</td></tr><tr><td id="out${data[i][0+i]}1"></td><td></td><td id="out${data[i][0+i]}2"></td></tr></table>`)
 
         document.getElementById(`activeLeg${data[i][0+i]}1`).innerHTML = data[i][2+i];
@@ -162,23 +167,46 @@ function initiateActiveGames(data){
 
 function makePoules(pouleData){
     console.log(pouleData);
-    var poulesDiv = document.getElementById('poulesDiv');
+    var poulesDiv = document.getElementById('centerPoulesDiv');
 
-    if(typeof this.players !== 'undefined' && this.players.length > 0){
-        var playerDiv = $(`<div id="poule${this.pouleNum}" class="pouleDiv"></div>`);
-        var pouleHeader = $(`<header class="pouleHeader"><h2>Poule ${this.pouleNum}:</h2><hr/><header>`);
-        var pouleTable = $(`<table class="pouleTable" id="poule${this.pouleNum}Table"></table>`);
-        var pouleTableHeader = $('<tr><th>Speler</th><th>Score</th></tr>');
-
-        $(poulesDiv).append(playerDiv);
-        $(playerDiv).append(pouleHeader);
-        $(playerDiv).append(pouleTable);
-        $(pouleTable).append(pouleTableHeader);
-
-        for(let i in this.players){
-            var tableEntry = $(`<tr><td>${this.players[i][0]}</td><td>${this.players[i][1]}</td></tr>`);
-            $(pouleTable).append(tableEntry);
+    for(let i = 0; i < pouleData.length; i++){
+        var pouleNum;
+        switch(i){
+            case 0:
+                pouleNum = 'A';
+                break;
+            case 1:
+                pouleNum = 'B';
+                break;
+            case 2:
+                pouleNum = 'C';
+                break;
+            case 3:
+                pouleNum = 'D';
+                break;
+        }
+        let pouleTableData = $(`<div id="poule${pouleNum}" class="pouleDiv"><header class="pouleHeader"><h2>Poule ${pouleNum}:</h2><hr><header></header></header><table class="pouleTable" id="poule${pouleNum}Table"><tr><th>Speler</th><th>Score</th></tr></table>`)
+        $(poulesDiv).append(pouleTableData);
+        let pouleTable = document.getElementById(`poule${pouleNum}Table`);
+        for(let j = 0; j < pouleData[i].length; j++){
+            $(pouleTable).append($(`<tr><td>${pouleData[i][j][0]}</td><td>${pouleData[i][j][1]}</td></tr>`));
         }
     }
-    
+}
+
+function updatePoules(pouleData){
+    console.log(pouleData);
+    let pouleTable = document.getElementById(`poule${pouleData[0]}Table`);
+    let pouleHeader = $('<tr><th>Speler</th><th>Score</th></tr>');
+
+    $(pouleTable).empty();
+    $(pouleTable).append(pouleHeader);
+
+    for(let i in pouleData[1]){
+        let playerName = pouleData[1][i][0];
+        let playerScore = pouleData[1][i][1];
+        console.log(`${playerName} | ${playerScore}`)
+        let tableEntry = $(`<tr><td>${playerName}</td><td>${playerScore}</td></tr>`);
+        $(pouleTable).append(tableEntry);
+    }
 }

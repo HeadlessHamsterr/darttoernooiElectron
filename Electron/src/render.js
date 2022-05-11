@@ -751,6 +751,13 @@ class pouleGames{
             this.lastRankings = JSON.parse(JSON.stringify(this.rankings));
             let msg = [this.rankings, this.sendPouleGames(), 'poule'];
             io.emit(`poule${this.pouleNum}Ranks`, msg);
+
+            if(activeGamesWindowOpen){
+                let msg = [this.pouleNum, this.rankings];
+                console.log(`Updating poule ranks:`);
+                console.log(msg);
+                ipcRenderer.send("updatePouleRanks", msg);
+            }
         }
     }
 

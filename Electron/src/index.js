@@ -3,6 +3,7 @@ const path = require('path');
 const {networkInterfaces} = require('os');
 const { fs } = require('fs');
 let mainWindow = null;
+let activeGamesWindow = null;
 let XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
@@ -78,7 +79,7 @@ ipcMain.on('connectServer', async(event) =>{
 });
 
 ipcMain.on('openActiveGamesWindow', async(event) => {
-  const activeGamesWindow = new BrowserWindow({
+  activeGamesWindow = new BrowserWindow({
     width: 800,
     height: 800,
     webPreferences:{
@@ -109,7 +110,12 @@ ipcMain.on('openActiveGamesWindow', async(event) => {
       activeGamesWindow.webContents.send('stopActiveGame', arg);
     });
     ipcMain.on('returnPouleData', (event, arg) => {
+      console.log("Sending pouledata to new screen");
       activeGamesWindow.webContents.send('pouleData', arg);
+    });
+    ipcMain.on('updatePouleRanks', (event, arg) =>{
+      console.log("updating poule ranks");
+      activeGamesWindow.webContents.send('pouleDataUpdate', arg);
     });
     event.returnValue = true;
   });
@@ -120,6 +126,8 @@ ipcMain.on('openActiveGamesWindow', async(event) => {
     ipcMain.removeAllListeners('sendAlreadyActiveGames');
     ipcMain.removeAllListeners('sendNewActiveGameInfo');
     ipcMain.removeAllListeners('sendStopActiveGame');
+    ipcMain.removeAllListeners('returnPouleData');
+    ipcMain.removeAllListeners('updatePouleRanks');
   });
 });
 
@@ -294,6 +302,9 @@ const createWindow = (shouldCheckUpdate = true) => {
       console.log("Sending noUpdateAvailable to mainWindow");
       mainWindow.webContents.send('noUpdateAvailable');
     }
+  });
+  mainWindow.once('closed', () => {
+    activeGamesWindow.close();
   });
 };
 

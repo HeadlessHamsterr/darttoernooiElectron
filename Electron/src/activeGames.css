@@ -189,7 +189,7 @@ input::-webkit-inner-spin-button{
   margin-bottom: 20px;
   margin-top: 20px;
   border-collapse: collapse;
-  width: 100px;
+  min-width: 300px;
 }
 
 .pouleTable td{
@@ -197,12 +197,12 @@ input::-webkit-inner-spin-button{
   padding-left: 8px;
   padding-top: 5px;
   padding-right: 10px;
-  font-size: 14px;
+  font-size: 30px;
 }
 
 .pouleTable th{
   border-bottom: 1px solid var(--table-borders);
-  font-size: 20px;
+  font-size: 35px;
   padding-right: 10px;
   padding-left: 10px;
 }
@@ -270,6 +270,7 @@ input::-webkit-inner-spin-button{
 
 .pouleHeader h2{
   padding-left: 10px;
+  font-size: 30px
 }
 
 .pouleHeader hr{
@@ -671,9 +672,9 @@ input.settingInput{
   box-shadow: 0px 2px 18px -4px rgba(0,0,0,0.75);
   margin-left: 10px;
   min-width: 150px;
-  max-width: 2000px;
   text-align: center;
   display: inline;
+  margin-top: 50px;
 }
 
 .activeGamesDiv hr{
@@ -721,7 +722,7 @@ input.settingInput{
 }
 
 .activeGameTable tr:first-child{
-  font-size: 30px;
+  font-size: 50px;
 }
 .activeGameTable td:first-child, .activeGameTable td:last-child{
   border: none;
@@ -730,7 +731,7 @@ input.settingInput{
 }
 
 .activeGameTable tr:nth-child(4){
-  font-size: 60px;
+  font-size: 80px;
 }
 
 .activeGameTable td:nth-child(4){
@@ -738,12 +739,16 @@ input.settingInput{
   padding-right: 5px;
 }
 
-.activeGameTable tr:nth-child(3){
+.activeGameTable tr:nth-child(2){
   font-size: 20px;
 }
 
+.activeGameTable tr:nth-child(3){
+  font-size: 30px;
+}
+
 .activeGameTable tr:last-child{
-  font-size: 25px;
+  font-size: 35px;
 }
 
 #ipAddress{
