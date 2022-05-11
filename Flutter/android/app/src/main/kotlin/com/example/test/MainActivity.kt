@@ -1,4 +1,4 @@
-package com.example.test
+package com.darttoernooi.release
 
 import io.flutter.embedding.android.FlutterActivity
 
