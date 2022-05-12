@@ -305,7 +305,9 @@ const createWindow = (shouldCheckUpdate = true) => {
     }
   });
   mainWindow.once('closed', () => {
-    activeGamesWindow.close();
+    try{
+      activeGamesWindow.close();
+    }catch(e){}
   });
 };
 
