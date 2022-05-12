@@ -1102,6 +1102,10 @@ async function updateAvailable(msg){
         let installBtn = document.getElementById('install');
         let quitBtn = document.getElementById('quit');
 
+        quitBtn.addEventListener('click', function(){
+            ipcRenderer.send("klaarErmee");
+        });
+
         installBtn.addEventListener('click', function(){
             let sheet = window.document.styleSheets[0];
             sheet.insertRule('*{cursor: wait;}', sheet.cssRules.length);
@@ -1116,9 +1120,6 @@ async function updateAvailable(msg){
                 handle.disconnect();
                 ipcRenderer.send('klaarErmee');
             });
-        });
-        quitBtn.addEventListener('click', function(){
-            ipcRenderer.send("klaarErmee");
         });
     }else if(process.platform == 'linux'){
         $(document.getElementById('updateDoneLinux')).show();
@@ -1537,6 +1538,7 @@ function loadPoulGames(pouleLetter, jsonObj){
         }
     }
     let playerSettingsForm = document.getElementById('playerSettingForm');
+    $(playerSettingsForm).empty();
     for(var i = 0; i < pouleToEdit.players.length; i++){
         let input = $(`<input id="player${pouleLetter}${i}Input" class="settingInput" type="text" value="${pouleToEdit.players[i].name}"></br>`)
         $(playerSettingsForm).append(input)
@@ -1741,6 +1743,7 @@ function makePoules(){
         }
 
         let playerSettingsForm = document.getElementById('playerSettingForm');
+        $(playerSettingsForm).empty();
         
         if(pouleExists(pouleA)){
             pouleA.makePoule();
