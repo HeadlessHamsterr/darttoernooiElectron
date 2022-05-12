@@ -1107,7 +1107,6 @@ async function updateAvailable(msg){
         });
 
         installBtn.addEventListener('click', function(){
-            quitBtn.removeEventListener('click');
             let sheet = window.document.styleSheets[0];
             sheet.insertRule('*{cursor: wait;}', sheet.cssRules.length);
             
@@ -1539,6 +1538,7 @@ function loadPoulGames(pouleLetter, jsonObj){
         }
     }
     let playerSettingsForm = document.getElementById('playerSettingForm');
+    $(playerSettingsForm).empty();
     for(var i = 0; i < pouleToEdit.players.length; i++){
         let input = $(`<input id="player${pouleLetter}${i}Input" class="settingInput" type="text" value="${pouleToEdit.players[i].name}"></br>`)
         $(playerSettingsForm).append(input)
@@ -1743,6 +1743,7 @@ function makePoules(){
         }
 
         let playerSettingsForm = document.getElementById('playerSettingForm');
+        $(playerSettingsForm).empty();
         
         if(pouleExists(pouleA)){
             pouleA.makePoule();
