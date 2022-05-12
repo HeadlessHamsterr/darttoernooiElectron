@@ -89,13 +89,14 @@ ipcMain.on('openActiveGamesWindow', async(event) => {
     },
     autoHideMenuBar: true,
     icon: path.join(__dirname, 'icons/appIcon.ico'),
-    frame: true
+    frame: true,
+    show: false
   });
   activeGamesWindow.loadFile(path.join(__dirname, 'activeGames.html'));
-
   
-
   activeGamesWindow.once('ready-to-show', () => {
+    activeGamesWindow.show();
+    activeGamesWindow.maximize();
     console.log("ActiveGamesWindow ready");
     ipcMain.on('sendActiveGameInfo', (event, arg) => {
       activeGamesWindow.webContents.send('activeGameInfo', arg);
