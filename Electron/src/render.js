@@ -1102,7 +1102,12 @@ async function updateAvailable(msg){
         let installBtn = document.getElementById('install');
         let quitBtn = document.getElementById('quit');
 
+        quitBtn.addEventListener('click', function(){
+            ipcRenderer.send("klaarErmee");
+        });
+
         installBtn.addEventListener('click', function(){
+            quitBtn.removeEventListener('click');
             let sheet = window.document.styleSheets[0];
             sheet.insertRule('*{cursor: wait;}', sheet.cssRules.length);
             
@@ -1116,9 +1121,6 @@ async function updateAvailable(msg){
                 handle.disconnect();
                 ipcRenderer.send('klaarErmee');
             });
-        });
-        quitBtn.addEventListener('click', function(){
-            ipcRenderer.send("klaarErmee");
         });
     }else if(process.platform == 'linux'){
         $(document.getElementById('updateDoneLinux')).show();
