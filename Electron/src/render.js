@@ -686,7 +686,7 @@ class pouleGames{
 
         for(let i = 0; i < this.numGames; i++){
             var gameLabels = $(`<tr><td><p1 id="game${this.pouleNum}${i+1}1Name">${this.players[this.gameFormat[i][0]].name}</p1></td><td><p1>-</p1></td><td><p1 id="game${this.pouleNum}${i+1}2Name">${this.players[this.gameFormat[i][1]].name}</p1></td></tr>`);
-            var gameInputs = $(`<tr><td><input id="game${this.pouleNum}${i+1}1Score" type="number" class="gameScore"></td><td><p1>-</p1></td><td><input id="game${this.pouleNum}${i+1}2Score" type="number" class="gameScore"></td></tr><hr>`);
+            var gameInputs = $(`<tr><td><input id="game${this.pouleNum}${i+1}1Score" type="number" class="gameScore" min="0"></td><td><p1>-</p1></td><td><input id="game${this.pouleNum}${i+1}2Score" type="number" class="gameScore" min="0"></td></tr><hr>`);
             $(gameTable).append(gameLabels);
             $(gameTable).append(gameInputs);
         }
@@ -1384,6 +1384,8 @@ function loadGame(){
     }
     
     //Load Poule A
+    let playerSettingsForm = document.getElementById('playerSettingForm');
+    playerSettingsForm.empty();
     if(numPoules >= 1){
         loadPoulGames("A", jsonObj);
         $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleA')));
@@ -1538,7 +1540,6 @@ function loadPoulGames(pouleLetter, jsonObj){
         }
     }
     let playerSettingsForm = document.getElementById('playerSettingForm');
-    $(playerSettingsForm).empty();
     for(var i = 0; i < pouleToEdit.players.length; i++){
         let input = $(`<input id="player${pouleLetter}${i}Input" class="settingInput" type="text" value="${pouleToEdit.players[i].name}"></br>`)
         $(playerSettingsForm).append(input)
