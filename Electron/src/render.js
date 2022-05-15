@@ -289,9 +289,9 @@ io.on('connection', (socket) => {
                 for(let i = 0; i < 7; i++){
                     var gameType = '';
 
-                    if(4 < i < 0){
+                    if(0 < i < 4){
                         gameType = 'quart';
-                    }else if(6 < i < 3){
+                    }else if(3 < i < 6){
                         gameType = 'half';
                     }else{
                         gameType = 'final';
@@ -376,7 +376,6 @@ io.on('connection', (socket) => {
     });
     socket.on('activeGameInfo', (data) => {
         var dataArray = data.split(',');
-        console.log(dataArray);
         var activeGamesArray = [];
         for(let i = 0; i < dataArray.length; i++){
             activeGamesArray.push(dataArray[i]);
@@ -499,7 +498,6 @@ io.on('connection', (socket) => {
 
         activeGamesArray.push(player1);
         activeGamesArray.push(player2);
-        console.log(activeGamesArray);
         if(newGame){
             ipcRenderer.send("sendNewActiveGameInfo", activeGamesArray);
         }else{
@@ -810,7 +808,6 @@ class pouleGames{
             var tempArray = [player1, player2, gamePlayed];
             games.push(tempArray);
         }
-        console.log(games);
         return games;
     }
 
@@ -1385,7 +1382,7 @@ function loadGame(){
     
     //Load Poule A
     let playerSettingsForm = document.getElementById('playerSettingForm');
-    playerSettingsForm.empty();
+    $(playerSettingsForm).empty();
     if(numPoules >= 1){
         loadPoulGames("A", jsonObj);
         $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleA')));
@@ -2144,20 +2141,14 @@ function startPeriodicStuff(){
                 getFinalsWinner("M61", "M62", "M72");
 
                 getFinalsWinner("M71", "M72", "M81");
-
-                for(let i = 0; i < 7; i++){
-                    var gameType = '';
-
-                    if(4 < i < 0){
-                        gameType = 'quart';
-                    }else if(6 < i < 3){
-                        gameType = 'half';
-                    }else{
-                        gameType = 'final';
-                    }
-
-                    finalsMsg.push(finalsGameToApp(i+1, gameType));
-                }
+                
+                finalsMsg.push(finalsGameToApp(1, "quart"));
+                finalsMsg.push(finalsGameToApp(2, "quart"));
+                finalsMsg.push(finalsGameToApp(3, "quart"));
+                finalsMsg.push(finalsGameToApp(4, "quart"));
+                finalsMsg.push(finalsGameToApp(5, "half"));
+                finalsMsg.push(finalsGameToApp(6, "half"));
+                finalsMsg.push(finalsGameToApp(7, "final"));
             break;
             case 3:
                 getFinalsWinner("M11", "M12", "M51");

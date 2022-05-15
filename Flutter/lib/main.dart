@@ -397,13 +397,10 @@ class startScreenBody extends StatelessWidget {
   void startQRScanner(BuildContext context) async {
     final result = await Navigator.push(
         context, MaterialPageRoute(builder: (context) => const qrScanScreen()));
-    print(result);
     try {
       ipAddressController.text = result;
       enterIP(context);
-    } catch (e) {
-      print(e);
-    }
+    } catch (e) {}
   }
 
   @override
@@ -544,6 +541,9 @@ class _PoulesOverviewState extends State<PoulesOverview> {
       gameInfoClass.halfLegs = int.parse(data[1][5]);
       gameInfoClass.finalScore = int.parse(data[1][6]);
       gameInfoClass.finalLegs = int.parse(data[1][7]);
+      print("Poule data update: $data");
+      print(
+          "${gameInfoClass.pouleScore} | ${gameInfoClass.pouleLegs} | ${gameInfoClass.quartScore} | ${gameInfoClass.quartLegs} | ${gameInfoClass.halfScore} | ${gameInfoClass.halfLegs} | ${gameInfoClass.finalScore} | ${gameInfoClass.finalLegs}");
       setState(() {
         pouleNames = pouleNames;
       });
@@ -643,7 +643,7 @@ class _PouleScreenState extends State<PouleScreen> {
       socket.emit('poule${activePoule}InfoRequest', 'plsGeef');
     } else {
       socket.off('poule${activePoule}Ranks');
-      socket.on('finalsInfo', (data) => updateFinals(data));
+      socket.on('finalsInfo', (data) => updateFinals(data)); 
       socket.emit('finalsInfoRequest', 'plsGeef');
     }
   }
@@ -657,10 +657,8 @@ class _PouleScreenState extends State<PouleScreen> {
     }
 
     games.clear();
-    print('Checking: ${data[1]}');
     for (var i = 0; i < data[1].length; i++) {
       String gameID = activePoule + (i + 1).toString();
-      print("GameID: $gameID");
       games.add(PouleGames(
           gameID: gameID,
           player1: data[1][i][0],
@@ -916,6 +914,8 @@ class _PouleGameBodyState extends State<PouleGameBody> {
     activeGameInfo.add(legsToPlay);
     activeGameInfo.add(setsToPlay);
     print(widget.game.gameID);
+    print(
+        "${player1.currentScore} | ${player2.currentScore} | $legsToPlay | ${widget.game.gameType}");
     activeStartingPlayer = ChosenPlayerEnum.undefined;
     chosenPlayer = activeStartingPlayer;
 
