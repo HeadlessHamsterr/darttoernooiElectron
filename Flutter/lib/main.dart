@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -351,6 +352,7 @@ class StartScreen extends StatefulWidget {
 
 class _StartScreenState extends State<StartScreen> {
   late BuildContext standardContext;
+  late Timer connectionTimer;
   bool stopChecking = false;
   @override
   void initState() {
@@ -358,19 +360,11 @@ class _StartScreenState extends State<StartScreen> {
     super.initState();
   }
 
-  List<List<String>> availableHosts = [];
+  List<String> availableHosts = [];
   List<Widget> hostButtons = [];
   final ipAddressController = TextEditingController(text: serverIP);
 
   void startServerScanning() async {
-    /*print(hostButtons);
-    for (int i = 2; i < 254; i++) {
-      if (stopChecking) {
-        break;
-      }
-      print("Checking server at 192.168.1.$i");
-      await attemptConnection('192.168.1.' + i.toString());
-    }*/
     final info = NetworkInfo();
     var deviceIP = await info.getWifiIP();
     var _destinationAddress = InternetAddress("192.168.1.255");
@@ -380,62 +374,36 @@ class _StartScreenState extends State<StartScreen> {
       udpSocket.broadcastEnabled = true;
       udpSocket.listen((event) {
         Datagram? dg = udpSocket.receive();
-        print(event.toString());
         if (dg != null) {
-          print("Received: ${utf8.decode(dg.data)}");
+          String message = utf8.decode(dg.data);
+          print("Received: $message");
+          List<String> messageList = message.split(',');
+          if (messageList[0] == 'serverName') {
+            if(availableHosts.isEmpty){
+              availableHosts.add(messageList[1]);
+              hostButtons.add(
+                  _hostButton(standardContext, messageList[1], messageList[2]));
+              setState(() {});
+            }
+            for (int i = 0; i < availableHosts.length; i++) {
+              if (availableHosts[i] == messageList[1]) {
+                break;
+              }else{
+                availableHosts.add(messageList[1]);
+                hostButtons.add(
+                    _hostButton(standardContext, messageList[1], messageList[2]));
+                setState(() {});
+              }
+            }
+          }
         }
       });
       List<int> data = utf8.encode("serverNameRequest,$deviceIP");
-      udpSocket.send(data, _destinationAddress, 8889);
-    });
-    return Future.value(1);
-  }
-
-  Future<void> attemptConnection(String serverIP) async {
-    bool checkDone = false;
-    IO.Socket scanSocket =
-        IO.io('ws://$serverIP:$serverPort', <String, dynamic>{
-      'transports': ['websocket'],
-      'force new connection': true,
-      'autoConnect': false
-    });
-    scanSocket.connect();
-    scanSocket.on('serverName', (data) {
-      print(data);
-      hostButtons.add(_hostButton(standardContext, data[0], data[1]));
-      print(hostButtons);
-      scanSocket.destroy();
-      scanSocket.off('serverName');
-      setState(() {});
-    });
-    var connectionTimer = Future.delayed(const Duration(milliseconds: 500), () {
-      checkDone = true;
-    });
-    // ignore: prefer_function_declarations_over_variables
-    var connectionLoop = () async {
-      while (!checkDone) {
-        if (scanSocket.connected) {
-          print("Connected");
-          scanSocket.emit('serverNameRequest');
-          checkDone = true;
-        }
-        await Future.delayed(const Duration(seconds: 0));
-      }
-    };
-
-    await Future.wait([connectionTimer, connectionLoop()]);
-    return Future.value(1);
-  }
-
-  String getServerName(IO.Socket socket) {
-    socket.emit("serverNameRequest");
-    String serverName = '';
-    while (serverName == '') {
-      socket.on('serverName', (data) {
-        serverName = data;
+      connectionTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+        udpSocket.send(data, _destinationAddress, 8889);
       });
-    }
-    return serverName;
+    });
+    return Future.value(1);
   }
 
   void enterIP(BuildContext context, String serverIP) {
