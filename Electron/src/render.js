@@ -219,6 +219,12 @@ io.on('connection', (socket) => {
         }
         sockets.delete(socket.id);
     });
+    socket.on("serverNameRequest", (data) => {
+        console.log("server name request received");
+        let msg = ['Frits', address().toString()];
+        console.log(msg);
+        socket.emit('serverName', msg);
+    });
     socket.on('allPouleInfoRequest', (data) => {
         var msg = [];
         var pouleTempArray = [];
