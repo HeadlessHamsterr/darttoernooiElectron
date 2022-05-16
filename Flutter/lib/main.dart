@@ -339,8 +339,124 @@ Widget getPouleName(pouleName) {
   }
 }
 
-class StartScreen extends StatelessWidget {
+class StartScreen extends StatefulWidget {
   const StartScreen({Key? key}) : super(key: key);
+
+  @override
+  _StartScreenState createState() => _StartScreenState();
+}
+
+class _StartScreenState extends State<StartScreen> {
+  late BuildContext standardContext;
+  @override
+  void initState() {
+    startServerScanning();
+    super.initState();
+  }
+
+  List<List<String>> availableHosts = [];
+  List<Widget> hostButtons = [];
+  final ipAddressController = TextEditingController(text: serverIP);
+
+  void startServerScanning() async {
+    print(hostButtons);
+    for (int i = 2; i < 254; i++) {
+      print("Checking server at 192.168.1.$i");
+      await attemptConnection('192.168.1.' + i.toString());
+    }
+    return Future.value(1);
+  }
+
+  Future<void> attemptConnection(String serverIP) async {
+    bool checkDone = false;
+    IO.Socket scanSocket =
+        IO.io('ws://$serverIP:$serverPort', <String, dynamic>{
+      'transports': ['websocket'],
+      'force new connection': true,
+      'autoConnect': false
+    });
+    scanSocket.connect();
+    scanSocket.on('serverName', (data) {
+      print(data);
+      hostButtons.add(_hostButton(standardContext, data[0], data[1]));
+      print(hostButtons);
+      scanSocket.disconnect();
+      setState(() {});
+    });
+    var connectionTimer = Future.delayed(const Duration(milliseconds: 100), () {
+      checkDone = true;
+    });
+    // ignore: prefer_function_declarations_over_variables
+    var connectionLoop = () async {
+      while (!checkDone) {
+        if (scanSocket.connected) {
+          scanSocket.emit('serverNameRequest');
+          checkDone = true;
+        }
+        await Future.delayed(const Duration(seconds: 0));
+      }
+    };
+
+    await Future.wait([connectionTimer, connectionLoop()]);
+    return Future.value(1);
+  }
+
+  String getServerName(IO.Socket socket) {
+    socket.emit("serverNameRequest");
+    String serverName = '';
+    while (serverName == '') {
+      socket.on('serverName', (data) {
+        serverName = data;
+      });
+    }
+    return serverName;
+  }
+
+  void enterIP(BuildContext context, String serverIP) {
+    firstStart = true;
+    socket = IO.io('ws://$serverIP:$serverPort', <String, dynamic>{
+      'transports': ['websocket'],
+      'force new connection': true,
+      'autoConnect': false
+    });
+    socket.connect();
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('Verbinding maken...'),
+      duration: Duration(days: 365),
+    ));
+    socket.onConnect((_) {
+      if (firstStart) {
+        firstStart = false;
+        socket.emit('clientGreeting', 'yoBitch');
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        Navigator.of(context).push(MaterialPageRoute(
+            builder: (BuildContext context) =>
+                PoulesOverview(serverIP: serverIP)));
+      }
+    });
+  }
+
+  void startQRScanner(BuildContext context) async {
+    final result = await Navigator.push(
+        context, MaterialPageRoute(builder: (context) => const qrScanScreen()));
+    print(result);
+    try {
+      ipAddressController.text = result;
+      enterIP(context, result);
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  Widget _hostButton(
+      BuildContext buttonContext, String serverName, String serverIP) {
+    return ElevatedButton(
+        onPressed: () {
+          print("Connecting to $serverName on $serverIP");
+          enterIP(buttonContext, serverIP);
+        },
+        child: Text(serverName));
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -349,6 +465,7 @@ class StartScreen extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFF181818),
       ),
       home: Builder(builder: (context) {
+        standardContext = context;
         sizeConfig.init(context);
         horizontalScaling = sizeConfig.blockSizeHorizontal;
         verticalScaling = sizeConfig.blockSizeVertical;
@@ -359,47 +476,73 @@ class StartScreen extends StatelessWidget {
               title: const Text('Darttoernooi companion'),
               backgroundColor: const Color(PRIMARY_COLOR),
             ),
-            body: startScreenBody());
+            body: ListView(children: [
+              Container(
+                  child: Column(
+                      //mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                    TextField(
+                      controller: ipAddressController,
+                      decoration: InputDecoration(
+                        suffixIcon: IconButton(
+                            onPressed: () {
+                              startQRScanner(context);
+                            },
+                            icon: const Icon(Icons.qr_code_scanner_rounded),
+                            color: Colors.grey),
+                        labelText: 'IP adres',
+                        labelStyle: const TextStyle(color: Colors.white),
+                        enabledBorder: const OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF505050)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide:
+                              const BorderSide(color: Color(0xFF505050)),
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                      ),
+                      style: const TextStyle(color: Colors.white),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        primary: const Color(DEFAULT_BTN_COLOR),
+                      ),
+                      child: const Text('Verbinden'),
+                      onPressed: () {
+                        enterIP(context, serverIP);
+                      },
+                    ),
+                    //padding: const EdgeInsets.fromLTRB(50, 200, 50, 200)),
+                    const Text("Beschikbare servers"),
+                    Column(children: hostButtons)
+                  ])),
+            ]));
       }),
     );
   }
 }
 
-class startScreenBody extends StatelessWidget {
+/*
+class startScreenBody extends StatefulWidget {
   startScreenBody({Key? key}) : super(key: key);
   List<List<String>> availableHosts = [];
+  List<Widget> hostButtons = [];
   final ipAddressController = TextEditingController(text: serverIP);
 
-  bool startServerScanning() {
+  void startServerScanning() {
     for (int i = 2; i < 254; i++) {
-      String serverIP = '192.168.1.' + i.toString();
-      IO.Socket scanSocket =
-          IO.io('ws://$serverIP:$serverPort', <String, dynamic>{
-        'transports': ['websocket'],
-        'force new connection': true,
-        'autoConnect': false
-      });
-      scanSocket.connect();
-      scanSocket.onConnect((_) {
-        scanSocket.emit("serverNameRequest");
-        String serverName = '';
-        scanSocket.on('serverName', (data) {
-          serverName = data;
-        });
-        while (serverName == '') {}
-        List<String> serverInfo = [serverName, serverIP];
-        availableHosts.add(serverInfo);
-      });
-    }
-    print(availableHosts);
-    if (availableHosts.isNotEmpty) {
-      return true;
-    } else {
-      return false;
+      List<String> serverInfo = attemptConnection('192.168.1.' + i.toString());
+
+      if (serverInfo.isNotEmpty) {
+        hostButtons.add(_hostButton(serverInfo[0], serverInfo[1]));
+        setState(() {});
+      }
     }
   }
 
-  List<String> attemptConnection(String serverIP){
+  List<String> attemptConnection(String serverIP) {
     List<String> serverInfo = [];
     IO.Socket scanSocket =
         IO.io('ws://$serverIP:$serverPort', <String, dynamic>{
@@ -457,6 +600,15 @@ class startScreenBody extends StatelessWidget {
     }
   }
 
+  Widget _hostButton(String serverName, String serverIP) {
+    return ElevatedButton(
+        onPressed: () {
+          print("Connecting to $serverName on $serverIP");
+          enterIP(serverIP);
+        },
+        child: Text(serverName));
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListView(
@@ -501,31 +653,27 @@ class startScreenBody extends StatelessWidget {
             ),
             padding: const EdgeInsets.fromLTRB(50, 200, 50, 200)),
         Container(
-          child: Column(
-            children:[
-              AutoSizeText: "Beschikbare servers",
-              while(!startServerScanning()){
-                print("Scanning");
-              }
-              availableHosts.map((String data) {
-                return ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    primary: const Color(DEFAULT_BTN_COLOR),
-                  ),
-                  onPressed: () {
-                    enterIP(data[1]);
-                  },
-                  child: Text(data[0]),
-                );
-              }).toList(),
-            ]
-          )
-        ),
+            child: Column(children: [
+          const Text("Beschikbare servers"),
+          Column(children: [
+            availableHosts.map<Widget>((String data) {
+              return ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  primary: const Color(DEFAULT_BTN_COLOR),
+                ),
+                onPressed: () {
+                  enterIP(data[1]);
+                },
+                child: Text(data[0]),
+              );
+            }).toList(),
+          ])
+        ])),
       ],
     );
   }
 }
-
+*/
 class qrScanScreen extends StatefulWidget {
   const qrScanScreen({Key? key}) : super(key: key);
 
