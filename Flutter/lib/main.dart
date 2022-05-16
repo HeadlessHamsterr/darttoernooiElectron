@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'dart:convert';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -6,6 +9,7 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:scan/scan.dart';
 import 'package:Darttoernooi/size_config.dart';
+import 'package:network_info_plus/network_info_plus.dart';
 
 String serverIP = '';
 String activePoule = '';
@@ -27,6 +31,7 @@ bool firstStart = false;
 bool gameActive = false;
 double horizontalScaling = 0;
 double verticalScaling = 0;
+int serverPort = 11520;
 
 List<String> possibleOuts = [
   'T20 T20 BULL',
@@ -338,8 +343,142 @@ Widget getPouleName(pouleName) {
   }
 }
 
-class StartScreen extends StatelessWidget {
+class StartScreen extends StatefulWidget {
   const StartScreen({Key? key}) : super(key: key);
+
+  @override
+  _StartScreenState createState() => _StartScreenState();
+}
+
+class _StartScreenState extends State<StartScreen> {
+  late BuildContext standardContext;
+  late Timer connectionTimer;
+  bool stopChecking = false;
+  @override
+  void initState() {
+    startServerScanning();
+    super.initState();
+  }
+
+  List<String> availableHosts = [];
+  List<Widget> hostButtons = [];
+  final ipAddressController = TextEditingController(text: serverIP);
+
+  void startServerScanning() async {
+    final info = NetworkInfo();
+    var deviceIP = await info.getWifiIP();
+    var _destinationAddress = InternetAddress("192.168.1.255");
+
+    RawDatagramSocket.bind(InternetAddress.anyIPv4, 8889)
+        .then((RawDatagramSocket udpSocket) {
+      udpSocket.broadcastEnabled = true;
+      udpSocket.listen((event) {
+        Datagram? dg = udpSocket.receive();
+        if (dg != null) {
+          String message = utf8.decode(dg.data);
+          print("Received: $message");
+          List<String> messageList = message.split(',');
+          if (messageList[0] == 'serverName') {
+            if (!availableHosts.contains(messageList[1])) {
+              availableHosts.add(messageList[1]);
+              hostButtons.add(
+                  _hostButton(standardContext, messageList[1], messageList[2]));
+              setState(() {});
+            }
+          }
+        }
+      });
+      List<int> data = utf8.encode("serverNameRequest,$deviceIP");
+      connectionTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+        udpSocket.send(data, _destinationAddress, 8889);
+      });
+    });
+    return Future.value(1);
+  }
+
+  void enterIP(BuildContext context, String serverIP) {
+    firstStart = true;
+    stopChecking = true;
+    socket = IO.io('ws://$serverIP:$serverPort', <String, dynamic>{
+      'transports': ['websocket'],
+      'force new connection': true,
+      'autoConnect': false
+    });
+    socket.connect();
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('Verbinding maken...'),
+      duration: Duration(days: 365),
+    ));
+    socket.onConnect((_) {
+      if (firstStart) {
+        firstStart = false;
+        socket.emit('clientGreeting', 'yoBitch');
+        connectionTimer.cancel();
+        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+        Navigator.of(context).push(MaterialPageRoute(
+            builder: (BuildContext context) =>
+                PoulesOverview(serverIP: serverIP)));
+      }
+    });
+  }
+
+  void startQRScanner(BuildContext context) async {
+    final result = await Navigator.push(
+        context, MaterialPageRoute(builder: (context) => const qrScanScreen()));
+    print(result);
+    try {
+      ipAddressController.text = result;
+      enterIP(context, result);
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  Widget _hostButton(
+      BuildContext buttonContext, String serverName, String serverIP) {
+    return Column(
+      children: [
+        const SizedBox(height: 20),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            SizedBox(width: 30),
+            SizedBox(
+              width: 200,
+              height: 50,
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.white24),
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    AutoSizeText(
+                      serverName,
+                      maxLines: 1,
+                      maxFontSize: 14,
+                      style: const TextStyle(
+                        color: Colors.white,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: (){
+                        print("Connecting to $serverName on $serverIP");
+                        enterIP(buttonContext, serverIP);
+                      }, 
+                      child: const Text("Verbinden")
+                    )
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(width: 30,),
+          ],
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -348,6 +487,7 @@ class StartScreen extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFF181818),
       ),
       home: Builder(builder: (context) {
+        standardContext = context;
         sizeConfig.init(context);
         horizontalScaling = sizeConfig.blockSizeHorizontal;
         verticalScaling = sizeConfig.blockSizeVertical;
@@ -358,21 +498,104 @@ class StartScreen extends StatelessWidget {
               title: const Text('Darttoernooi companion'),
               backgroundColor: const Color(PRIMARY_COLOR),
             ),
-            body: startScreenBody());
+            body: ListView(children: [
+              Container(
+                  child: Column(
+                      //mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                    TextField(
+                      controller: ipAddressController,
+                      decoration: InputDecoration(
+                        suffixIcon: IconButton(
+                            onPressed: () {
+                              startQRScanner(context);
+                            },
+                            icon: const Icon(Icons.qr_code_scanner_rounded),
+                            color: Colors.grey),
+                        labelText: 'IP adres',
+                        labelStyle: const TextStyle(color: Colors.white),
+                        enabledBorder: const OutlineInputBorder(
+                          borderSide: BorderSide(color: Color(0xFF505050)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderSide:
+                              const BorderSide(color: Color(0xFF505050)),
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                      ),
+                      style: const TextStyle(color: Colors.white),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        primary: const Color(DEFAULT_BTN_COLOR),
+                      ),
+                      child: const Text('Verbinden'),
+                      onPressed: () {
+                        enterIP(context, serverIP);
+                      },
+                    ),
+                    //padding: const EdgeInsets.fromLTRB(50, 200, 50, 200)),
+                    const AutoSizeText(
+                      "Beschikbare servers:",
+                      maxLines: 1,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        ),
+                      ),
+                    Column(children: hostButtons)
+                  ])),
+            ]));
       }),
     );
   }
 }
 
-class startScreenBody extends StatelessWidget {
+/*
+class startScreenBody extends StatefulWidget {
   startScreenBody({Key? key}) : super(key: key);
-
+  List<List<String>> availableHosts = [];
+  List<Widget> hostButtons = [];
   final ipAddressController = TextEditingController(text: serverIP);
+
+  void startServerScanning() {
+    for (int i = 2; i < 254; i++) {
+      List<String> serverInfo = attemptConnection('192.168.1.' + i.toString());
+
+      if (serverInfo.isNotEmpty) {
+        hostButtons.add(_hostButton(serverInfo[0], serverInfo[1]));
+        setState(() {});
+      }
+    }
+  }
+
+  List<String> attemptConnection(String serverIP) {
+    List<String> serverInfo = [];
+    IO.Socket scanSocket =
+        IO.io('ws://$serverIP:$serverPort', <String, dynamic>{
+      'transports': ['websocket'],
+      'force new connection': true,
+      'autoConnect': false
+    });
+    scanSocket.connect();
+    scanSocket.onConnect((_) {
+      scanSocket.emit("serverNameRequest");
+      String serverName = '';
+      scanSocket.on('serverName', (data) {
+        serverName = data;
+      });
+      while (serverName == '') {}
+      serverInfo = [serverName, serverIP];
+    });
+    return serverInfo;
+  }
 
   void enterIP(context) {
     firstStart = true;
     serverIP = ipAddressController.text;
-    socket = IO.io('ws://$serverIP:11520', <String, dynamic>{
+    socket = IO.io('ws://$serverIP:$serverPort', <String, dynamic>{
       'transports': ['websocket'],
       'force new connection': true,
       'autoConnect': false
@@ -397,10 +620,22 @@ class startScreenBody extends StatelessWidget {
   void startQRScanner(BuildContext context) async {
     final result = await Navigator.push(
         context, MaterialPageRoute(builder: (context) => const qrScanScreen()));
+    print(result);
     try {
       ipAddressController.text = result;
       enterIP(context);
-    } catch (e) {}
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  Widget _hostButton(String serverName, String serverIP) {
+    return ElevatedButton(
+        onPressed: () {
+          print("Connecting to $serverName on $serverIP");
+          enterIP(serverIP);
+        },
+        child: Text(serverName));
   }
 
   @override
@@ -446,11 +681,28 @@ class startScreenBody extends StatelessWidget {
               ],
             ),
             padding: const EdgeInsets.fromLTRB(50, 200, 50, 200)),
+        Container(
+            child: Column(children: [
+          const Text("Beschikbare servers"),
+          Column(children: [
+            availableHosts.map<Widget>((String data) {
+              return ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  primary: const Color(DEFAULT_BTN_COLOR),
+                ),
+                onPressed: () {
+                  enterIP(data[1]);
+                },
+                child: Text(data[0]),
+              );
+            }).toList(),
+          ])
+        ])),
       ],
     );
   }
 }
-
+*/
 class qrScanScreen extends StatefulWidget {
   const qrScanScreen({Key? key}) : super(key: key);
 
@@ -541,9 +793,6 @@ class _PoulesOverviewState extends State<PoulesOverview> {
       gameInfoClass.halfLegs = int.parse(data[1][5]);
       gameInfoClass.finalScore = int.parse(data[1][6]);
       gameInfoClass.finalLegs = int.parse(data[1][7]);
-      print("Poule data update: $data");
-      print(
-          "${gameInfoClass.pouleScore} | ${gameInfoClass.pouleLegs} | ${gameInfoClass.quartScore} | ${gameInfoClass.quartLegs} | ${gameInfoClass.halfScore} | ${gameInfoClass.halfLegs} | ${gameInfoClass.finalScore} | ${gameInfoClass.finalLegs}");
       setState(() {
         pouleNames = pouleNames;
       });
@@ -643,7 +892,7 @@ class _PouleScreenState extends State<PouleScreen> {
       socket.emit('poule${activePoule}InfoRequest', 'plsGeef');
     } else {
       socket.off('poule${activePoule}Ranks');
-      socket.on('finalsInfo', (data) => updateFinals(data)); 
+      socket.on('finalsInfo', (data) => updateFinals(data));
       socket.emit('finalsInfoRequest', 'plsGeef');
     }
   }
@@ -657,8 +906,10 @@ class _PouleScreenState extends State<PouleScreen> {
     }
 
     games.clear();
+    print('Checking: ${data[1]}');
     for (var i = 0; i < data[1].length; i++) {
       String gameID = activePoule + (i + 1).toString();
+      print("GameID: $gameID");
       games.add(PouleGames(
           gameID: gameID,
           player1: data[1][i][0],
@@ -914,8 +1165,6 @@ class _PouleGameBodyState extends State<PouleGameBody> {
     activeGameInfo.add(legsToPlay);
     activeGameInfo.add(setsToPlay);
     print(widget.game.gameID);
-    print(
-        "${player1.currentScore} | ${player2.currentScore} | $legsToPlay | ${widget.game.gameType}");
     activeStartingPlayer = ChosenPlayerEnum.undefined;
     chosenPlayer = activeStartingPlayer;
 

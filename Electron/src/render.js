@@ -10,6 +10,8 @@ const { spawn } = require('child_process');
 const qr = require('qrcode');
 const { count } = require('console');
 const { clearInterval } = require('timers');
+const { hostname } = require('os');
+const udp = require('dgram');
 /*
 const updater = require('update-electron-app')({
     repo: 'https://github.com/HeadlessHamsterr/darttoernooiElectron',
@@ -35,6 +37,7 @@ var appSettings = [];
 var appOptions = ["pouleScore", "pouleLegs", "quartScore", "quartLegs", "halfScore", "halfLegs", "finalScore", "finalLegs"];
 var activeGames = [];
 var activeGamesWindowOpen = false;
+var hostName = 'Gefaald';
 let outs = [  'T20 T20 BULL',
 '',
 '',
@@ -206,6 +209,22 @@ let outs = [  'T20 T20 BULL',
 'D1'
 ];
 
+var udpServer = udp.createSocket("udp4");
+console.log(typeof(udpServer))
+udpServer.bind(8889);
+udpServer.on("message", function(message){
+    console.log(`Received message: ${message}`);
+    message = message.toString();
+    let messageList = message.split(',');
+    console.log(messageList);
+    if(messageList[0] == "serverNameRequest"){
+        console.log(`Wejow! ${messageList[1]} wil met mij praten!`);
+        let msg = `serverName,${hostName},${address()}`;
+        console.log(`Sending ${msg} to ${messageList[1]}`);
+        udpServer.send(msg, 8889, messageList[1]);
+    }
+});
+
 io.on('connection', (socket) => {
     console.log(`Websocket ${socket.id} connection astablished`);
     sockets.add(socket.id);
@@ -218,6 +237,12 @@ io.on('connection', (socket) => {
             }
         }
         sockets.delete(socket.id);
+    });
+    socket.on("serverNameRequest", (data) => {
+        console.log("server name request received");
+        let msg = [hostName, address().toString()];
+        console.log(msg);
+        socket.emit('serverName', msg);
     });
     socket.on('allPouleInfoRequest', (data) => {
         var msg = [];
@@ -1192,6 +1217,12 @@ async function streamWithProgress(length, reader, writer, progressCallback) {
 }
 
 function continueToGame(){
+    let names = fs.readFileSync(path.join(__dirname, 'names.txt'),{
+        encoding: 'utf8',
+    });
+    let namesList = names.split('\n');
+    hostName = namesList[Math.floor(Math.random() * namesList.length)]
+    console.log(hostName);
     tieBreakersEnabled = true;
 
     const newGameBtn = document.getElementById('newGameBtn');
@@ -1475,7 +1506,8 @@ function loadGame(){
     }
 
     startPeriodicStuff();
-    document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
+    //document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
+    document.getElementById('ipAddress').innerHTML = `Server naam: ${hostName}`;
 
     websocketServer.listen(PORT, () => {
         console.log(`Server listening on http://${address()}:${PORT}`);
