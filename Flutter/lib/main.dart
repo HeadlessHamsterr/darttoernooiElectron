@@ -348,6 +348,7 @@ class StartScreen extends StatefulWidget {
 
 class _StartScreenState extends State<StartScreen> {
   late BuildContext standardContext;
+  bool stopChecking = false;
   @override
   void initState() {
     startServerScanning();
@@ -361,6 +362,9 @@ class _StartScreenState extends State<StartScreen> {
   void startServerScanning() async {
     print(hostButtons);
     for (int i = 2; i < 254; i++) {
+      if (stopChecking) {
+        break;
+      }
       print("Checking server at 192.168.1.$i");
       await attemptConnection('192.168.1.' + i.toString());
     }
@@ -380,10 +384,11 @@ class _StartScreenState extends State<StartScreen> {
       print(data);
       hostButtons.add(_hostButton(standardContext, data[0], data[1]));
       print(hostButtons);
-      scanSocket.disconnect();
+      scanSocket.destroy();
+      scanSocket.off('serverName');
       setState(() {});
     });
-    var connectionTimer = Future.delayed(const Duration(milliseconds: 100), () {
+    var connectionTimer = Future.delayed(const Duration(milliseconds: 200), () {
       checkDone = true;
     });
     // ignore: prefer_function_declarations_over_variables
@@ -414,6 +419,7 @@ class _StartScreenState extends State<StartScreen> {
 
   void enterIP(BuildContext context, String serverIP) {
     firstStart = true;
+    stopChecking = true;
     socket = IO.io('ws://$serverIP:$serverPort', <String, dynamic>{
       'transports': ['websocket'],
       'force new connection': true,
