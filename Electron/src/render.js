@@ -10,6 +10,7 @@ const { spawn } = require('child_process');
 const qr = require('qrcode');
 const { count } = require('console');
 const { clearInterval } = require('timers');
+const { hostname } = require('os');
 /*
 const updater = require('update-electron-app')({
     repo: 'https://github.com/HeadlessHamsterr/darttoernooiElectron',
@@ -35,6 +36,7 @@ var appSettings = [];
 var appOptions = ["pouleScore", "pouleLegs", "quartScore", "quartLegs", "halfScore", "halfLegs", "finalScore", "finalLegs"];
 var activeGames = [];
 var activeGamesWindowOpen = false;
+var hostName = 'Gefaald';
 let outs = [  'T20 T20 BULL',
 '',
 '',
@@ -221,7 +223,7 @@ io.on('connection', (socket) => {
     });
     socket.on("serverNameRequest", (data) => {
         console.log("server name request received");
-        let msg = ['Frits', address().toString()];
+        let msg = [hostName, address().toString()];
         console.log(msg);
         socket.emit('serverName', msg);
     });
@@ -1198,6 +1200,12 @@ async function streamWithProgress(length, reader, writer, progressCallback) {
 }
 
 function continueToGame(){
+    let names = fs.readFileSync(path.join(__dirname, 'names.txt'),{
+        encoding: 'utf8',
+    });
+    let namesList = names.split('\n');
+    hostName = namesList[Math.floor(Math.random() * namesList.length)]
+    console.log(hostName);
     tieBreakersEnabled = true;
 
     const newGameBtn = document.getElementById('newGameBtn');
@@ -1481,7 +1489,8 @@ function loadGame(){
     }
 
     startPeriodicStuff();
-    document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
+    //document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
+    document.getElementById('ipAddress').innerHTML = `Server naam: ${hostName}`;
 
     websocketServer.listen(PORT, () => {
         console.log(`Server listening on http://${address()}:${PORT}`);
