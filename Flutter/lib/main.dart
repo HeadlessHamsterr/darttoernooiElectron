@@ -399,6 +399,27 @@ class startScreenBody extends StatelessWidget {
     }
   }
 
+  List<String> attemptConnection(String serverIP){
+    List<String> serverInfo = [];
+    IO.Socket scanSocket =
+        IO.io('ws://$serverIP:$serverPort', <String, dynamic>{
+      'transports': ['websocket'],
+      'force new connection': true,
+      'autoConnect': false
+    });
+    scanSocket.connect();
+    scanSocket.onConnect((_) {
+      scanSocket.emit("serverNameRequest");
+      String serverName = '';
+      scanSocket.on('serverName', (data) {
+        serverName = data;
+      });
+      while (serverName == '') {}
+      serverInfo = [serverName, serverIP];
+    });
+    return serverInfo;
+  }
+
   void enterIP(context) {
     firstStart = true;
     serverIP = ipAddressController.text;
@@ -479,6 +500,27 @@ class startScreenBody extends StatelessWidget {
               ],
             ),
             padding: const EdgeInsets.fromLTRB(50, 200, 50, 200)),
+        Container(
+          child: Column(
+            children:[
+              AutoSizeText: "Beschikbare servers",
+              while(!startServerScanning()){
+                print("Scanning");
+              }
+              availableHosts.map((String data) {
+                return ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    primary: const Color(DEFAULT_BTN_COLOR),
+                  ),
+                  onPressed: () {
+                    enterIP(data[1]);
+                  },
+                  child: Text(data[0]),
+                );
+              }).toList(),
+            ]
+          )
+        ),
       ],
     );
   }
