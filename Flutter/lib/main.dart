@@ -379,21 +379,11 @@ class _StartScreenState extends State<StartScreen> {
           print("Received: $message");
           List<String> messageList = message.split(',');
           if (messageList[0] == 'serverName') {
-            if(availableHosts.isEmpty){
+            if (!availableHosts.contains(messageList[1])) {
               availableHosts.add(messageList[1]);
               hostButtons.add(
                   _hostButton(standardContext, messageList[1], messageList[2]));
               setState(() {});
-            }
-            for (int i = 0; i < availableHosts.length; i++) {
-              if (availableHosts[i] == messageList[1]) {
-                break;
-              }else{
-                availableHosts.add(messageList[1]);
-                hostButtons.add(
-                    _hostButton(standardContext, messageList[1], messageList[2]));
-                setState(() {});
-              }
             }
           }
         }
@@ -423,6 +413,7 @@ class _StartScreenState extends State<StartScreen> {
       if (firstStart) {
         firstStart = false;
         socket.emit('clientGreeting', 'yoBitch');
+        connectionTimer.cancel();
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         Navigator.of(context).push(MaterialPageRoute(
             builder: (BuildContext context) =>
@@ -445,12 +436,48 @@ class _StartScreenState extends State<StartScreen> {
 
   Widget _hostButton(
       BuildContext buttonContext, String serverName, String serverIP) {
-    return ElevatedButton(
-        onPressed: () {
-          print("Connecting to $serverName on $serverIP");
-          enterIP(buttonContext, serverIP);
-        },
-        child: Text(serverName));
+    return Column(
+      children: [
+        const SizedBox(height: 20),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            SizedBox(width: 30),
+            SizedBox(
+              width: 200,
+              height: 50,
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.white24),
+                  borderRadius: BorderRadius.circular(5),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    AutoSizeText(
+                      serverName,
+                      maxLines: 1,
+                      maxFontSize: 14,
+                      style: const TextStyle(
+                        color: Colors.white,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: (){
+                        print("Connecting to $serverName on $serverIP");
+                        enterIP(buttonContext, serverIP);
+                      }, 
+                      child: const Text("Verbinden")
+                    )
+                  ],
+                ),
+              ),
+            ),
+            SizedBox(width: 30,),
+          ],
+        ),
+      ],
+    );
   }
 
   @override
@@ -510,7 +537,14 @@ class _StartScreenState extends State<StartScreen> {
                       },
                     ),
                     //padding: const EdgeInsets.fromLTRB(50, 200, 50, 200)),
-                    const Text("Beschikbare servers"),
+                    const AutoSizeText(
+                      "Beschikbare servers:",
+                      maxLines: 1,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        ),
+                      ),
                     Column(children: hostButtons)
                   ])),
             ]));
