@@ -27,6 +27,7 @@ bool firstStart = false;
 bool gameActive = false;
 double horizontalScaling = 0;
 double verticalScaling = 0;
+int serverPort = 11520;
 
 List<String> possibleOuts = [
   'T20 T20 BULL',
@@ -366,13 +367,42 @@ class StartScreen extends StatelessWidget {
 
 class startScreenBody extends StatelessWidget {
   startScreenBody({Key? key}) : super(key: key);
-
+  List<List<String>> availableHosts = [];
   final ipAddressController = TextEditingController(text: serverIP);
+
+  bool startServerScanning() {
+    for (int i = 2; i < 254; i++) {
+      String serverIP = '192.168.1.' + i.toString();
+      IO.Socket scanSocket =
+          IO.io('ws://$serverIP:$serverPort', <String, dynamic>{
+        'transports': ['websocket'],
+        'force new connection': true,
+        'autoConnect': false
+      });
+      scanSocket.connect();
+      scanSocket.onConnect((_) {
+        scanSocket.emit("serverNameRequest");
+        String serverName = '';
+        scanSocket.on('serverName', (data) {
+          serverName = data;
+        });
+        while (serverName == '') {}
+        List<String> serverInfo = [serverName, serverIP];
+        availableHosts.add(serverInfo);
+      });
+    }
+    print(availableHosts);
+    if (availableHosts.isNotEmpty) {
+      return true;
+    } else {
+      return false;
+    }
+  }
 
   void enterIP(context) {
     firstStart = true;
     serverIP = ipAddressController.text;
-    socket = IO.io('ws://$serverIP:11520', <String, dynamic>{
+    socket = IO.io('ws://$serverIP:$serverPort', <String, dynamic>{
       'transports': ['websocket'],
       'force new connection': true,
       'autoConnect': false
@@ -397,10 +427,13 @@ class startScreenBody extends StatelessWidget {
   void startQRScanner(BuildContext context) async {
     final result = await Navigator.push(
         context, MaterialPageRoute(builder: (context) => const qrScanScreen()));
+    print(result);
     try {
       ipAddressController.text = result;
       enterIP(context);
-    } catch (e) {}
+    } catch (e) {
+      print(e);
+    }
   }
 
   @override
@@ -541,9 +574,6 @@ class _PoulesOverviewState extends State<PoulesOverview> {
       gameInfoClass.halfLegs = int.parse(data[1][5]);
       gameInfoClass.finalScore = int.parse(data[1][6]);
       gameInfoClass.finalLegs = int.parse(data[1][7]);
-      print("Poule data update: $data");
-      print(
-          "${gameInfoClass.pouleScore} | ${gameInfoClass.pouleLegs} | ${gameInfoClass.quartScore} | ${gameInfoClass.quartLegs} | ${gameInfoClass.halfScore} | ${gameInfoClass.halfLegs} | ${gameInfoClass.finalScore} | ${gameInfoClass.finalLegs}");
       setState(() {
         pouleNames = pouleNames;
       });
@@ -643,7 +673,7 @@ class _PouleScreenState extends State<PouleScreen> {
       socket.emit('poule${activePoule}InfoRequest', 'plsGeef');
     } else {
       socket.off('poule${activePoule}Ranks');
-      socket.on('finalsInfo', (data) => updateFinals(data)); 
+      socket.on('finalsInfo', (data) => updateFinals(data));
       socket.emit('finalsInfoRequest', 'plsGeef');
     }
   }
@@ -657,8 +687,10 @@ class _PouleScreenState extends State<PouleScreen> {
     }
 
     games.clear();
+    print('Checking: ${data[1]}');
     for (var i = 0; i < data[1].length; i++) {
       String gameID = activePoule + (i + 1).toString();
+      print("GameID: $gameID");
       games.add(PouleGames(
           gameID: gameID,
           player1: data[1][i][0],
@@ -914,8 +946,6 @@ class _PouleGameBodyState extends State<PouleGameBody> {
     activeGameInfo.add(legsToPlay);
     activeGameInfo.add(setsToPlay);
     print(widget.game.gameID);
-    print(
-        "${player1.currentScore} | ${player2.currentScore} | $legsToPlay | ${widget.game.gameType}");
     activeStartingPlayer = ChosenPlayerEnum.undefined;
     chosenPlayer = activeStartingPlayer;
 
