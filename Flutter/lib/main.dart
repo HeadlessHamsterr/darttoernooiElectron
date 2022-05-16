@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -6,6 +8,7 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:scan/scan.dart';
 import 'package:Darttoernooi/size_config.dart';
+import 'package:network_info_plus/network_info_plus.dart';
 
 String serverIP = '';
 String activePoule = '';
@@ -360,14 +363,31 @@ class _StartScreenState extends State<StartScreen> {
   final ipAddressController = TextEditingController(text: serverIP);
 
   void startServerScanning() async {
-    print(hostButtons);
+    /*print(hostButtons);
     for (int i = 2; i < 254; i++) {
       if (stopChecking) {
         break;
       }
       print("Checking server at 192.168.1.$i");
       await attemptConnection('192.168.1.' + i.toString());
-    }
+    }*/
+    final info = NetworkInfo();
+    var deviceIP = await info.getWifiIP();
+    var _destinationAddress = InternetAddress("192.168.1.255");
+
+    RawDatagramSocket.bind(InternetAddress.anyIPv4, 8889)
+        .then((RawDatagramSocket udpSocket) {
+      udpSocket.broadcastEnabled = true;
+      udpSocket.listen((event) {
+        Datagram? dg = udpSocket.receive();
+        print(event.toString());
+        if (dg != null) {
+          print("Received: ${utf8.decode(dg.data)}");
+        }
+      });
+      List<int> data = utf8.encode("serverNameRequest,$deviceIP");
+      udpSocket.send(data, _destinationAddress, 8889);
+    });
     return Future.value(1);
   }
 
@@ -388,13 +408,14 @@ class _StartScreenState extends State<StartScreen> {
       scanSocket.off('serverName');
       setState(() {});
     });
-    var connectionTimer = Future.delayed(const Duration(milliseconds: 200), () {
+    var connectionTimer = Future.delayed(const Duration(milliseconds: 500), () {
       checkDone = true;
     });
     // ignore: prefer_function_declarations_over_variables
     var connectionLoop = () async {
       while (!checkDone) {
         if (scanSocket.connected) {
+          print("Connected");
           scanSocket.emit('serverNameRequest');
           checkDone = true;
         }

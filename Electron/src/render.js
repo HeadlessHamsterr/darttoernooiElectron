@@ -11,6 +11,7 @@ const qr = require('qrcode');
 const { count } = require('console');
 const { clearInterval } = require('timers');
 const { hostname } = require('os');
+const udp = require('dgram');
 /*
 const updater = require('update-electron-app')({
     repo: 'https://github.com/HeadlessHamsterr/darttoernooiElectron',
@@ -207,6 +208,19 @@ let outs = [  'T20 T20 BULL',
 '1 D1',
 'D1'
 ];
+
+var udpServer = udp.createSocket("udp4");
+console.log(typeof(udpServer))
+udpServer.bind(8889);
+udpServer.on("message", function(message){
+    console.log(`Received message: ${message}`);
+    message = message.toString();
+    let messageList = message.split(',');
+    console.log(messageList);
+    if(messageList[0] == "serverNameRequest"){
+        console.log(`Wejow! ${messageList[1]} wil met mij praten!`);
+    }
+});
 
 io.on('connection', (socket) => {
     console.log(`Websocket ${socket.id} connection astablished`);
