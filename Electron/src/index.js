@@ -248,13 +248,20 @@ const createWindow = (shouldCheckUpdate = true) => {
       if (this.readyState == 4 && this.status == 200) {
         let response = JSON.parse(this.responseText);
         //console.log(response);
-        latestVersion = response["tag_name"]
+        latestVersion = response["tag_name"].toString().replace('V', '');
+        latestVersionList = latestVersion.split('.');
 
-        if(parseInt(latestVersion[1]) > parseInt(app.getVersion()[0])){
+        currentVersion = app.getVersion().toString();
+        currentVersionList = currentVersion.split('.')
+
+        console.log(latestVersionList);
+        console.log(currentVersionList);
+
+        if(parseInt(latestVersionList[0]) > parseInt(currentVersionList[0])){
           updateAvailable = true;
-        }else if(parseInt(latestVersion[3]) > parseInt(app.getVersion()[2]) && parseInt(latestVersion[1]) >= parseInt(app.getVersion()[0])){
+        }else if(parseInt(latestVersionList[1]) > parseInt(currentVersionList[1]) && parseInt(latestVersionList[0]) >= parseInt(currentVersionList[0])){
           updateAvailable = true;
-        }else if(parseInt(latestVersion[5]) > parseInt(app.getVersion()[4]) && (parseInt(latestVersion[3]) >= parseInt(app.getVersion()[2]) && parseInt(latestVersion[1]) >= parseInt(app.getVersion()[0]))){
+        }else if(parseInt(latestVersionList[2]) > parseInt(currentVersionList[2]) && parseInt(latestVersionList[1]) >= parseInt(currentVersionList[1]) && parseInt(latestVersionList[0]) >= parseInt(currentVersionList[0])){
           updateAvailable = true;
         }
 
