@@ -751,9 +751,7 @@ input.settingInput{
   font-size: 25px;
 }
 
-#ipAddress{
-  position: absolute;
-  top: 13px;
+.serverInfo{
   font-size: 18px;
   margin-left: 20px;
   color: white;
@@ -761,8 +759,13 @@ input.settingInput{
   transition: 0.1s;
 }
 
-#ipAddress:hover{
+.serverInfo:hover{
   transform: scale(1.05);
+}
+
+.serverInfo.fixedPos{
+  position: absolute;
+  top: 13px;
 }
 
 .turnArrow{
