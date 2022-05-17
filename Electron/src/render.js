@@ -1852,6 +1852,19 @@ function makePoules(){
         websocketServer.listen(PORT, () => {
             console.log(`Server listening on http://${address()}:${PORT}`);
         });
+
+        udpServer.on("message", function(message){
+            console.log(`Received message: ${message}`);
+            message = message.toString();
+            let messageList = message.split(',');
+            console.log(messageList);
+            if(messageList[0] == "serverNameRequest"){
+                console.log(`Wejow! ${messageList[1]} wil met mij praten!`);
+                let msg = `serverName,${hostName},${address()}`;
+                console.log(`Sending ${msg} to ${messageList[1]}`);
+                udpServer.send(msg, 8889, messageList[1]);
+            }
+        });
         io.emit('pouleInfo', exportGameInfo(false));
     }
 }
