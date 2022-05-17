@@ -401,8 +401,12 @@ class _StartScreenState extends State<StartScreen> {
         }
       });
       List<int> data = utf8.encode("serverNameRequest,$deviceIP");
+      udpSocket.send(data, _destinationAddress, 8889);
       connectionTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
         udpSocket.send(data, _destinationAddress, 8889);
+        if (stopChecking) {
+          timer.cancel();
+        }
       });
     });
     return Future.value(1);
@@ -425,7 +429,7 @@ class _StartScreenState extends State<StartScreen> {
       if (firstStart) {
         firstStart = false;
         socket.emit('clientGreeting', 'yoBitch');
-        connectionTimer.cancel();
+        stopChecking = true;
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         Navigator.of(context).push(MaterialPageRoute(
             builder: (BuildContext context) =>
@@ -565,21 +569,20 @@ class _StartScreenState extends State<StartScreen> {
             body: ListView(children: [
               Container(
                   padding: const EdgeInsets.fromLTRB(50, 50, 50, 200),
-                  child: Column(
-                      children: [
-                        const AutoSizeText(
-                          "Beschikbare servers:",
-                          maxLines: 1,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                          ),
-                        ),
-                        hostButtons.isNotEmpty
-                            ? Column(children: hostButtons)
-                            : Image.asset('assets/loading.gif',
-                                height: 70, width: 70),
-                      ])),
+                  child: Column(children: [
+                    const AutoSizeText(
+                      "Beschikbare servers:",
+                      maxLines: 1,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                      ),
+                    ),
+                    hostButtons.isNotEmpty
+                        ? Column(children: hostButtons)
+                        : Image.asset('assets/loading.gif',
+                            height: 70, width: 70),
+                  ])),
             ]));
       }),
     );
