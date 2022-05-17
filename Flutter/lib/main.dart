@@ -401,7 +401,7 @@ class _StartScreenState extends State<StartScreen> {
         }
       });
       List<int> data = utf8.encode("serverNameRequest,$deviceIP");
-      udpSocket.send(data, _destinationAddress, 8889);
+      udpSocket.send(data, _destinationAddress, 8888);
       connectionTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
         udpSocket.send(data, _destinationAddress, 8889);
         if (stopChecking) {
@@ -497,6 +497,11 @@ class _StartScreenState extends State<StartScreen> {
     );
   }
 
+  void openHelpScreen(BuildContext context) {
+    Navigator.of(context).push(MaterialPageRoute(
+        builder: (BuildContext context) => const HelpScreen()));
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -512,8 +517,14 @@ class _StartScreenState extends State<StartScreen> {
         print("Vertical scaling: $verticalScaling");
         return Scaffold(
             appBar: AppBar(
-              title: const Text('Darttoernooi companion'),
+              title: const Text('Darttoernooi'),
+              centerTitle: true,
               backgroundColor: const Color(PRIMARY_COLOR),
+              actions: [
+                IconButton(
+                    onPressed: () => {openHelpScreen(context)},
+                    icon: const Icon(Icons.help)),
+              ],
             ),
             drawer: Drawer(
               backgroundColor: const Color(BACKGROUND_COLOR),
@@ -571,7 +582,7 @@ class _StartScreenState extends State<StartScreen> {
                   padding: const EdgeInsets.fromLTRB(50, 50, 50, 200),
                   child: Column(children: [
                     const AutoSizeText(
-                      "Beschikbare servers:",
+                      "Beschikbare wedstrijden:",
                       maxLines: 1,
                       style: TextStyle(
                         color: Colors.white,
@@ -586,6 +597,79 @@ class _StartScreenState extends State<StartScreen> {
             ]));
       }),
     );
+  }
+}
+
+class HelpScreen extends StatelessWidget {
+  const HelpScreen({Key? key}) : super(key: key);
+
+  void backPressed(BuildContext context) {
+    //Navigator.of(context).push(MaterialPageRoute(
+    //    builder: (BuildContext context) => const StartScreen()));
+    Navigator.pop(context);
+  }
+
+  Widget build(BuildContext context) {
+    return Scaffold(
+        appBar: AppBar(
+          title: const Text("Informatie"),
+          centerTitle: true,
+          backgroundColor: const Color(PRIMARY_COLOR),
+          leading: IconButton(
+              onPressed: () {
+                backPressed(context);
+              },
+              icon: const Icon(Icons.arrow_back)),
+        ),
+        body: ListView(
+          children: [
+            Text(
+              "Verbinding maken met de computer",
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 7.3*horizontalScaling, color: Colors.white)
+            ),
+            Text(
+              """De app zoekt automatisch naar een computer om mee te verbinden. Deze komen onder elkaar op het begin scherm te staan:""",
+              style: TextStyle(color: Colors.white, fontSize: 4.87*horizontalScaling),
+            ),
+            Image.asset('assets/homeScreenApp.jpg', scale: 20/horizontalScaling),
+            Text(
+              """De naam van de computer (in dit voorbeeld Aloma) kan gecontroleerd worden op de computer. Druk op de drie streepjes rechtsboven. De naam van de compter staat bovenaan het menu dat verschijnt:
+""",
+              style: TextStyle(color: Colors.white, fontSize: 4.87*horizontalScaling),
+            ),
+            Image.asset("assets/computerNaam.png", scale: 5/horizontalScaling),
+            Text(
+              """Als er geen computers gevonden worden, zorg er dan voor dat:
+- Er een wedstrijd actief is op een computer;
+- De computer en de telefoon met hetzelfde netwerk verbonden zijn;
+- Het programma op de computer minimaal versie 1.10.1 is.
+
+Als dit allemaal goed is, maar de app nog steeds geen computers kan vinden, kan er altijd nog handmatig verbonden worden met de computer. Druk op de drie streepjes linksboven (op het begin scherm). Hier kan het IP-adres van de server ingevuld worden.
+De app kan ook worden verbonden met een QR-code. Druk op het QR-code symbool:
+              """,
+              style: TextStyle(fontSize: 4.87*horizontalScaling, color: Colors.white),
+            ),
+            Image.asset('assets/qrBtnApp.png',scale: 5/horizontalScaling),
+            Text(
+              """
+De QR-code kan gevonden worden door op de computer rechtsboven op de drie streepjes te drukken. Druk vervolgens op het QR-code symbool en de QR-code verschijnt:
+              """,
+              style: TextStyle(fontSize: 4.87*horizontalScaling, color: Colors.white),
+            ),
+            Image.asset('assets/qrBtnComputer.png', scale: 5/horizontalScaling),
+            Image.asset('assets/qrCodePC.png', scale: 5/horizontalScaling),
+            Text(
+              '''Mocht dit ook niet werken, kan het IP-adres ook handmatig ingevoerd worden. Druk op "App instellingen" (in het menu met het QR-symbool). Onderaan staat het IP-adres van de server.
+''',
+              style: TextStyle(color: Colors.white, fontSize: 4.87*horizontalScaling),
+            ),
+            Image(
+              image: AssetImage('assets/PCIP.png'),
+              width: 10/horizontalScaling,
+            ),
+            SizedBox(height: 2.44*verticalScaling,),
+          ],
+        ));
   }
 }
 

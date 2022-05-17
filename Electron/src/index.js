@@ -8,6 +8,7 @@ let XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 let udp = require('dgram');
 
 var hostName;
+var udpServer;
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) { // eslint-disable-line global-require
@@ -318,10 +319,13 @@ const createWindow = (shouldCheckUpdate = true) => {
     }
   });
   mainWindow.once('closed', () => {
-    var client = udp.createSocket('udp4');
-    console.log("Sending serverClose");
     let msg = `serverClose,${hostName}`;
-    client.send(msg, 0, msg.length, 8889, '192.168.1.255');
+    udpServer = udp.createSocket("udp4");
+    udpServer.on('listening', function(){
+      udpServer.setBroadcast(true);
+      udpServer.send(msg, 8889, '192.168.1.255');
+    });
+    udpServer.bind(8888);
     try{
       activeGamesWindow.close();
     }catch(e){}
