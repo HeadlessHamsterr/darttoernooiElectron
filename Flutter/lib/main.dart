@@ -367,7 +367,10 @@ class _StartScreenState extends State<StartScreen> {
   void startServerScanning() async {
     final info = NetworkInfo();
     var deviceIP = await info.getWifiIP();
-    var _destinationAddress = InternetAddress("192.168.1.255");
+    var broadCastAddr = await info.getWifiBroadcast();
+    broadCastAddr = broadCastAddr.toString().replaceAll(RegExp(r'/'), '');
+    print(broadCastAddr);
+    var _destinationAddress = InternetAddress(broadCastAddr);
 
     RawDatagramSocket.bind(InternetAddress.anyIPv4, 8889)
         .then((RawDatagramSocket udpSocket) {
@@ -385,12 +388,25 @@ class _StartScreenState extends State<StartScreen> {
                   _hostButton(standardContext, messageList[1], messageList[2]));
               setState(() {});
             }
+          } else if (messageList[0] == 'serverClose') {
+            for (int i = 0; i < availableHosts.length; i++) {
+              if (availableHosts[i] == messageList[1]) {
+                availableHosts.removeAt(i);
+                hostButtons.removeAt(i);
+                setState(() {});
+                break;
+              }
+            }
           }
         }
       });
       List<int> data = utf8.encode("serverNameRequest,$deviceIP");
+      udpSocket.send(data, _destinationAddress, 8889);
       connectionTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
         udpSocket.send(data, _destinationAddress, 8889);
+        if (stopChecking) {
+          timer.cancel();
+        }
       });
     });
     return Future.value(1);
@@ -413,7 +429,7 @@ class _StartScreenState extends State<StartScreen> {
       if (firstStart) {
         firstStart = false;
         socket.emit('clientGreeting', 'yoBitch');
-        connectionTimer.cancel();
+        stopChecking = true;
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         Navigator.of(context).push(MaterialPageRoute(
             builder: (BuildContext context) =>
@@ -442,7 +458,7 @@ class _StartScreenState extends State<StartScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            SizedBox(width: 30),
+            const SizedBox(width: 30),
             SizedBox(
               width: 200,
               height: 50,
@@ -463,17 +479,18 @@ class _StartScreenState extends State<StartScreen> {
                       ),
                     ),
                     TextButton(
-                      onPressed: (){
-                        print("Connecting to $serverName on $serverIP");
-                        enterIP(buttonContext, serverIP);
-                      }, 
-                      child: const Text("Verbinden")
-                    )
+                        onPressed: () {
+                          print("Connecting to $serverName on $serverIP");
+                          enterIP(buttonContext, serverIP);
+                        },
+                        child: const Text("Verbinden"))
                   ],
                 ),
               ),
             ),
-            SizedBox(width: 30,),
+            const SizedBox(
+              width: 30,
+            ),
           ],
         ),
       ],
@@ -498,54 +515,73 @@ class _StartScreenState extends State<StartScreen> {
               title: const Text('Darttoernooi companion'),
               backgroundColor: const Color(PRIMARY_COLOR),
             ),
+            drawer: Drawer(
+              backgroundColor: const Color(BACKGROUND_COLOR),
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: <Widget>[
+                  const DrawerHeader(
+                    child: Text(
+                      'Handmatig verbinden',
+                      style: TextStyle(color: Colors.white, fontSize: 25),
+                    ),
+                  ),
+                  Column(
+                    children: [
+                      TextField(
+                        controller: ipAddressController,
+                        decoration: InputDecoration(
+                          suffixIcon: IconButton(
+                              onPressed: () {
+                                startQRScanner(context);
+                              },
+                              icon: const Icon(Icons.qr_code_scanner_rounded),
+                              color: Colors.grey),
+                          labelText: 'IP adres',
+                          labelStyle: const TextStyle(color: Colors.white),
+                          enabledBorder: const OutlineInputBorder(
+                            borderSide: BorderSide(color: Color(0xFF505050)),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderSide:
+                                const BorderSide(color: Color(0xFF505050)),
+                            borderRadius: BorderRadius.circular(10.0),
+                          ),
+                        ),
+                        style: const TextStyle(color: Colors.white),
+                        keyboardType: const TextInputType.numberWithOptions(
+                            decimal: true),
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          primary: const Color(DEFAULT_BTN_COLOR),
+                        ),
+                        child: const Text('Verbinden'),
+                        onPressed: () {
+                          enterIP(context, ipAddressController.text);
+                        },
+                      ),
+                    ],
+                  )
+                ],
+              ),
+            ),
             body: ListView(children: [
               Container(
-                  child: Column(
-                      //mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                    TextField(
-                      controller: ipAddressController,
-                      decoration: InputDecoration(
-                        suffixIcon: IconButton(
-                            onPressed: () {
-                              startQRScanner(context);
-                            },
-                            icon: const Icon(Icons.qr_code_scanner_rounded),
-                            color: Colors.grey),
-                        labelText: 'IP adres',
-                        labelStyle: const TextStyle(color: Colors.white),
-                        enabledBorder: const OutlineInputBorder(
-                          borderSide: BorderSide(color: Color(0xFF505050)),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderSide:
-                              const BorderSide(color: Color(0xFF505050)),
-                          borderRadius: BorderRadius.circular(10.0),
-                        ),
-                      ),
-                      style: const TextStyle(color: Colors.white),
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                    ),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        primary: const Color(DEFAULT_BTN_COLOR),
-                      ),
-                      child: const Text('Verbinden'),
-                      onPressed: () {
-                        enterIP(context, serverIP);
-                      },
-                    ),
-                    //padding: const EdgeInsets.fromLTRB(50, 200, 50, 200)),
+                  padding: const EdgeInsets.fromLTRB(50, 50, 50, 200),
+                  child: Column(children: [
                     const AutoSizeText(
                       "Beschikbare servers:",
                       maxLines: 1,
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 20,
-                        ),
                       ),
-                    Column(children: hostButtons)
+                    ),
+                    hostButtons.isNotEmpty
+                        ? Column(children: hostButtons)
+                        : Image.asset('assets/loading.gif',
+                            height: 70, width: 70),
                   ])),
             ]));
       }),
@@ -553,156 +589,6 @@ class _StartScreenState extends State<StartScreen> {
   }
 }
 
-/*
-class startScreenBody extends StatefulWidget {
-  startScreenBody({Key? key}) : super(key: key);
-  List<List<String>> availableHosts = [];
-  List<Widget> hostButtons = [];
-  final ipAddressController = TextEditingController(text: serverIP);
-
-  void startServerScanning() {
-    for (int i = 2; i < 254; i++) {
-      List<String> serverInfo = attemptConnection('192.168.1.' + i.toString());
-
-      if (serverInfo.isNotEmpty) {
-        hostButtons.add(_hostButton(serverInfo[0], serverInfo[1]));
-        setState(() {});
-      }
-    }
-  }
-
-  List<String> attemptConnection(String serverIP) {
-    List<String> serverInfo = [];
-    IO.Socket scanSocket =
-        IO.io('ws://$serverIP:$serverPort', <String, dynamic>{
-      'transports': ['websocket'],
-      'force new connection': true,
-      'autoConnect': false
-    });
-    scanSocket.connect();
-    scanSocket.onConnect((_) {
-      scanSocket.emit("serverNameRequest");
-      String serverName = '';
-      scanSocket.on('serverName', (data) {
-        serverName = data;
-      });
-      while (serverName == '') {}
-      serverInfo = [serverName, serverIP];
-    });
-    return serverInfo;
-  }
-
-  void enterIP(context) {
-    firstStart = true;
-    serverIP = ipAddressController.text;
-    socket = IO.io('ws://$serverIP:$serverPort', <String, dynamic>{
-      'transports': ['websocket'],
-      'force new connection': true,
-      'autoConnect': false
-    });
-    socket.connect();
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text('Verbinding maken...'),
-      duration: Duration(days: 365),
-    ));
-    socket.onConnect((_) {
-      if (firstStart) {
-        firstStart = false;
-        socket.emit('clientGreeting', 'yoBitch');
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        Navigator.of(context).push(MaterialPageRoute(
-            builder: (BuildContext context) =>
-                PoulesOverview(serverIP: serverIP)));
-      }
-    });
-  }
-
-  void startQRScanner(BuildContext context) async {
-    final result = await Navigator.push(
-        context, MaterialPageRoute(builder: (context) => const qrScanScreen()));
-    print(result);
-    try {
-      ipAddressController.text = result;
-      enterIP(context);
-    } catch (e) {
-      print(e);
-    }
-  }
-
-  Widget _hostButton(String serverName, String serverIP) {
-    return ElevatedButton(
-        onPressed: () {
-          print("Connecting to $serverName on $serverIP");
-          enterIP(serverIP);
-        },
-        child: Text(serverName));
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      children: [
-        Container(
-            child: Column(
-              //mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                TextField(
-                  controller: ipAddressController,
-                  decoration: InputDecoration(
-                    suffixIcon: IconButton(
-                        onPressed: () {
-                          startQRScanner(context);
-                        },
-                        icon: const Icon(Icons.qr_code_scanner_rounded),
-                        color: Colors.grey),
-                    labelText: 'IP adres',
-                    labelStyle: const TextStyle(color: Colors.white),
-                    enabledBorder: const OutlineInputBorder(
-                      borderSide: BorderSide(color: Color(0xFF505050)),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: const BorderSide(color: Color(0xFF505050)),
-                      borderRadius: BorderRadius.circular(10.0),
-                    ),
-                  ),
-                  style: const TextStyle(color: Colors.white),
-                  keyboardType:
-                      const TextInputType.numberWithOptions(decimal: true),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    primary: const Color(DEFAULT_BTN_COLOR),
-                  ),
-                  child: const Text('Verbinden'),
-                  onPressed: () {
-                    enterIP(context);
-                  },
-                ),
-              ],
-            ),
-            padding: const EdgeInsets.fromLTRB(50, 200, 50, 200)),
-        Container(
-            child: Column(children: [
-          const Text("Beschikbare servers"),
-          Column(children: [
-            availableHosts.map<Widget>((String data) {
-              return ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  primary: const Color(DEFAULT_BTN_COLOR),
-                ),
-                onPressed: () {
-                  enterIP(data[1]);
-                },
-                child: Text(data[0]),
-              );
-            }).toList(),
-          ])
-        ])),
-      ],
-    );
-  }
-}
-*/
 class qrScanScreen extends StatefulWidget {
   const qrScanScreen({Key? key}) : super(key: key);
 

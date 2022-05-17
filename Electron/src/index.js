@@ -5,12 +5,18 @@ const { fs } = require('fs');
 let mainWindow = null;
 let activeGamesWindow = null;
 let XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
+let udp = require('dgram');
+
+var hostName;
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) { // eslint-disable-line global-require
   app.quit();
 }
 
+ipcMain.on('hostNameUpdate', (event, arg) =>{
+  hostName = arg;
+});
 ipcMain.on('enterFileName', async (event)=>{
   const result = await showSaveDialog();
   if(result["canceled"]){
@@ -312,6 +318,10 @@ const createWindow = (shouldCheckUpdate = true) => {
     }
   });
   mainWindow.once('closed', () => {
+    var client = udp.createSocket('udp4');
+    console.log("Sending serverClose");
+    let msg = `serverClose,${hostName}`;
+    client.send(msg, 0, msg.length, 8889, '192.168.1.255');
     try{
       activeGamesWindow.close();
     }catch(e){}

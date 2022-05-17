@@ -212,18 +212,6 @@ let outs = [  'T20 T20 BULL',
 var udpServer = udp.createSocket("udp4");
 console.log(typeof(udpServer))
 udpServer.bind(8889);
-udpServer.on("message", function(message){
-    console.log(`Received message: ${message}`);
-    message = message.toString();
-    let messageList = message.split(',');
-    console.log(messageList);
-    if(messageList[0] == "serverNameRequest"){
-        console.log(`Wejow! ${messageList[1]} wil met mij praten!`);
-        let msg = `serverName,${hostName},${address()}`;
-        console.log(`Sending ${msg} to ${messageList[1]}`);
-        udpServer.send(msg, 8889, messageList[1]);
-    }
-});
 
 io.on('connection', (socket) => {
     console.log(`Websocket ${socket.id} connection astablished`);
@@ -1223,6 +1211,7 @@ function continueToGame(){
     let namesList = names.split('\n');
     hostName = namesList[Math.floor(Math.random() * namesList.length)]
     console.log(hostName);
+    ipcRenderer.send('hostNameUpdate', hostName);
     tieBreakersEnabled = true;
 
     const newGameBtn = document.getElementById('newGameBtn');
@@ -1518,6 +1507,19 @@ function loadGame(){
         res.writeHead(301, {"Location": "https://www.youtube.com/watch?v=dQw4w9WgXcQ"});
         return res.end();
     }
+
+    udpServer.on("message", function(message){
+        console.log(`Received message: ${message}`);
+        message = message.toString();
+        let messageList = message.split(',');
+        console.log(messageList);
+        if(messageList[0] == "serverNameRequest"){
+            console.log(`Wejow! ${messageList[1]} wil met mij praten!`);
+            let msg = `serverName,${hostName},${address()}`;
+            console.log(`Sending ${msg} to ${messageList[1]}`);
+            udpServer.send(msg, 8889, messageList[1]);
+        }
+    });
 
     io.emit('pouleInfo', exportGameInfo(false));
 }
@@ -2593,7 +2595,7 @@ function openNav(){
 }
 
 function closeNav(){
-    document.getElementById("sideNav").style.right = "-250px";
+    document.getElementById("sideNav").style.right = "-350px";
     document.getElementById('qrCodeOverlay').style.display = "none";
     updateSettings();
 }
