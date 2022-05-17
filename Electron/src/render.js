@@ -1495,8 +1495,9 @@ function loadGame(){
     }
 
     startPeriodicStuff();
-    //document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
-    document.getElementById('ipAddress').innerHTML = `Server naam: ${hostName}`;
+    //document.getElementById('serverName').innerHTML = `IP adres: ${address()}`;
+    document.getElementById('serverName').innerHTML = `Server naam: ${hostName}`;
+    document.getElementById('serverIP').innerHTML = `Server IP: ${address()}`;
 
     websocketServer.listen(PORT, () => {
         console.log(`Server listening on http://${address()}:${PORT}`);
@@ -1848,7 +1849,8 @@ function makePoules(){
         $(document.getElementById('exportBtn')).show();
         startPeriodicStuff();
 
-        document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
+        document.getElementById('serverName').innerHTML = `Server naam: ${hostName}`;
+        document.getElementById('serverIP').innerHTML = `Server IP: ${address()}`;
         websocketServer.listen(PORT, () => {
             console.log(`Server listening on http://${address()}:${PORT}`);
         });
@@ -1997,7 +1999,7 @@ function makePoulesWithPan(){
 
     
 
-    document.getElementById('ipAddress').innerHTML = `IP adres: ${address()}`;
+    document.getElementById('serverName').innerHTML = `IP adres: ${address()}`;
     websocketServer.listen(PORT, () => {
         console.log(`Server listening on http://${address()}:${PORT}`);
     });
