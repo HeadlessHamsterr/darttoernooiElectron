@@ -6,6 +6,8 @@ let mainWindow = null;
 let activeGamesWindow = null;
 let XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 let udp = require('dgram');
+const { address } = require('ip');
+let broadcastAddress = require('broadcast-address');
 
 var hostName;
 var udpServer;
@@ -319,11 +321,30 @@ const createWindow = (shouldCheckUpdate = true) => {
     }
   });
   mainWindow.once('closed', () => {
+    var broadcastAdr;
+    let interfaces = networkInterfaces();
+
+    //Het broadcast adres moet gezocht worden
+    for(let interface of Object.keys(interfaces)){  //Loop door alle interfaces
+      for(let ip of interfaces[interface]){         //Loop door alle ip's van de interface
+        if(ip.family == 'IPv4' && !ip.internal){
+          if(ip.address.includes(address())){       //Als het adres van de interface het huidige adres bevat
+            broadcastAdr = broadcastAddress(interface); //Haal het broadcast adres op
+            break;
+          }
+        }
+      }
+      if(broadcastAdr != undefined){  //Broadcast adres is gevonden, dus het zoeken kan gestopt worden
+        break;
+      }
+    }
+
     let msg = `serverClose,${hostName}`;
     udpServer = udp.createSocket("udp4");
     udpServer.on('listening', function(){
       udpServer.setBroadcast(true);
-      udpServer.send(msg, 8889, '192.168.1.255');
+      udpServer.send(msg, 8889, broadcastAdr);
+      msgSend = true;
     });
     udpServer.bind(8888);
     try{
