@@ -204,7 +204,6 @@ let outs = [  'T20 T20 BULL',
 ];
 
 var udpServer = udp.createSocket("udp4");
-console.log(typeof(udpServer))
 udpServer.bind(8889);
 
 io.on('connection', (socket) => {
@@ -560,8 +559,6 @@ ipcRenderer.on("noUpdateAvailable", (event, arg) => {
 });
 
 ipcRenderer.on("updateAvailable", (event, arg) => {
-    console.log("Update beschikbaar");
-    console.log(arg[0]);
     let yesBtn = document.getElementById('update');
     let noBtn = document.getElementById('noUpdate');
 
@@ -759,8 +756,6 @@ class pouleGames{
 
             if(activeGamesWindowOpen){
                 let msg = [this.pouleNum, this.rankings];
-                console.log(`Updating poule ranks:`);
-                console.log(msg);
                 ipcRenderer.send("updatePouleRanks", msg);
             }
         }
@@ -852,8 +847,6 @@ class pouleGames{
             counterPoints[this.gameFormat[i][0]] = counterPoints[this.gameFormat[i][0]] + points2;
             points[this.gameFormat[i][1]] = points[this.gameFormat[i][1]] + points2;
             counterPoints[this.gameFormat[i][1]] = counterPoints[this.gameFormat[i][1]] + points1;
-            //console.log(points);
-            //console.log(counterPoints);
         }
 
         try{
@@ -878,8 +871,6 @@ class pouleGames{
                     points[i] += points2;
                 }
             }
-            //console.log(points);
-            //console.log(counterPoints);
         }catch(e){
         }
 
@@ -937,7 +928,6 @@ class pouleGames{
             if(numPoules == 1){
                 makeFinals(0);
                 $("#winnerTable").insertAfter("#finalsTable");
-                console.log(this.tiedPlayers);
                 document.getElementById('M71Name').innerHTML = this.tiedPlayers[0];
                 document.getElementById('M72Name').innerHTML = this.tiedPlayers[1];
             }else{
@@ -1056,8 +1046,6 @@ class pouleGames{
                 });
                 for(let i = 0; i < 2%playersCopy.length; i++){
                     if(playersCopy[i].legsWon == playersCopy[i+1].legsWon && playersCopy[i].legsWon != 0){
-                        console.log(`${playersCopy[i].name} and ${playersCopy[i+1].name} are tied`);
-                        console.log(`${playersCopy[i].legsWon} - ${playersCopy[i+1].legsWon} | ${playersCopy[i].hiddenPoints} - ${playersCopy[i+1].hiddenPoints}`);
                         newTiedPlayers = [playersCopy[i].name, playersCopy[i+1].name];
                         break;
                     }
@@ -1204,7 +1192,6 @@ function continueToGame(){
     });
     let namesList = names.split('\n');
     hostName = namesList[Math.floor(Math.random() * namesList.length)]
-    console.log(hostName);
     ipcRenderer.send('hostNameUpdate', hostName);
     tieBreakersEnabled = true;
 
@@ -1504,14 +1491,10 @@ function loadGame(){
     }
 
     udpServer.on("message", function(message){
-        console.log(`Received message: ${message}`);
         message = message.toString();
         let messageList = message.split(',');
-        console.log(messageList);
         if(messageList[0] == "serverNameRequest"){
-            console.log(`Wejow! ${messageList[1]} wil met mij praten!`);
             let msg = `serverName,${hostName},${address()}`;
-            console.log(`Sending ${msg} to ${messageList[1]}`);
             udpServer.send(msg, 8889, messageList[1]);
         }
     });
@@ -1850,14 +1833,10 @@ function makePoules(){
         });
 
         udpServer.on("message", function(message){
-            console.log(`Received message: ${message}`);
             message = message.toString();
             let messageList = message.split(',');
-            console.log(messageList);
             if(messageList[0] == "serverNameRequest"){
-                console.log(`Wejow! ${messageList[1]} wil met mij praten!`);
                 let msg = `serverName,${hostName},${address()}`;
-                console.log(`Sending ${msg} to ${messageList[1]}`);
                 udpServer.send(msg, 8889, messageList[1]);
             }
         });
@@ -2704,12 +2683,10 @@ function showActiveGames(){
 
 function stopGame(gameID){
     gameID = gameID.replace('stop', '');
-    console.log("Stopping game: " + gameID);
 
     for(let i = 0; i < activeGames.length; i++){
         if(activeGames[i][0] == gameID){
             activeGames.splice(i, 1);
-            console.log(`Game ${gameID} stopped`);
         }
         $(document.getElementById(gameID)).remove();
         $(document.getElementById(`stop${gameID}`)).remove();
