@@ -12,12 +12,6 @@ const { count } = require('console');
 const { clearInterval } = require('timers');
 const { hostname } = require('os');
 const udp = require('dgram');
-/*
-const updater = require('update-electron-app')({
-    repo: 'https://github.com/HeadlessHamsterr/darttoernooiElectron',
-    updateInterval: '1 hour',
-})
-*/;
 const io = require('socket.io')(websocketServer, {
     cors: {
         methods: ["GET", "POST"],
