@@ -11,7 +11,7 @@ Hera
 Hermes
 Hestia
 Poseidon
- Zeus
+Zeus
 Achlys
 Aether
 Aion
