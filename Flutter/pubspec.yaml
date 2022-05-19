@@ -38,6 +38,7 @@ dependencies:
   auto_size_text: ^3.0.0
   scan: any
   network_info_plus: ^2.1.3
+  google_fonts: any
 
 dev_dependencies:
   flutter_test:
@@ -49,6 +50,13 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^1.0.0
+  #flutter_native_splash: any
+  
+flutter_native_splash:
+  color: '#181818'
+  android: true
+  ios: true
+  image: 'assets/splashScreen.png'
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
