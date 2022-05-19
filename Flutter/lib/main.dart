@@ -1,15 +1,14 @@
 import 'dart:io';
 import 'dart:convert';
 import 'dart:async';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 // ignore: library_prefixes
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:scan/scan.dart';
 import 'package:Darttoernooi/size_config.dart';
 import 'package:network_info_plus/network_info_plus.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 String serverIP = '';
 String activePoule = '';
@@ -507,6 +506,9 @@ class _StartScreenState extends State<StartScreen> {
     return MaterialApp(
       theme: ThemeData(
         scaffoldBackgroundColor: const Color(0xFF181818),
+        textTheme: GoogleFonts.poppinsTextTheme(
+          Theme.of(context).textTheme,
+        )
       ),
       home: Builder(builder: (context) {
         standardContext = context;
