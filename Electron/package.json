@@ -1,7 +1,7 @@
 {
   "name": "darttoernooi",
   "productName": "Darttoernooi",
-  "version": "1.10.4",
+  "version": "1.10.5",
   "description": "Speelschema voor darttoernooien (of een ander toernooi met poules).",
   "main": "src/index.js",
   "scripts": {
