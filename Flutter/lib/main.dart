@@ -16,7 +16,9 @@ List<String> pouleNames = [];
 List gameInfo = [];
 late int numPoules;
 late IO.Socket socket;
+
 enum ChosenPlayerEnum { player1, player2, undefined }
+
 List activeGameInfo = [];
 ChosenPlayerEnum activeStartingPlayer = ChosenPlayerEnum.undefined;
 double numBtnWidth = 26.04;
@@ -505,11 +507,10 @@ class _StartScreenState extends State<StartScreen> {
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: ThemeData(
-        scaffoldBackgroundColor: const Color(0xFF181818),
-        textTheme: GoogleFonts.poppinsTextTheme(
-          Theme.of(context).textTheme,
-        )
-      ),
+          scaffoldBackgroundColor: const Color(0xFF181818),
+          textTheme: GoogleFonts.poppinsTextTheme(
+            Theme.of(context).textTheme,
+          )),
       home: Builder(builder: (context) {
         standardContext = context;
         sizeConfig.init(context);
@@ -625,21 +626,26 @@ class HelpScreen extends StatelessWidget {
         ),
         body: ListView(
           children: [
-            Text(
-              "Verbinding maken met de computer",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 7.3*horizontalScaling, color: Colors.white)
-            ),
+            Text("Verbinding maken met de computer",
+                style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 7.3 * horizontalScaling,
+                    color: Colors.white)),
             Text(
               """De app zoekt automatisch naar een computer om mee te verbinden. Deze komen onder elkaar op het begin scherm te staan:""",
-              style: TextStyle(color: Colors.white, fontSize: 4.87*horizontalScaling),
+              style: TextStyle(
+                  color: Colors.white, fontSize: 4.87 * horizontalScaling),
             ),
-            Image.asset('assets/homeScreenApp.jpg', scale: 20/horizontalScaling),
+            Image.asset('assets/homeScreenApp.jpg',
+                scale: 20 / horizontalScaling),
             Text(
               """De naam van de computer (in dit voorbeeld Aloma) kan gecontroleerd worden op de computer. Druk op de drie streepjes rechtsboven. De naam van de compter staat bovenaan het menu dat verschijnt:
 """,
-              style: TextStyle(color: Colors.white, fontSize: 4.87*horizontalScaling),
+              style: TextStyle(
+                  color: Colors.white, fontSize: 4.87 * horizontalScaling),
             ),
-            Image.asset("assets/computerNaam.png", scale: 5/horizontalScaling),
+            Image.asset("assets/computerNaam.png",
+                scale: 5 / horizontalScaling),
             Text(
               """Als er geen computers gevonden worden, zorg er dan voor dat:
 - Er een wedstrijd actief is op een computer;
@@ -649,27 +655,33 @@ class HelpScreen extends StatelessWidget {
 Als dit allemaal goed is, maar de app nog steeds geen computers kan vinden, kan er altijd nog handmatig verbonden worden met de computer. Druk op de drie streepjes linksboven (op het begin scherm). Hier kan het IP-adres van de server ingevuld worden.
 De app kan ook worden verbonden met een QR-code. Druk op het QR-code symbool:
               """,
-              style: TextStyle(fontSize: 4.87*horizontalScaling, color: Colors.white),
+              style: TextStyle(
+                  fontSize: 4.87 * horizontalScaling, color: Colors.white),
             ),
-            Image.asset('assets/qrBtnApp.png',scale: 5/horizontalScaling),
+            Image.asset('assets/qrBtnApp.png', scale: 5 / horizontalScaling),
             Text(
               """
 De QR-code kan gevonden worden door op de computer rechtsboven op de drie streepjes te drukken. Druk vervolgens op het QR-code symbool en de QR-code verschijnt:
               """,
-              style: TextStyle(fontSize: 4.87*horizontalScaling, color: Colors.white),
+              style: TextStyle(
+                  fontSize: 4.87 * horizontalScaling, color: Colors.white),
             ),
-            Image.asset('assets/qrBtnComputer.png', scale: 5/horizontalScaling),
-            Image.asset('assets/qrCodePC.png', scale: 5/horizontalScaling),
+            Image.asset('assets/qrBtnComputer.png',
+                scale: 5 / horizontalScaling),
+            Image.asset('assets/qrCodePC.png', scale: 5 / horizontalScaling),
             Text(
               '''Mocht dit ook niet werken, kan het IP-adres ook handmatig ingevoerd worden. Druk op "App instellingen" (in het menu met het QR-symbool). Onderaan staat het IP-adres van de server.
 ''',
-              style: TextStyle(color: Colors.white, fontSize: 4.87*horizontalScaling),
+              style: TextStyle(
+                  color: Colors.white, fontSize: 4.87 * horizontalScaling),
             ),
             Image(
               image: AssetImage('assets/PCIP.png'),
-              width: 10/horizontalScaling,
+              width: 10 / horizontalScaling,
             ),
-            SizedBox(height: 2.44*verticalScaling,),
+            SizedBox(
+              height: 2.44 * verticalScaling,
+            ),
           ],
         ));
   }
@@ -1435,7 +1447,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
     });
   }
 
-  void endGame(String winner) {
+  void endGame(String winner, PlayerClass winnerType) {
     showDialog<String>(
       context: widget.context,
       barrierDismissible: false,
@@ -1444,6 +1456,8 @@ class _PouleGameBodyState extends State<PouleGameBody> {
         actions: <Widget>[
           TextButton(
             onPressed: () {
+              resetLastScore(winnerType, resetScore: false);
+              winnerType.legsWon -= 1;
               Navigator.pop(context, 'Cancel');
             },
             child: const Text("Annuleren"),
@@ -1491,13 +1505,8 @@ class _PouleGameBodyState extends State<PouleGameBody> {
               Navigator.pop(context, 'Bevestigd');
               winnerType.legsWon++;
               if (winnerType.legsWon > (legsToPlay - winnerType.legsWon)) {
-                winnerType.setsWon++;
-                if (winnerType.setsWon > (setsToPlay - winnerType.setsWon)) {
-                  sendCurrentScores(false);
-                  endGame(winnerName);
-                } else {
-                  resetGame();
-                }
+                sendCurrentScores(false);
+                endGame(winnerName, winnerType);
               } else {
                 resetGame();
               }
