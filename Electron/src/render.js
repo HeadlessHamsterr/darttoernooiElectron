@@ -1528,9 +1528,12 @@ function loadPoulGames(pouleLetter, jsonObj){
     for(let i = 0; i < jsonObj["poules"][indexInJson][`poule${pouleLetter}`][0]["numPlayers"]; i++){
         let playerName = jsonObj["poules"][indexInJson][`poule${pouleLetter}`][1]["players"][i]["name"];
         let playerScore = jsonObj["poules"][indexInJson][`poule${pouleLetter}`][1]["players"][i]["points"];
+        let playerCounter = jsonObj["poules"][indexInJson][`poule${pouleLetter}`][1]["players"][i]["counterPoints"];
 
         let newPlayer = new player(playerName);
         newPlayer.legsWon = playerScore;
+        newPlayer.legsWon = playerCounter;
+        newPlayer.calculateHiddenPoints();
         pouleToEdit.players.push(newPlayer);
     }
 
@@ -2337,14 +2340,15 @@ function exportGameInfo(writeToFile = true, quickSave = false){
         jsonObj["poules"][0]["pouleA"].push({"players":[]});
         for(let i = 0; i < pouleA.players.length; i++){
 
-            let player = pouleA.players[i][0];
-            let points = parseInt(pouleA.players[i][1]);
+            let player = pouleA.players[i].name;
+            let points = parseInt(pouleA.players[i].legsWon);
+            let counterPoints = parseInt(pouleA.players[i].legsLost);
 
             if(isNaN(points)){
                 points = 0;
             }
 
-            jsonObj["poules"][0]["pouleA"][1]["players"].push({"name": player, "points": points});
+            jsonObj["poules"][0]["pouleA"][1]["players"].push({"name": player, "points": points, "counterPoints": counterPoints});
         }
 
         jsonObj["poules"][0]["pouleA"].push({"games":[]});
@@ -2376,14 +2380,15 @@ function exportGameInfo(writeToFile = true, quickSave = false){
         jsonObj["poules"][1]["pouleB"].push({"players":[]});
         for(let i = 0; i < pouleB.players.length; i++){
 
-            let player = pouleB.players[i][0];
-            let points = parseInt(pouleB.players[i][1]);
+            let player = pouleB.players[i].name;
+            let points = parseInt(pouleB.players[i].legsWon);
+            let counterPoints = parseInt(pouleB.players[i].legsLost);
 
             if(isNaN(points)){
                 points = 0;
             }
 
-            jsonObj["poules"][1]["pouleB"][1]["players"].push({"name": player, "points": points});
+            jsonObj["poules"][1]["pouleB"][1]["players"].push({"name": player, "points": points, "counterPoints": counterPoints});
         }
 
         jsonObj["poules"][1]["pouleB"].push({"games":[]});
@@ -2415,14 +2420,15 @@ function exportGameInfo(writeToFile = true, quickSave = false){
         jsonObj["poules"][2]["pouleC"].push({"players":[]});
         for(let i = 0; i < pouleC.players.length; i++){
 
-            let player = pouleC.players[i][0];
-            let points = parseInt(pouleC.players[i][1]);
+            let player = pouleC.players[i].name;
+            let points = parseInt(pouleC.players[i].legsWon);
+            let counterPoints = parseInt(pouleC.players[i].legsLost)
 
             if(isNaN(points)){
                 points = 0;
             }
 
-            jsonObj["poules"][2]["pouleC"][1]["players"].push({"name": player, "points": points});
+            jsonObj["poules"][2]["pouleC"][1]["players"].push({"name": player, "points": points, "counterPoints": counterPoints});
         }
 
         jsonObj["poules"][2]["pouleC"].push({"games":[]});
@@ -2455,14 +2461,15 @@ function exportGameInfo(writeToFile = true, quickSave = false){
         jsonObj["poules"][3]["pouleD"].push({"players":[]});
         for(let i = 0; i < pouleD.players.length; i++){
 
-            let player = pouleD.players[i][0];
-            let points = parseInt(pouleD.players[i][1]);
+            let player = pouleD.players[i].name;
+            let points = parseInt(pouleD.players[i].legsWon);
+            let counterPoints = parseInt(pouleD.players[i].legsLost)
 
             if(isNaN(points)){
                 points = 0;
             }
 
-            jsonObj["poules"][3]["pouleD"][1]["players"].push({"name": player, "points": points});
+            jsonObj["poules"][3]["pouleD"][1]["players"].push({"name": player, "points": points, "counterPoints": counterPoints});
         }
 
         jsonObj["poules"][3]["pouleD"].push({"games":[]});
