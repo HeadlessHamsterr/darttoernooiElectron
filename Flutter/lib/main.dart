@@ -1230,7 +1230,8 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             player1.totalPointsThisLeg += int.parse(player1.thrownScore);
             player1.totalPointsThisGame += int.parse(player1.thrownScore);
 
-            sendCurrentScores(false);
+            sendCurrentScores(false,
+                thrownScore: int.parse(player1.thrownScore));
             if (170 - player1.currentScore >= 0) {
               player1.possibleOut = possibleOuts[170 - player1.currentScore];
             } else {
@@ -1298,7 +1299,8 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             player2.totalPointsThisLeg += int.parse(player2.thrownScore);
             player2.totalPointsThisGame += int.parse(player2.thrownScore);
 
-            sendCurrentScores(false);
+            sendCurrentScores(false,
+                thrownScore: int.parse(player2.thrownScore));
             if (170 - player2.currentScore >= 0) {
               player2.possibleOut = possibleOuts[170 - player2.currentScore];
             } else {
@@ -1361,7 +1363,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
               player1.myTurn = false;
               player2.myTurn = true;
             }
-            sendCurrentScores(false);
+            sendCurrentScores(false, thrownScore: 26);
             if (170 - player1.currentScore >= 0) {
               player1.possibleOut = possibleOuts[170 - player1.currentScore];
             } else {
@@ -1393,7 +1395,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
               player2.myTurn = false;
               player1.myTurn = true;
             }
-            sendCurrentScores(false);
+            sendCurrentScores(false, thrownScore: 26);
             if (170 - player2.currentScore >= 0) {
               player2.possibleOut = possibleOuts[170 - player2.currentScore];
             } else {
@@ -1575,11 +1577,13 @@ class _PouleGameBodyState extends State<PouleGameBody> {
 
   void resetLastScore(PlayerClass player, {bool resetScore = true}) {
     if (player.scoresThrownHistory.isNotEmpty) {
+      player.totalPointsThisGame -= player.scoresThrownHistory.last;
+      player.totalPointsThisLeg -= player.scoresThrownHistory.last;
+
       if (resetScore) {
         player.currentScore += player.scoresThrownHistory.removeLast();
       }
-      player.totalPointsThisGame -= player.scoresThrownHistory.last;
-      player.totalPointsThisLeg -= player.scoresThrownHistory.last;
+
       player.turnsThisGame -= 1;
       player.turnsThisLeg -= 1;
       player.legAverage = player.totalPointsThisLeg / player.turnsThisLeg;
@@ -1592,7 +1596,9 @@ class _PouleGameBodyState extends State<PouleGameBody> {
         player.gameAverage = 0;
       }
 
-      player.dartsThrown -= player.dartsThrownHistory.removeLast();
+      if (player.dartsThrownHistory.isNotEmpty) {
+        player.dartsThrown -= player.dartsThrownHistory.removeLast();
+      }
 
       player.thrownScore = '';
       if (170 - player.currentScore >= 0) {
@@ -1611,7 +1617,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
     });
   }
 
-  void sendCurrentScores(bool firstMsg) {
+  void sendCurrentScores(bool firstMsg, {int thrownScore = 0}) {
     int startingPlayer;
     if (activeStartingPlayer == ChosenPlayerEnum.player1) {
       startingPlayer = 0;
@@ -1619,7 +1625,8 @@ class _PouleGameBodyState extends State<PouleGameBody> {
       startingPlayer = 1;
     }
     String msg =
-        '${widget.game.gameID},${player1.currentScore},${player1.legsWon},${player2.currentScore},${player2.legsWon},${player1.myTurn},$startingPlayer,${player1.dartsThrown},${player2.dartsThrown}';
+        '${widget.game.gameID},${player1.currentScore},${player1.legsWon},${player2.currentScore},${player2.legsWon},${player1.myTurn},$startingPlayer,${player1.dartsThrown},${player2.dartsThrown},${thrownScore}';
+
     print(msg);
     socket.emit('activeGameInfo', msg);
   }

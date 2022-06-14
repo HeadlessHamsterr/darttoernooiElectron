@@ -618,12 +618,17 @@ button{
   padding: 0px 10px 40px 10px;
 }
 
-.menuBtnDiv a{
+.menuBtnDiv table{
   position: absolute; 
   top: 5px;
   right: 10px;
   transition: 0.1s;
-  color: #acacac
+  color: #acacac;
+  border-collapse: collapse;
+}
+
+.menuBtnDiv td:first-child{
+  border: none;
 }
 
 .menuBtnDiv a:hover{

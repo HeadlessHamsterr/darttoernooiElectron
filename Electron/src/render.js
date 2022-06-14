@@ -12,6 +12,7 @@ const { count } = require('console');
 const { clearInterval } = require('timers');
 const { hostname } = require('os');
 const udp = require('dgram');
+var soundPlayer = require('play-sound')(opts = {})
 const io = require('socket.io')(websocketServer, {
     cors: {
         methods: ["GET", "POST"],
@@ -20,6 +21,8 @@ const io = require('socket.io')(websocketServer, {
     allowEIO3: true
 });
 
+var sound = null;
+var audioEnabled = true;
 var pouleSortingTimer;
 var quickSaveTimer;
 var makePoulesBtn;
@@ -454,12 +457,40 @@ io.on('connection', (socket) => {
 
             
         }
+
         document.getElementById(`activeLeg${dataArray[0]}1`).innerHTML = dataArray[2];
         document.getElementById(`activeLeg${dataArray[0]}2`).innerHTML = dataArray[4];
         document.getElementById(`activeScore${dataArray[0]}1`).innerHTML = dataArray[1];
         document.getElementById(`activeScore${dataArray[0]}2`).innerHTML = dataArray[3];
         document.getElementById(`activeDarts${dataArray[0]}1`).innerHTML = dataArray[7];
         document.getElementById(`activeDarts${dataArray[0]}2`).innerHTML = dataArray[8];
+
+        console.log(`Received thrown score: ${dataArray[9]}`);
+        if(dataArray[9] != '0' && audioEnabled){
+            var soundNumber;
+            if(dataArray[9] == 'Standaard'){
+                soundNumber = '26';
+            }else{
+                soundNumber = dataArray[9];
+            }
+            console.log(`Soundnumber length: ${soundNumber.length}`)
+            if(soundNumber.length < 3){
+                if(soundNumber.length == 1){
+                    soundNumber = '00' + soundNumber;
+                }else if(soundNumber.length == 2){
+                    soundNumber = '0' + soundNumber;
+                }
+            }
+            let soundFile = path.join(__dirname,('audio/' + soundNumber + '.mp3'));
+            console.log(`Playing ${soundFile}`);
+            
+            if(sound != null){
+                sound.kill();
+            }
+            sound = soundPlayer.play(soundFile, function(err){
+                if(err) throw err
+            });
+        }
 
         if(dataArray[6] == '0'){
             document.getElementById(`activePlayer${dataArray[0]}1`).style.color = 'green';
@@ -2792,4 +2823,15 @@ function openNewWindow(){
 
 function connectServer(){
     ipcRenderer.send('connectServer');
+}
+
+function toggleAudio(){
+    console.log("Changing audio");
+    if(audioEnabled){
+        document.getElementById('audioCntrl').innerHTML = "volume_off";
+        audioEnabled = false;
+    }else{
+        document.getElementById('audioCntrl').innerHTML = "volume_up";
+        audioEnabled = true;
+    }
 }
