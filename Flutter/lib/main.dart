@@ -1157,7 +1157,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
 
     socket.onConnect((_) => () {
           if (gameActive) {
-            sendCurrentScores(true);
+            sendCurrentScores(true, false);
           }
           socket.sendBuffer = [];
         });
@@ -1230,7 +1230,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             player1.totalPointsThisLeg += int.parse(player1.thrownScore);
             player1.totalPointsThisGame += int.parse(player1.thrownScore);
 
-            sendCurrentScores(false);
+            sendCurrentScores(false, true);
             if (170 - player1.currentScore >= 0) {
               player1.possibleOut = possibleOuts[170 - player1.currentScore];
             } else {
@@ -1298,7 +1298,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             player2.totalPointsThisLeg += int.parse(player2.thrownScore);
             player2.totalPointsThisGame += int.parse(player2.thrownScore);
 
-            sendCurrentScores(false);
+            sendCurrentScores(false, true);
             if (170 - player2.currentScore >= 0) {
               player2.possibleOut = possibleOuts[170 - player2.currentScore];
             } else {
@@ -1335,7 +1335,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
           player2.myTurn = false;
           player1.myTurn = true;
         }
-        sendCurrentScores(false);
+        sendCurrentScores(false, false);
         break;
       case 'ST':
         if (player1.myTurn && player1.thrownScore == '') {
@@ -1361,7 +1361,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
               player1.myTurn = false;
               player2.myTurn = true;
             }
-            sendCurrentScores(false);
+            sendCurrentScores(false, true);
             if (170 - player1.currentScore >= 0) {
               player1.possibleOut = possibleOuts[170 - player1.currentScore];
             } else {
@@ -1393,7 +1393,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
               player2.myTurn = false;
               player1.myTurn = true;
             }
-            sendCurrentScores(false);
+            sendCurrentScores(false, true);
             if (170 - player2.currentScore >= 0) {
               player2.possibleOut = possibleOuts[170 - player2.currentScore];
             } else {
@@ -1470,7 +1470,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
           ),
           TextButton(
             onPressed: () {
-              sendCurrentScores(false);
+              sendCurrentScores(false, false);
               String msg =
                   "${widget.game.gameID},${player1.legsWon.toString()},${player2.legsWon.toString()},${player1.gameAverage},${player2.gameAverage},${player1.dartsThrown},${player2.dartsThrown}";
               socket.emit('gamePlayed', msg);
@@ -1500,7 +1500,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
         actions: <Widget>[
           TextButton(
             onPressed: () {
-              sendCurrentScores(false);
+              sendCurrentScores(false, false);
               resetLastScore(winnerType, resetScore: false);
               Navigator.pop(context, 'Cancel');
             },
@@ -1511,7 +1511,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
               Navigator.pop(context, 'Bevestigd');
               winnerType.legsWon++;
               if (winnerType.legsWon > (legsToPlay - winnerType.legsWon)) {
-                sendCurrentScores(false);
+                sendCurrentScores(false, false);
                 endGame(winnerName, winnerType);
               } else {
                 resetGame();
@@ -1567,7 +1567,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
     player1.myTurn
         ? activeStartingPlayer = ChosenPlayerEnum.player1
         : activeStartingPlayer = ChosenPlayerEnum.player2;
-    sendCurrentScores(false);
+    sendCurrentScores(false, false);
     setState(() {
       null;
     });
@@ -1605,13 +1605,13 @@ class _PouleGameBodyState extends State<PouleGameBody> {
       player2.myTurn = false; //spelers niet de beurt geven om vervolgens
       player.myTurn = true; //de juiste speler wel de beurt te geven.
     }
-    sendCurrentScores(false);
+    sendCurrentScores(false, false);
     setState(() {
       null;
     });
   }
 
-  void sendCurrentScores(bool firstMsg) {
+  void sendCurrentScores(bool firstMsg, bool sendThrownScore) {
     int startingPlayer;
     if (activeStartingPlayer == ChosenPlayerEnum.player1) {
       startingPlayer = 0;
@@ -1620,6 +1620,18 @@ class _PouleGameBodyState extends State<PouleGameBody> {
     }
     String msg =
         '${widget.game.gameID},${player1.currentScore},${player1.legsWon},${player2.currentScore},${player2.legsWon},${player1.myTurn},$startingPlayer,${player1.dartsThrown},${player2.dartsThrown}';
+
+    if (sendThrownScore) {
+      if (player1.myTurn) {
+        msg += ',${player2.thrownScore}';
+        print(player2.thrownScore);
+      } else if (player2.myTurn) {
+        msg += ',${player1.thrownScore}';
+        print(player1.thrownScore);
+      }
+    } else {
+      msg += ',0';
+    }
     print(msg);
     socket.emit('activeGameInfo', msg);
   }
@@ -2265,7 +2277,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                       activeStartingPlayer = chosenPlayer;
                       player1.myTurn = true;
                       player2.myTurn = false;
-                      sendCurrentScores(true);
+                      sendCurrentScores(true, false);
                     });
                   },
                   child: Text(
@@ -2290,7 +2302,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                       activeStartingPlayer = chosenPlayer;
                       player1.myTurn = false;
                       player2.myTurn = true;
-                      sendCurrentScores(true);
+                      sendCurrentScores(true, false);
                     });
                   },
                   child: Text(
