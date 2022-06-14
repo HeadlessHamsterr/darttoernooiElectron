@@ -465,8 +465,8 @@ io.on('connection', (socket) => {
         document.getElementById(`activeDarts${dataArray[0]}1`).innerHTML = dataArray[7];
         document.getElementById(`activeDarts${dataArray[0]}2`).innerHTML = dataArray[8];
 
-        console.log(`Received thrown score: ${dataArray[9]}`);
-        if(dataArray[9] != '0' && audioEnabled){
+        if(dataArray[9] != '0' && dataArray[9] != undefined && audioEnabled && (numPoules == 1 || dataArray[0] == 'M7')){
+            console.log(`Received thrown score: ${dataArray[9]}`);
             var soundNumber;
             if(dataArray[9] == 'Standaard'){
                 soundNumber = '26';
