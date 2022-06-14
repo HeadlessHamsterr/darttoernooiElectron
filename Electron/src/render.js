@@ -21,6 +21,8 @@ const io = require('socket.io')(websocketServer, {
     allowEIO3: true
 });
 
+var sound = null;
+var audioEnabled = true;
 var pouleSortingTimer;
 var quickSaveTimer;
 var makePoulesBtn;
@@ -464,7 +466,7 @@ io.on('connection', (socket) => {
         document.getElementById(`activeDarts${dataArray[0]}2`).innerHTML = dataArray[8];
 
         console.log(`Received thrown score: ${dataArray[9]}`);
-        if(dataArray[9] != '0'){
+        if(dataArray[9] != '0' && audioEnabled){
             var soundNumber;
             if(dataArray[9] == 'Standaard'){
                 soundNumber = '26';
@@ -479,9 +481,15 @@ io.on('connection', (socket) => {
                     soundNumber = '0' + soundNumber;
                 }
             }
-            let soundFile = path.join(__dirname,('audio/' + soundNumber + '.wav'));
+            let soundFile = path.join(__dirname,('audio/' + soundNumber + '.mp3'));
             console.log(`Playing ${soundFile}`);
-            soundPlayer.play(soundFile);
+            
+            if(sound != null){
+                sound.kill();
+            }
+            sound = soundPlayer.play(soundFile, function(err){
+                if(err) throw err
+            });
         }
 
         if(dataArray[6] == '0'){
@@ -2815,4 +2823,15 @@ function openNewWindow(){
 
 function connectServer(){
     ipcRenderer.send('connectServer');
+}
+
+function toggleAudio(){
+    console.log("Changing audio");
+    if(audioEnabled){
+        document.getElementById('audioCntrl').innerHTML = "volume_off";
+        audioEnabled = false;
+    }else{
+        document.getElementById('audioCntrl').innerHTML = "volume_up";
+        audioEnabled = true;
+    }
 }
