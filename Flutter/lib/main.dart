@@ -740,6 +740,9 @@ class _PoulesOverviewState extends State<PoulesOverview> {
   }
 
   void connectWebsocket() {
+    /*socket.onConnect((_) => () {
+      socket.sendBuffer = [];
+    });*/
     socket.on('pouleInfo', (data) => updatePouleInfo(data));
     socket.on('settingsUpdate', (data) => updateSettings(data));
     socket.emit('allPouleInfoRequest', 'plsGeef');
@@ -1152,8 +1155,11 @@ class _PouleGameBodyState extends State<PouleGameBody> {
     activeStartingPlayer = ChosenPlayerEnum.undefined;
     chosenPlayer = activeStartingPlayer;
 
-    socket.onConnect((_) => {
-          if (gameActive) {sendCurrentScores(true)}
+    socket.onConnect((_) => () {
+          if (gameActive) {
+            sendCurrentScores(true);
+          }
+          socket.sendBuffer = [];
         });
   }
 
