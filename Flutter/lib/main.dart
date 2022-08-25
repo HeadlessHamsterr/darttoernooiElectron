@@ -33,6 +33,11 @@ bool gameActive = false;
 double horizontalScaling = 0;
 double verticalScaling = 0;
 int serverPort = 11520;
+const List<Color> rankingColors = [
+  Color.fromRGBO(255, 215, 0, 1.0),
+  Color.fromRGBO(192, 192, 192, 1.0),
+  Color.fromRGBO(128, 128, 128, 1.0)
+];
 
 List<String> possibleOuts = [
   'T20 T20 BULL',
@@ -310,8 +315,12 @@ class PlayerClass {
 class PouleRanking {
   final String playerName;
   final String points;
+  final String pointsDiff;
 
-  PouleRanking({required this.playerName, required this.points});
+  PouleRanking(
+      {required this.playerName,
+      required this.points,
+      required this.pointsDiff});
 }
 
 class PouleGames {
@@ -431,6 +440,7 @@ class _StartScreenState extends State<StartScreen> {
         firstStart = false;
         socket.emit('clientGreeting', 'yoBitch');
         stopChecking = true;
+        connectionTimer.cancel();
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         Navigator.of(context).push(MaterialPageRoute(
             builder: (BuildContext context) =>
@@ -889,7 +899,8 @@ class _PouleScreenState extends State<PouleScreen> {
     for (var i = 0; i < data[0].length; i++) {
       rankings.add(PouleRanking(
           playerName: data[0][i][0].toString(),
-          points: data[0][i][1].toString()));
+          points: data[0][i][1].toString(),
+          pointsDiff: data[0][i][2].toString()));
     }
 
     games.clear();
@@ -954,33 +965,77 @@ class _PouleScreenState extends State<PouleScreen> {
               child: Column(
                 children: [
                   Table(
-                    border: const TableBorder(
-                        horizontalInside: BorderSide(color: Color(0xFFE46800)),
-                        verticalInside: BorderSide(color: Color(0xFFE46800))),
-                    //defaultColumnWidth: const FixedColumnWidth(100),
-                    columnWidths: const {
-                      0: FixedColumnWidth(100),
-                      1: FixedColumnWidth(50),
-                    },
-                    children: rankings.map((currentPlayer) {
-                      return TableRow(
-                        children: <Widget>[
+                      border: const TableBorder(
+                          horizontalInside:
+                              BorderSide(color: Color(0xFFE46800)),
+                          verticalInside: BorderSide(color: Color(0xFFE46800))),
+                      //defaultColumnWidth: const FixedColumnWidth(100),
+                      columnWidths: const {
+                        0: FixedColumnWidth(100),
+                        1: FixedColumnWidth(70),
+                        2: FixedColumnWidth(140)
+                      },
+                      children: [
+                        const TableRow(children: <Widget>[
                           Center(
                             child: Text(
-                              currentPlayer.playerName,
-                              style: const TextStyle(color: Colors.white),
+                              "Speler",
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 20),
                             ),
                           ),
                           Center(
                             child: Text(
-                              currentPlayer.points,
-                              style: const TextStyle(color: Colors.white),
+                              "Score",
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 20),
                             ),
                           ),
-                        ],
-                      );
-                    }).toList(),
-                  ),
+                          Center(
+                            child: Text(
+                              "Puntensaldo",
+                              style:
+                                  TextStyle(color: Colors.white, fontSize: 20),
+                            ),
+                          )
+                        ]),
+                        ...rankings.map(
+                          (currentPlayer) {
+                            var index = rankings.indexOf(currentPlayer);
+                            return TableRow(
+                              children: [
+                                Center(
+                                  child: Text(
+                                    currentPlayer.playerName,
+                                    style: TextStyle(
+                                        color: index < 2
+                                            ? rankingColors[index]
+                                            : rankingColors[2]),
+                                  ),
+                                ),
+                                Center(
+                                  child: Text(
+                                    currentPlayer.points,
+                                    style: TextStyle(
+                                        color: index < 2
+                                            ? rankingColors[index]
+                                            : rankingColors[2]),
+                                  ),
+                                ),
+                                Center(
+                                  child: Text(
+                                    currentPlayer.pointsDiff,
+                                    style: TextStyle(
+                                        color: index < 2
+                                            ? rankingColors[index]
+                                            : rankingColors[2]),
+                                  ),
+                                )
+                              ],
+                            );
+                          },
+                        ).toList(),
+                      ]),
                   Expanded(
                     child: ListView(
                       shrinkWrap: true,

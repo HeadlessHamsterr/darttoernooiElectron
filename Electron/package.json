@@ -1,7 +1,7 @@
 {
   "name": "darttoernooi",
   "productName": "Darttoernooi",
-  "version": "2.5.2",
+  "version": "2.6.0",
   "description": "Speelschema voor darttoernooien (of een ander toernooi met poules).",
   "main": "src/index.js",
   "scripts": {
@@ -93,6 +93,7 @@
     "electron-compile": "^6.4.4",
     "electron-forge": "^5.2.4",
     "electron-json-storage": "^4.5.0",
+    "electron-prebuilt-compile": "^8.2.0",
     "fs": "^0.0.1-security",
     "http-terminator": "^3.0.3",
     "ip": "^1.1.5",
