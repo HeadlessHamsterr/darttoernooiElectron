@@ -1,7 +1,7 @@
 let $ = require('jquery');
 let fs = require('fs');
 let path = require('path');
-const { ipcRenderer, app } = require('electron');
+const { ipcRenderer, app, TouchBarSlider } = require('electron');
 const { default: jsPDF } = require('jspdf');
 const { address } = require('ip');
 const websocketServer = require('http').createServer();
@@ -766,7 +766,7 @@ class pouleGames{
         }
 
         var pouleTable = document.getElementById(`poule${this.pouleNum}Table`);
-        var pouleTableHeader = $('<tr><th>Speler</th><th>Score</th></tr>');
+        var pouleTableHeader = $('<tr><th>Speler</th><th>Score</th><th>Saldo</th></tr>');
 
         $(pouleTable).empty();
         $(pouleTable).append(pouleTableHeader);
@@ -776,7 +776,7 @@ class pouleGames{
                 this.rankings[i][1] = 0;
             }
 
-            var tableEntry = $(`<tr><td>${this.rankings[i][0]}</td><td>${this.rankings[i][1]}</td></tr>`);
+            var tableEntry = $(`<tr><td>${this.rankings[i][0]}</td><td>${this.rankings[i][1]}</td><td>${this.rankings[i][2]}</td></tr>`);
             $(pouleTable).append(tableEntry);
         }
 
@@ -948,6 +948,8 @@ class pouleGames{
                 this.secondPlace = this.rankings[1][0];
                 this.winnerPrinted = true;
             }
+        }else if(!this.allGamesPlayed()){
+            this.tieDetected = false;
         }
     }
 
@@ -1076,7 +1078,7 @@ class pouleGames{
                     }
                 });
                 for(let i = 0; i < 2%playersCopy.length; i++){
-                    if(playersCopy[i].legsWon == playersCopy[i+1].legsWon && playersCopy[i].legsWon != 0){
+                    if(playersCopy[i].legsWon == playersCopy[i+1].legsWon && playersCopy[i].legsWon != 0 && playersCopy[i].hiddenPoints == playersCopy[i+1].hiddenPoints){
                         newTiedPlayers = [playersCopy[i].name, playersCopy[i+1].name];
                         break;
                     }
