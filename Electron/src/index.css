@@ -211,11 +211,11 @@ input::-webkit-inner-spin-button{
   font-size: 15px;
 }
 
-.pouleTable th:first-child, td:first-child{
+.pouleTable th:first-child, .pouleTable td:first-child{
   border-right: 1px solid var(--table-borders);
 }
 
-.pouleTable th:nth-child(2), td:nth-child(2){
+.pouleTable th:nth-child(2), .pouleTable td:nth-child(2){
   border-right: 1px solid var(--table-borders);
 }
 

@@ -483,13 +483,16 @@ io.on('connection', (socket) => {
             }
             let soundFile = path.join(__dirname,('audio/' + soundNumber + '.mp3'));
             console.log(`Playing ${soundFile}`);
-            
+            /*
             if(sound != null){
                 sound.kill();
             }
             sound = soundPlayer.play(soundFile, function(err){
                 if(err) throw err
             });
+            */
+           let audio = new Audio(soundFile);
+           audio.play();
         }
 
         if(dataArray[6] == '0'){
