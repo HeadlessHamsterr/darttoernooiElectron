@@ -1529,7 +1529,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             onPressed: () {
               sendCurrentScores(false);
               String msg =
-                  "${widget.game.gameID},${player1.legsWon.toString()},${player2.legsWon.toString()},${player1.gameAverage},${player2.gameAverage},${player1.dartsThrown},${player2.dartsThrown}";
+                  "${widget.game.gameID},${player1.legsWon.toString()},${player1.gameAverage},${player1.dartsThrown},${player2.legsWon.toString()},${player2.gameAverage},${player2.dartsThrown}";
               socket.emit('gamePlayed', msg);
               activeStartingPlayer = ChosenPlayerEnum.undefined;
               gameStarted = false;
@@ -1680,7 +1680,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
       startingPlayer = 1;
     }
     String msg =
-        '${widget.game.gameID},${player1.currentScore},${player1.legsWon},${player2.currentScore},${player2.legsWon},${player1.myTurn},$startingPlayer,${player1.dartsThrown},${player2.dartsThrown},${thrownScore}';
+        '${widget.game.gameID},${player1.currentScore},${player1.legsWon},${player1.dartsThrown},${player2.currentScore},${player2.legsWon},${player2.dartsThrown},${player1.myTurn},$startingPlayer,${thrownScore}';
 
     print(msg);
     socket.emit('activeGameInfo', msg);
