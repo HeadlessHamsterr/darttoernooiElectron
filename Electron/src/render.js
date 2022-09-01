@@ -12,7 +12,10 @@ const { count } = require('console');
 const { clearInterval } = require('timers');
 const { hostname } = require('os');
 const udp = require('dgram');
-var soundPlayer = require('play-sound')(opts = {})
+const player = require('../modules/player.js');
+const outs = require('../modules/constants.js');
+const pouleGames = require('../modules/pouleGames.js');
+const decodeAppMessage = require('../modules/appMessageDecoder.js');
 const io = require('socket.io')(websocketServer, {
     cors: {
         methods: ["GET", "POST"],
@@ -35,176 +38,6 @@ var appOptions = ["pouleScore", "pouleLegs", "quartScore", "quartLegs", "halfSco
 var activeGames = [];
 var activeGamesWindowOpen = false;
 var hostName = 'Gefaald';
-let outs = [  'T20 T20 BULL',
-'',
-'',
-'T20 T19 BULL',
-'',
-'',
-'T20 T18 BULL',
-'',
-'',
-'T20 T17 BULL',
-'T20 T20 D20',
-'',
-'T20 T20 D19',
-'T20 T19 D20',
-'T20 T20 D18',
-'T20 T19 D19',
-'T20 T18 D20',
-'T20 T19 D18',
-'T20 T20 D16',
-'T20 T17 D20',
-'T20 T18 D18',
-'T20 T19 D16',
-'T20 T16 D20',
-'T20 T17 D18',
-'T20 T18 D16',
-'T20 T15 D20',
-'T20 T20 D12',
-'T20 T17 D16',
-'T20 T14 D20',
-'T20 T19 D12',
-'T20 T16 D16',
-'T19 T14 D20',
-'T20 T18 D12',
-'T19 T16 D16',
-'T20 T20 D8',
-'T20 T17 D12',
-'T20 T14 D16',
-'T20 T19 D8',
-'BULL T14 D20',
-'T20 T13 D16',
-'T20 T20 D5',
-'T19 T20 D6',
-'T18 T14 D16',
-'T20 T17 D8',
-'T19 T19 D6',
-'25 T20 D20',
-'T20 T14 D11',
-'T19 T16 D9',
-'T18 T18 D7',
-'T20 T11 D14',
-'T20 20 D20',
-'T19 T12 D13',
-'T20 18 D20',
-'T20 17 D20',
-'T20 16 D20',
-'T20 15 D20',
-'T20 14 D20',
-'T20 13 D20',
-'T20 12 D20',
-'T20 11 D20',
-'T20 10 D20',
-'T19 12 D20',
-'T20 16 D16',
-'T19 10 D20',
-'T20 10 D18',
-'T20 13 D16',
-'T20 12 D16',
-'T19 10 D18',
-'T20 10 D16',
-'T17 10 D20',
-'T20 D20',
-'T19 10 D16',
-'T20 D19',
-'T19 D20',
-'T20 D18',
-'T19 D19',
-'T18 D20',
-'T19 D18',
-'T20 D16',
-'T17 D20',
-'T20 D15',
-'T19 D16',
-'T20 D14',
-'T17 D18',
-'T18 D16',
-'T15 D20',
-'T16 D18',
-'T17 D16',
-'T14 D20',
-'T15 D18',
-'T20 D10',
-'T13 D20',
-'T18 D12',
-'T15 D16',
-'T20 D8',
-'T13 D18',
-'T14 D16',
-'T19 D8',
-'T16 D12',
-'T13 D16',
-'T18 D8',
-'T19 D6',
-'T20 D4',
-'T17 D8',
-'T10 D18',
-'T19 D4',
-'T16 D8',
-'T13 D12',
-'T10 D16',
-'T15 D8',
-'20 D20',
-'19 D20',
-'18 D20',
-'17 D20',
-'16 D20',
-'15 D20',
-'14 D20',
-'13 D20',
-'12 D20',
-'19 D16',
-'10 D20',
-'17 D16',
-'16 D16',
-'15 D16',
-'6 D20',
-'13 D16',
-'12 D16',
-'3 D20',
-'10 D16',
-'9 D16',
-'D20',
-'7 D16',
-'D19',
-'5 D16',
-'D18',
-'3 D16',
-'D17',
-'1 D16',
-'D16',
-'15 D8',
-'D15',
-'13 D8',
-'D14',
-'19 D4',
-'D13',
-'9 D8',
-'D12',
-'7 D8',
-'D11',
-'5 D8',
-'D10',
-'3 D8',
-'D9',
-'9 D4',
-'D8',
-'7 D4',
-'D7',
-'5 D4',
-'D6',
-'3 D4',
-'D5',
-'1 D4',
-'D4',
-'3 D2',
-'D3',
-'1 D2',
-'D2',
-'1 D1',
-'D1'
-];
 
 var udpServer = udp.createSocket("udp4");
 udpServer.bind(8889);
@@ -328,36 +161,36 @@ io.on('connection', (socket) => {
         console.log(finalsMsg)
         socket.emit('finalsInfo', finalsMsg);
     });
-    socket.on('gamePlayed', (data) => {
-        var dataArray = data.split(',');
-        console.log(dataArray);
-        if(dataArray[0][0] == 'M'){
-            document.getElementById(`${dataArray[0]}1Score`).value = dataArray[1];
-            document.getElementById(`${dataArray[0]}2Score`).value = dataArray[2];
+    socket.on('gamePlayed', (message) => {
+        const data = decodeAppMessage("gamePlayed", message);
+        console.log(data);
+        if(data.gameType == 'finals_game'){
+            document.getElementById(`${data.gameID}1Score`).value = data.player1LegsWon;
+            document.getElementById(`${data.gameID}2Score`).value = data.player2LegsWon;
         }else{
-            document.getElementById(`game${dataArray[0]}1Score`).value = dataArray[1];
-            document.getElementById(`game${dataArray[0]}2Score`).value = dataArray[2];
+            document.getElementById(`game${data.gameID}1Score`).value = data.player1LegsWon;
+            document.getElementById(`game${data.gameID}2Score`).value = data.player2LegsWon;
         }
 
         for(let i = 0; i < activeGames.length; i++){
-            if(activeGames[i][0] == dataArray[0]){
+            if(activeGames[i][0] == data.gameID){
                 activeGames.splice(i, 1);
-                console.log(`Game ${dataArray[0]} stopped`);
+                console.log(`Game ${data.gameID} stopped`);
 
-                $(document.getElementById(dataArray[0])).remove();
-                $(document.getElementById(`stop${dataArray[0]}`)).remove();
-                $(document.getElementById(`${dataArray[0]}VL`)).remove();
+                $(document.getElementById(data.gameID)).remove();
+                $(document.getElementById(`stop${data.gameID}`)).remove();
+                $(document.getElementById(`${data.gameID}VL`)).remove();
 
                 if(activeGames.length == 0){
                     $(document.getElementById('activeGamesDiv')).hide();
                 }
-                ipcRenderer.send('sendStopActiveGame', dataArray[0]);
+                ipcRenderer.send('sendStopActiveGame', data.gameID);
                 break;
             }
         }
 
         var msg;
-        switch(data[0]){
+        switch(data.gameID[0]){
             case 'A':
                 pouleA.updatePoints();
                 for(let i = 0; i < pouleA.players.length; i++){
@@ -383,24 +216,22 @@ io.on('connection', (socket) => {
             break;
         }
     });
-    socket.on('activeGameInfo', (data) => {
-        var dataArray = data.split(',');
-        var activeGamesArray = [];
-        for(let i = 0; i < dataArray.length; i++){
-            activeGamesArray.push(dataArray[i]);
-        }
+    socket.on('activeGameInfo', (message) => {
+        const data = decodeAppMessage("activeGameInfo", message);
+
+        console.log(`Active game info: ${data}`);
         $(document.getElementById('activeGamesDiv')).show();
         var newGame = true
 
         for(let i = 0; i < activeGames.length; i++){
-            if(activeGames[i][0] == dataArray[0]){
+            if(activeGames[i][0] == data.gameID){
                 newGame = false;
                 break;
             }
         }
 
         if(newGame){
-            console.log(`New game ${dataArray[0]} started`);
+            console.log(`New game ${data.gameID} started`);
             var div;
             /*if(activeGames.length % 2 === 0){
                 div = document.getElementById('activeTablesDiv2');
@@ -412,27 +243,27 @@ io.on('connection', (socket) => {
             var player1;
             var player2;
 
-            if(dataArray[0][0] == 'M'){
-                player1 = document.getElementById(`${dataArray[0]}1Name`).innerHTML;
-                player2 = document.getElementById(`${dataArray[0]}2Name`).innerHTML;
+            if(data.gameType == 'finals_game'){
+                player1 = document.getElementById(`${data.gameID}1Name`).innerHTML;
+                player2 = document.getElementById(`${data.gameID}2Name`).innerHTML;
             }else{
-                player1 = document.getElementById(`game${dataArray[0]}1Name`).innerHTML;
-                player2 = document.getElementById(`game${dataArray[0]}2Name`).innerHTML;
+                player1 = document.getElementById(`game${data.gameID}1Name`).innerHTML;
+                player2 = document.getElementById(`game${data.gameID}2Name`).innerHTML;
             }
 
             if(activeGames.length > 0){
-                $(div).append(`<div id="${dataArray[0]}VL" class="vl">`)
+                $(div).append(`<div id="${data.gameID}VL" class="vl">`)
             }
 
-            $(div).append(`<table id="${dataArray[0]}" class="activeGameTable"><tr><td id="activePlayer${dataArray[0]}1">${player1}</td><td><i id="${dataArray[0]}TurnArrow" class="material-icons turnArrow">expand_more</i></td><td id="activePlayer${dataArray[0]}2">${player2}</td></tr><tr><td id="activeDarts${dataArray[0]}1"></td><td>Darts</td><td id="activeDarts${dataArray[0]}2"></td></tr><tr><td id="activeLeg${dataArray[0]}1">${dataArray[2]}</td><td>Legs</td><td id="activeLeg${dataArray[0]}2">${dataArray[4]}</td></tr><tr><td id="activeScore${dataArray[0]}1">${dataArray[1]}</td><td></td><td id="activeScore${dataArray[0]}2">${dataArray[3]}</td></tr><tr><td id="out${dataArray[0]}1"></td><td></td><td id="out${dataArray[0]}2"></td></tr></table>`)
+            $(div).append(`<table id="${data.gameID}" class="activeGameTable"><tr><td id="activePlayer${data.gameID}1">${player1}</td><td><i id="${data.gameID}TurnArrow" class="material-icons turnArrow">expand_more</i></td><td id="activePlayer${data.gameID}2">${player2}</td></tr><tr><td id="activeDarts${data.gameID}1"></td><td>Darts</td><td id="activeDarts${data.gameID}2"></td></tr><tr><td id="activeLeg${data.gameID}1"></td><td>Legs</td><td id="activeLeg${data.gameID}2"></td></tr><tr><td id="activeScore${data.gameID}1"></td><td></td><td id="activeScore${data.gameID}2"></td></tr><tr><td id="out${data.gameID}1"></td><td></td><td id="out${data.gameID}2"></td></tr></table>`)
             
-            let tempArray = [dataArray[0], socket.id];
+            let tempArray = [data.gameID, socket.id];
             activeGames.push(tempArray);
             
             let stopGameDiv = document.getElementById('activeGamesSideDiv');
-            $(stopGameDiv).append(`<button id="stop${dataArray[0]}" class="stopGameButton" onclick="stopGame(this.id)">${player1} - ${player2} <i id='remGameIcon' class='material-icons'>delete</i></button>`);
+            $(stopGameDiv).append(`<button id="stop${data.gameID}" class="stopGameButton" onclick="stopGame(this.id)">${player1} - ${player2} <i id='remGameIcon' class='material-icons'>delete</i></button>`);
             var msg;
-            switch(dataArray[0][0]){
+            switch(data.gameType){
                 case 'A':
                     pouleA.updatePoints();
                     msg = [pouleA.rankings, pouleA.sendPouleGames(), 'poule'];
@@ -458,20 +289,20 @@ io.on('connection', (socket) => {
             
         }
 
-        document.getElementById(`activeLeg${dataArray[0]}1`).innerHTML = dataArray[2];
-        document.getElementById(`activeLeg${dataArray[0]}2`).innerHTML = dataArray[4];
-        document.getElementById(`activeScore${dataArray[0]}1`).innerHTML = dataArray[1];
-        document.getElementById(`activeScore${dataArray[0]}2`).innerHTML = dataArray[3];
-        document.getElementById(`activeDarts${dataArray[0]}1`).innerHTML = dataArray[7];
-        document.getElementById(`activeDarts${dataArray[0]}2`).innerHTML = dataArray[8];
+        document.getElementById(`activeLeg${data.gameID}1`).innerHTML = data.player1LegsWon;
+        document.getElementById(`activeLeg${data.gameID}2`).innerHTML = data.player2LegsWon;
+        document.getElementById(`activeScore${data.gameID}1`).innerHTML = data.player1Score;
+        document.getElementById(`activeScore${data.gameID}2`).innerHTML = data.player2Score;
+        document.getElementById(`activeDarts${data.gameID}1`).innerHTML = data.player1DartsThrown;
+        document.getElementById(`activeDarts${data.gameID}2`).innerHTML = data.player2DartsThrown;
 
-        if(dataArray[9] != '0' && dataArray[9] != undefined && audioEnabled && (numPoules == 1 || dataArray[0] == 'M7')){
-            console.log(`Received thrown score: ${dataArray[9]}`);
+        if(data.thrownScore != '0' && data.thrownScore != undefined && audioEnabled && (numPoules == 1 || data.gameType == 'finals_game')){
+            console.log(`Received thrown score: ${data.thrownScore}`);
             var soundNumber;
-            if(dataArray[9] == 'Standaard'){
+            if(data.thrownScore == 'Standaard'){
                 soundNumber = '26';
             }else{
-                soundNumber = dataArray[9];
+                soundNumber = data.thrownScore;
             }
             console.log(`Soundnumber length: ${soundNumber.length}`)
             if(soundNumber.length < 3){
@@ -483,76 +314,65 @@ io.on('connection', (socket) => {
             }
             let soundFile = path.join(__dirname,('../audio/' + soundNumber + '.mp3'));
             console.log(`Playing ${soundFile}`);
-            /*
-            if(sound != null){
-                sound.kill();
-            }
-            sound = soundPlayer.play(soundFile, function(err){
-                if(err) throw err
-            });
-            */
-           let audio = new Audio(soundFile);
-           audio.play();
+
+            let audio = new Audio(soundFile);
+            audio.play();
         }
 
-        if(dataArray[6] == '0'){
-            document.getElementById(`activePlayer${dataArray[0]}1`).style.color = 'green';
-            document.getElementById(`activePlayer${dataArray[0]}2`).style.color = 'white';
+        if(data.startingPlayer == '0'){
+            document.getElementById(`activePlayer${data.gameID}1`).style.color = 'green';
+            document.getElementById(`activePlayer${data.gameID}2`).style.color = 'white';
         }else{
-            document.getElementById(`activePlayer${dataArray[0]}1`).style.color = 'white';
-            document.getElementById(`activePlayer${dataArray[0]}2`).style.color = 'green';
+            document.getElementById(`activePlayer${data.gameID}1`).style.color = 'white';
+            document.getElementById(`activePlayer${data.gameID}2`).style.color = 'green';
         }
 
-        if(dataArray[5] == 'true'){
-            document.getElementById(`${dataArray[0]}TurnArrow`).style.transform = 'rotate(90deg)';
+        if(data.player1Turn == 'true'){
+            document.getElementById(`${data.gameID}TurnArrow`).style.transform = 'rotate(90deg)';
         }else{
-            document.getElementById(`${dataArray[0]}TurnArrow`).style.transform = 'rotate(270deg)';
+            document.getElementById(`${data.gameID}TurnArrow`).style.transform = 'rotate(270deg)';
         }
 
-        if(dataArray[1] <= 170 && dataArray[1] > 0){
-            document.getElementById(`out${dataArray[0]}1`).innerHTML = outs[170-dataArray[1]];
-            activeGamesArray.push(outs[170-dataArray[1]]);
+        if(data.player1Score <= 170 && data.player1Score > 0){
+            document.getElementById(`out${data.gameID}1`).innerHTML = outs[170-data.player1Score];
         }else{
-            document.getElementById(`out${dataArray[0]}1`).innerHTML = '';
-            activeGamesArray.push('');
+            document.getElementById(`out${data.gameID}1`).innerHTML = '';
         }
 
-        if(dataArray[3] <= 170 && dataArray[3] > 0){
-            document.getElementById(`out${dataArray[0]}2`).innerHTML = outs[170-dataArray[3]];
-            activeGamesArray.push(outs[170-dataArray[3]]);
+        if(data.player2Score <= 170 && data.player2Score > 0){
+            document.getElementById(`out${data.gameID}2`).innerHTML = outs[170-data.player2Score];
         }else{
-            document.getElementById(`out${dataArray[0]}2`).innerHTML = '';
-            activeGamesArray.push('');
+            document.getElementById(`out${data.gameID}2`).innerHTML = '';
         }
 
         var player1;
         var player2;
 
-        if(dataArray[0][0] == 'M'){
-            player1 = document.getElementById(`${dataArray[0]}1Name`).innerHTML;
-            player2 = document.getElementById(`${dataArray[0]}2Name`).innerHTML;
+        if(data.gameType == 'finals_game'){
+            player1 = document.getElementById(`${data.gameID}1Name`).innerHTML;
+            player2 = document.getElementById(`${data.gameID}2Name`).innerHTML;
         }else{
-            player1 = document.getElementById(`game${dataArray[0]}1Name`).innerHTML;
-            player2 = document.getElementById(`game${dataArray[0]}2Name`).innerHTML;
+            player1 = document.getElementById(`game${data.gameID}1Name`).innerHTML;
+            player2 = document.getElementById(`game${data.gameID}2Name`).innerHTML;
         }
 
-        activeGamesArray.push(player1);
-        activeGamesArray.push(player2);
+        /*
         if(newGame){
             ipcRenderer.send("sendNewActiveGameInfo", activeGamesArray);
         }else{
             ipcRenderer.send("sendActiveGameInfo", activeGamesArray);
         }
+        */
     });
-    socket.on('stopActiveGame', (data) => {
+    socket.on('stopActiveGame', (gameName) => {
         for(let i = 0; i < activeGames.length; i++){
-            if(activeGames[i][0] == data){
+            if(activeGames[i][0] == gameName){
                 activeGames.splice(i, 1);
-                console.log(`Game ${data} stopped`);
+                console.log(`Game ${gameName} stopped`);
 
-                $(document.getElementById(data)).remove();
-                $(document.getElementById(`stop${data}`)).remove();
-                $(document.getElementById(`${data}VL`)).remove();
+                $(document.getElementById(gameName)).remove();
+                $(document.getElementById(`stop${gameName}`)).remove();
+                $(document.getElementById(`${gameName}VL`)).remove();
 
                 if(activeGames.length == 0){
                     $(document.getElementById('activeGamesDiv')).hide();
@@ -560,10 +380,10 @@ io.on('connection', (socket) => {
                 break;
             }
         }
-        ipcRenderer.send('sendStopActiveGame', data);
+        ipcRenderer.send('sendStopActiveGame', gameName);
         
         var msg;
-        switch(data[0]){
+        switch(gameName[0]){
             case 'A':
                 pouleA.updatePoints();
                 msg = [pouleA.rankings, pouleA.sendPouleGames(), 'poule'];
@@ -608,507 +428,6 @@ ipcRenderer.on("updateAvailable", (event, arg) => {
 var PORT = 11520;
 
 var players = [];
-
-function player(name){
-    this.name = name;
-    this.legsWon = 0;
-    this.legsLost = 0;
-    this.hiddenPoints = 0;
-    this.gamesPlayed = 0;
-    this.convertToArray = function(){
-        return [this.name, this.legsWon, this.legsLost, this.gamesPlayed];
-    }
-    this.calculateHiddenPoints = function(){
-        this.hiddenPoints = this.legsWon - this.legsLost;
-    }
-}
-
-class pouleGames{
-    constructor(pouleNum){
-        this.pouleNum = pouleNum;
-        this.players = [];
-        this.hiddenPoints = [];
-        this.tiedPlayers = [];
-        this.winner = "";
-        this.secondPlace = "";
-        this.numGames;
-        this.tieDetected = false;
-        this.tieResolved = false;
-        this.tiedPoulesDrawn = false;
-        this.numTiedGames;
-        this.gameFormat;
-        this.tiedGameFormat;
-        this.rankings = [];
-        this.lastRankings = [];
-        this.finalsDrawn = false;
-    }
-
-    reset(){
-        this.players = [];
-        this.hiddenPoints = [];
-        this.tiedPlayers = [];
-        this.rankings = [];
-        this.lastRankings = [];
-        this.winner = "";
-        this.secondPlace = "";
-        this.numGames;
-        this.tieDetected = false;
-        this.tieResolved = false;
-        this.tiedPoulesDrawn = false;
-        this.numTiedGames;
-        this.gameFormat;
-        this.tiedGameFormat;
-        this.finalsDrawn = false;
-    }
-
-    makePoule(){
-        var poulesDiv = document.getElementById('poulesDiv');
-
-        if(typeof this.players !== 'undefined' && this.players.length > 0){
-            var playerDiv = $(`<div id="poule${this.pouleNum}" class="pouleDiv"></div>`);
-            var pouleHeader = $(`<header class="pouleHeader"><h2>Poule ${this.pouleNum}:</h2><hr/><header>`);
-            var pouleTable = $(`<table class="pouleTable" id="poule${this.pouleNum}Table"></table>`);
-            var pouleTableHeader = $('<tr><th>Speler</th><th>Score</th></tr>');
-
-            $(poulesDiv).append(playerDiv);
-            $(playerDiv).append(pouleHeader);
-            $(playerDiv).append(pouleTable);
-            $(pouleTable).append(pouleTableHeader);false
-        }
-    }
-
-    makeGames(){
-        let numPlayers = this.players.length;
-        var gameTable;
-        var gamesDiv;
-
-        if(numPlayers == 1){
-            let singlePlayerDiv = $(`<div id="singlePlayerDiv" class="singlePlayerDiv"><h3>Winnaar:</h3><h4>${this.players[0].name}!</h4><p1>Leuk geprobeerd, hier heb ik aan gedacht</p1></div>`);
-            $(singlePlayerDiv).appendTo(document.body);
-            $(document.getElementById('saveBtn')).hide();
-            $(document.getElementById('exportBtn')).hide();
-            $(document.getElementById('appSettingsBtn')).hide();
-            $(document.getElementById('playerSettingsBtn')).hide();
-        }else{
-            gamesDiv = document.getElementById('pouleGames');
-            var pouleGamesDiv = $(`<div id='poule${this.pouleNum}Games' class='pouleGamesDiv'></div>`);
-            var pouleGamesHeader = $(`<header class="pouleGamesHeader"><h1>Poule ${this.pouleNum}:</h1></header><hr>`);
-            gameTable = $('<table class="pouleGamesTable"></table>');
-
-            $(gamesDiv).append(pouleGamesDiv);
-            $(pouleGamesDiv).append(pouleGamesHeader);
-            $(pouleGamesDiv).append(gameTable);
-        }
-        
-        if(numPlayers == 2){
-            this.numGames = 1;
-        }else{
-            this.numGames = (this.factorial(numPlayers)/(2*this.factorial(numPlayers-2)));
-        }
-
-        switch(numPlayers){
-            case 2:
-                this.gameFormat = [[0, 1]];
-            break;
-            case 3:
-                this.gameFormat = [[0,1], [1,2], [0,2]];
-            break;
-            case 4:
-                this.gameFormat = [[0,1], [0,2], [1,3], [0,3], [1,2], [2,3]];
-            break;
-            case 5:
-                this.gameFormat = [[0,1], [0,2], [1,4], [3,4], [1,2], [2,3], [0,4], [1,3], [2,4], [0,3]]
-        }
-
-        for(let i = 0; i < this.numGames; i++){
-            var gameLabels = $(`<tr><td><p1 id="game${this.pouleNum}${i+1}1Name">${this.players[this.gameFormat[i][0]].name}</p1></td><td><p1>-</p1></td><td><p1 id="game${this.pouleNum}${i+1}2Name">${this.players[this.gameFormat[i][1]].name}</p1></td></tr>`);
-            var gameInputs = $(`<tr><td><input id="game${this.pouleNum}${i+1}1Score" type="number" class="gameScore" min="0"></td><td><p1>-</p1></td><td><input id="game${this.pouleNum}${i+1}2Score" type="number" class="gameScore" min="0"></td></tr><hr>`);
-            $(gameTable).append(gameLabels);
-            $(gameTable).append(gameInputs);
-        }
-
-        $(gamesDiv).show();
-    }
-
-    factorial(n){
-        if(n === 0 || n === 1 || n === 2){
-            return n;
-        }
-
-        var result = 1;
-        for(let i = 1; i <= n; i++){
-            result = result*i;
-        }
-        return result;
-    }
-
-    addPlayer(playerInfo){
-        this.players.append(playerInfo);
-    }
-
-    sort(){
-        this.rankings = []
-        for(let i = 0; i < this.players.length; i++){
-            if(this.players[i].gamesPlayed != 0){
-                let tempArray = [this.players[i].name, this.players[i].legsWon, this.players[i].hiddenPoints];
-                this.rankings.push(tempArray);
-            }
-        }
-        this.rankings.sort(function(a,b){
-            if(b[1] != a[1]){
-                return(b[1]-a[1]);
-            }else{
-                return(b[2]-a[2]);
-            }
-        });
-        for(let i = 0; i < this.players.length; i++){
-            if(this.players[i].gamesPlayed == 0){
-                let tempArray = [this.players[i].name, this.players[i].legsWon, this.players[i].hiddenPoints];
-                this.rankings.push(tempArray);
-            }
-        }
-
-        var pouleTable = document.getElementById(`poule${this.pouleNum}Table`);
-        var pouleTableHeader = $('<tr><th>Speler</th><th>Score</th><th>Saldo</th></tr>');
-
-        $(pouleTable).empty();
-        $(pouleTable).append(pouleTableHeader);
-
-        for(let i in this.rankings){
-            if(typeof this.rankings[i][1] == 'undefined'){
-                this.rankings[i][1] = 0;
-            }
-
-            var tableEntry = $(`<tr><td>${this.rankings[i][0]}</td><td>${this.rankings[i][1]}</td><td>${this.rankings[i][2]}</td></tr>`);
-            $(pouleTable).append(tableEntry);
-        }
-
-        if(JSON.stringify(this.rankings) != JSON.stringify(this.lastRankings)){
-            this.lastRankings = JSON.parse(JSON.stringify(this.rankings));
-            let msg = [this.rankings, this.sendPouleGames(), 'poule'];
-            io.emit(`poule${this.pouleNum}Ranks`, msg);
-
-            if(activeGamesWindowOpen){
-                let msg = [this.pouleNum, this.rankings];
-                ipcRenderer.send("updatePouleRanks", msg);
-            }
-        }
-    }
-
-    sendPouleGames(){
-        var games = [];
-        for(let i = 0; i < this.numGames; i++){
-            let player1 = document.getElementById(`game${this.pouleNum}${i+1}1Name`).innerHTML;
-            let player2 = document.getElementById(`game${this.pouleNum}${i+1}2Name`).innerHTML;
-            let score1 = document.getElementById(`game${this.pouleNum}${i+1}1Score`).value;
-            let score2 = document.getElementById(`game${this.pouleNum}${i+1}2Score`).value;
-    
-            var gamePlayed = true;
-
-            var gameActive = false;
-
-            for(let j=0; j < activeGames.length; j++){
-                if(activeGames[j][0] == `${this.pouleNum}${i+1}`){
-                    gameActive = true;
-                    break;
-                }
-            }
-
-            if(!score1 && !score2 && !gameActive){
-                gamePlayed = false;
-            }
-    
-            var tempArray = [player1, player2, gamePlayed];
-            games.push(tempArray);
-        }
-        if(this.tieDetected){
-            let player1 = document.getElementById(`game${this.pouleNum}${this.numGames+1}1Name`).innerHTML;
-            let player2 = document.getElementById(`game${this.pouleNum}${this.numGames+1}2Name`).innerHTML;
-            let score1 = document.getElementById(`game${this.pouleNum}${this.numGames+1}1Score`).value;
-            let score2 = document.getElementById(`game${this.pouleNum}${this.numGames+1}2Score`).value;
-
-            var gamePlayed = true;
-            var gameActive = false;
-
-            for(let j=0; j < activeGames.length; j++){
-                if(activeGames[j][0] == `${this.pouleNum}${this.numGames+1}`){
-                    gameActive = true;
-                    break;
-                }
-            }
-
-            if(!score1 && !score2 && !gameActive){
-                gamePlayed = false;
-            }
-
-            var tempArray = [player1, player2, gamePlayed];
-            games.push(tempArray);
-        }
-        return games;
-    }
-
-    updatePoints(){
-        var points = [];
-        var counterPoints = [];
-        var numGamesPlayed = [];
-        for(let i = 0; i < this.players.length; i++){
-            points.push(0);
-            counterPoints.push(0);
-            numGamesPlayed.push(0);
-            this.hiddenPoints.push(0);
-        }
-
-        for(let i = 0; i < this.numGames; i++){
-            var points1 = document.getElementById(`game${this.pouleNum}${i+1}1Score`).value;
-            var points2 = document.getElementById(`game${this.pouleNum}${i+1}2Score`).value;
-
-            points1 = parseInt(points1);
-            points2 = parseInt(points2);
-
-            if(isNaN(points1)){
-                points1 = 0;
-            }else{
-                numGamesPlayed[this.gameFormat[i][0]] += 1;
-            }
-
-            if(isNaN(points2)){
-                points2 = 0;
-            }else{
-                numGamesPlayed[this.gameFormat[i][1]] += 1;
-            }
-
-            points[this.gameFormat[i][0]] = points[this.gameFormat[i][0]] + points1;
-            counterPoints[this.gameFormat[i][0]] = counterPoints[this.gameFormat[i][0]] + points2;
-            points[this.gameFormat[i][1]] = points[this.gameFormat[i][1]] + points2;
-            counterPoints[this.gameFormat[i][1]] = counterPoints[this.gameFormat[i][1]] + points1;
-        }
-
-        try{
-            var points1 = document.getElementById(`game${this.pouleNum}${this.numGames+1}1Score`).value;
-            var points2 = document.getElementById(`game${this.pouleNum}${this.numGames+1}2Score`).value;
-
-            points1 = parseInt(points1);
-            points2 = parseInt(points2);
-
-            if(isNaN(points1)){
-                points1 = 0;
-            }
-
-            if(isNaN(points2)){
-                points2 = 0;
-            }
-
-            for(let i = 0; i < this.players.length; i++){
-                if(this.players[i].name == this.tiedPlayers[0]){
-                    points[i] += points1;
-                }else if(this.players[i].name == this.tiedPlayers[1]){
-                    points[i] += points2;
-                }
-            }
-        }catch(e){
-        }
-
-        for(let i = 0; i < this.players.length; i++){
-            this.players[i].legsWon = points[i];
-            this.players[i].legsLost = counterPoints[i];
-            this.players[i].gamesPlayed = numGamesPlayed[i];
-            this.players[i].calculateHiddenPoints();
-        }  
-
-        this.sort();
-
-        if(this.allGamesPlayed() && !this.tieDetected){
-            if(!this.tieResolved){
-                this.checkTies();
-            }
-            if(this.tieDetected){
-                return -1;
-            }
-            if(numPoules == 1 && this.tieResolved){
-                var points1 = document.getElementById('M71Score').value;
-                var points2 = document.getElementById('M72Score').value;
-                points1 = parseInt(points1);
-                points2 = parseInt(points2);
-
-                if(isNaN(points1)){
-                    points1 = 0;
-                }
-
-                if(isNaN(points2)){
-                    points2 = 0;
-                }
-
-                if(points1 > points2){
-                    this.winner = document.getElementById('M71Name').innerHTML;
-                    this.secondPlace = document.getElementById('M72Name').innerHTML;
-                }else if(points2 > points1){
-                    this.winner = document.getElementById('M72Name').innerHTML;
-                    this.secondPlace = document.getElementById('M71Name').innerHTML;
-                }
-                document.getElementById("M81Name").innerHTML = this.winner;
-            }else{
-                this.winner = this.rankings[0][0];
-                this.secondPlace = this.rankings[1][0];
-                this.winnerPrinted = true;
-            }
-        }else if(!this.allGamesPlayed()){
-            this.tieDetected = false;
-        }
-    }
-
-    checkTies(){
-        let newTiedPlayers = this.isTie();
-        if(!this.tieDetected && newTiedPlayers.length != 0 && this.newTieDetected(newTiedPlayers, this.tiedPlayers)){
-            this.tieDetected = true;
-            this.tiedPlayers = newTiedPlayers;
-            if(numPoules == 1){
-                makeFinals(0);
-                $("#winnerTable").insertAfter("#finalsTable");
-                document.getElementById('M71Name').innerHTML = this.tiedPlayers[0];
-                document.getElementById('M72Name').innerHTML = this.tiedPlayers[1];
-            }else{
-                this.drawTiedPoules();
-            }
-        }
-    }
-
-    allGamesPlayed(){
-        /*if(this.tieDetected && numPoules > 1){
-            var tiedPoints1 = 0;
-            var tiedPoints2 = 0;
-
-            tiedPoints1 = document.getElementById(`tie${this.pouleNum}11Score`).value;
-            tiedPoints2 = document.getElementById(`tie${this.pouleNum}12Score`).value;
-            tiedPoints1 = parseInt(tiedPoints1);
-            tiedPoints2 = parseInt(tiedPoints2);
-
-            if(isNaN(tiedPoints1) || isNaN(tiedPoints2)){
-                return false;
-            }
-        }*/
-
-        for(let i = 0; i < this.numGames; i++){
-            var points1 = document.getElementById(`game${this.pouleNum}${i+1}1Score`).value;
-            var points2 = document.getElementById(`game${this.pouleNum}${i+1}2Score`).value;
-            
-            points1 = parseInt(points1);
-            points2 = parseInt(points2);
-            
-            if(isNaN(points1) || isNaN(points2)){
-                return false;
-            }
-        }
-
-        if(numPoules == 1){
-            if(this.tieDetected){
-                var points1 = document.getElementById('M71Score').value;
-                var points2 = document.getElementById('M72Score').value;
-                points1 = parseInt(points1);
-                points2 = parseInt(points2);
-
-                if(isNaN(points1) || isNaN(points2)){
-                    return false;
-                }else{
-                    this.tieDetected = false;
-                    this.tieResolved = true;
-                }
-            }
-        }else if(this.tieDetected){
-            var points1 = document.getElementById(`game${this.pouleNum}${this.numGames+1}1Score`).value;
-            var points2 = document.getElementById(`game${this.pouleNum}${this.numGames+1}2Score`).value;
-
-            points1 = parseInt(points1);
-            points2 = parseInt(points2);
-
-            if(isNaN(points1) || isNaN(points2)){
-                return false;
-            }else{
-                this.tieDetected = false;
-                this.tieResolved = true;
-            }
-        }else{
-            var playersCopy = [];
-            Array.prototype.push.apply(playersCopy, this.players);
-            playersCopy.sort(function(a,b){return b.legsWon - a.legsWon});
-            this.winner = playersCopy[0].name;
-            this.secondPlace = playersCopy[1].name;
-        }
-
-        return true;
-    }
-
-    newTieDetected(firstTie, secondTie){
-        if(firstTie.length != secondTie.length){
-            return true;
-        }
-
-        for(let i = 0; i < firstTie.length; i++){
-            if(firstTie[i][0] != secondTie[i][0]){
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    drawTiedPoules(){
-        let pouleGamesDiv = document.getElementById(`poule${this.pouleNum}Games`);
-        $(pouleGamesDiv).append(`<hr id="tieBreaker"><header class="pouleGamesHeader" id="tieBreaker"><h1 id="tieBreaker">Tiebreakers:</h1></header><hr><table class="pouleGamesTable" id="poule${this.pouleNum}TiedGames"></table>`);
-        let tieBreakerTable = document.getElementById(`poule${this.pouleNum}TiedGames`);
-        
-        $(tieBreakerTable).append(`<tr><td><p1 id="game${this.pouleNum}${this.numGames+1}1Name">${this.tiedPlayers[0]}</p1></td><td><p1>-</p1></td><td><p1 id="game${this.pouleNum}${this.numGames+1}2Name">${this.tiedPlayers[1]}</p1></td></tr>`);
-        $(tieBreakerTable).append(`<tr><td><input id="game${this.pouleNum}${this.numGames+1}1Score" type="number" class="gameScore"></td><td><p1>-</p1></td><td><input id="game${this.pouleNum}${this.numGames+1}2Score" type="number" class="gameScore"></td></tr>`);
-        
-        let msg = [this.rankings, this.sendPouleGames(), 'poule'];
-        io.emit(`poule${this.pouleNum}Ranks`, msg);
-    }
-
-    isTie(){
-        let newTiedPlayers = [];
-        if(!this.tieDetected){
-            var playersCopy = []
-            for(let i = 0; i < this.players.length; i++){
-                if(this.players[i].gamesPlayed != 0){
-                    playersCopy.push(this.players[i]);
-                }
-            }
-            if(playersCopy.length > 1){
-                playersCopy.sort(function(a,b){
-                    if(b.legsWon != a.legsWon){
-                        return(b.legsWon-a.legsWon);
-                    }else{
-                        return(b.hiddenPoints-a.hiddenPoints);
-                    }
-                });
-                for(let i = 0; i < 2%playersCopy.length; i++){
-                    if(playersCopy[i].legsWon == playersCopy[i+1].legsWon && playersCopy[i].legsWon != 0 && playersCopy[i].hiddenPoints == playersCopy[i+1].hiddenPoints){
-                        newTiedPlayers = [playersCopy[i].name, playersCopy[i+1].name];
-                        break;
-                    }
-                }
-                return newTiedPlayers;
-            }else{
-                return [];
-            }
-        }
-    }
-
-    reloadPlayers(){
-        for(let i = 0; i < this.numGames; i++){
-            document.getElementById(`game${this.pouleNum}${i+1}1Name`).innerHTML = this.players[this.gameFormat[i][0]].name;
-            document.getElementById(`game${this.pouleNum}${i+1}2Name`).innerHTML = this.players[this.gameFormat[i][1]].name;
-        }
-    }
-
-    //Hidden points zijn de punten die niet worden getoond in de tabel met de ranks,
-    //maar wel gebruikt worden voor het bepalen van de positie van de spelers in de ranks.
-    //Op basis van het aantal punten per dart (PPD).
-    calculateHiddenPoints(){
-        for(let i = 0; i < this.players.length; i++){
-            players[i].calculateHiddenPoints();
-        }
-    }
-}
 
 let pouleA = new pouleGames("A");
 let pouleB = new pouleGames("B");
@@ -1698,15 +1017,12 @@ function makePoules(){
 
     for(let i = 0; i < numPlayers; i++){
         var playerName = document.getElementById(`player${i}`).value;
-        players.push(playerName);
-    }
-
-    for(let i = 0; i < numPlayers; i++){
-        if(players[i] == ""){
+        if(playerName == ""){
             $(document.getElementById(`player${i}`)).css('border-color', 'red');
             playerEmpty = true;
         }else{
             $(document.getElementById(`player${i}`)).css('border-color', '#414141');
+            players.push(playerName);
         }
     }
 
@@ -1714,9 +1030,6 @@ function makePoules(){
         document.getElementById('playerInputErrorSpan').innerHTML = "Vul voor alle spelers een naam in."
     }else{
         $(document.getElementById('playerInputDiv')).hide();
-        //$(document.getElementById('controlBtnDiv')).show();
-        //$(saveBtn).show();
-        //$(document.getElementById('appSettingForm')).hide();
 
         $(document.getElementById('saveBtn')).show();
         $(document.getElementById('exportBtn')).show();
