@@ -481,7 +481,7 @@ io.on('connection', (socket) => {
                     soundNumber = '0' + soundNumber;
                 }
             }
-            let soundFile = path.join(__dirname,('audio/' + soundNumber + '.mp3'));
+            let soundFile = path.join(__dirname,('../audio/' + soundNumber + '.mp3'));
             console.log(`Playing ${soundFile}`);
             /*
             if(sound != null){
@@ -1223,7 +1223,7 @@ async function streamWithProgress(length, reader, writer, progressCallback) {
 }
 
 function continueToGame(){
-    let names = fs.readFileSync(path.join(__dirname, 'names.txt'),{
+    let names = fs.readFileSync(path.join(__dirname, '../names.txt'),{
         encoding: 'utf8',
     });
     let namesList = names.split('\n');

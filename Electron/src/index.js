@@ -81,7 +81,7 @@ ipcMain.on('connectServer', async(event) =>{
     minimizable: false,
     resizable: false,
   });
-  rendererWindow.loadFile(path.join(__dirname, 'render.html'));
+  rendererWindow.loadFile(path.join(__dirname, 'html/render.html'));
   rendererWindow.once('ready-to-show', () => {
     rendererWindow.show();
   });
@@ -101,7 +101,7 @@ ipcMain.on('openActiveGamesWindow', async(event) => {
     frame: true,
     show: false
   });
-  activeGamesWindow.loadFile(path.join(__dirname, 'activeGames.html'));
+  activeGamesWindow.loadFile(path.join(__dirname, 'html/activeGames.html'));
   
   activeGamesWindow.once('ready-to-show', () => {
     activeGamesWindow.show();
@@ -289,13 +289,13 @@ const createWindow = (shouldCheckUpdate = true) => {
             }
           }
           console.log(updateUrl);
-          mainWindow.loadFile(path.join(__dirname, 'updateCheck.html'));
+          mainWindow.loadFile(path.join(__dirname, 'html/updateCheck.html'));
           mainWindow.maximize();
           //mainWindow.webContents.send('updateAvailable', updateUrl);
         }else{
           console.log("No update available");
           //mainWindow.webContents.send("noUpdateAvailable");
-          mainWindow.loadFile(path.join(__dirname, 'index.html'));
+          mainWindow.loadFile(path.join(__dirname, 'html/index.html'));
           mainWindow.maximize();
         }
       }
@@ -304,7 +304,7 @@ const createWindow = (shouldCheckUpdate = true) => {
     request.open("GET", "https://api.github.com/repos/HeadlessHamsterr/darttoernooiElectron/releases/latest", true);
     request.send();
   }else{
-    mainWindow.loadFile(path.join(__dirname, 'index.html'));
+    mainWindow.loadFile(path.join(__dirname, 'html/index.html'));
     mainWindow.maximize();
   }
 
