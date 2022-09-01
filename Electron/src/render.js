@@ -1,3 +1,4 @@
+//NPM modules
 let $ = require('jquery');
 let fs = require('fs');
 let path = require('path');
@@ -12,10 +13,6 @@ const { count } = require('console');
 const { clearInterval } = require('timers');
 const { hostname } = require('os');
 const udp = require('dgram');
-const player = require('../modules/player.js');
-const outs = require('../modules/constants.js');
-const pouleGames = require('../modules/pouleGames.js');
-const decodeAppMessage = require('../modules/appMessageDecoder.js');
 const io = require('socket.io')(websocketServer, {
     cors: {
         methods: ["GET", "POST"],
@@ -23,6 +20,12 @@ const io = require('socket.io')(websocketServer, {
     },
     allowEIO3: true
 });
+
+//Self-made modules
+const player = require('../modules/player.js');
+const outs = require('../modules/constants.js');
+const pouleGames = require('../modules/pouleGames.js');
+const decodeAppMessage = require('../modules/appMessageDecoder.js');
 
 var sound = null;
 var audioEnabled = true;
