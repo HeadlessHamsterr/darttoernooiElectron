@@ -1,3 +1,5 @@
+// ignore_for_file: camel_case_types
+
 import 'dart:io';
 import 'dart:convert';
 import 'dart:async';
@@ -26,7 +28,7 @@ double horizontalScaling = 0;
 double verticalScaling = 0;
 
 void main() {
-  runApp(StartScreen());
+  runApp(const StartScreen());
 }
 
 class GameInfoClass {
@@ -459,7 +461,7 @@ De QR-code kan gevonden worden door op de computer rechtsboven op de drie streep
                   color: Colors.white, fontSize: 4.87 * horizontalScaling),
             ),
             Image(
-              image: AssetImage('assets/PCIP.png'),
+              image: const AssetImage('assets/PCIP.png'),
               width: 10 / horizontalScaling,
             ),
             SizedBox(
@@ -495,7 +497,6 @@ class _qrScanScreenState extends State<qrScanScreen> {
         scanLineColor: Colors.blue.shade800,
         onCapture: (data) {
           String ip = data.split(':')[0];
-          print(ip);
           Navigator.pop(context, ip);
         },
       ),
@@ -595,7 +596,7 @@ class _PoulesOverviewState extends State<PoulesOverview> {
   void backBtnPress(context) {
     socket.disconnect();
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (BuildContext context) => StartScreen()),
+      MaterialPageRoute(builder: (BuildContext context) => const StartScreen()),
     );
   }
 
@@ -1453,7 +1454,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
       startingPlayer = 1;
     }
     String msg =
-        '${widget.game.gameID},${player1.currentScore},${player1.legsWon},${player1.dartsThrown},${player2.currentScore},${player2.legsWon},${player2.dartsThrown},${player1.myTurn},$startingPlayer,${thrownScore}';
+        '${widget.game.gameID},${player1.currentScore},${player1.legsWon},${player1.dartsThrown},${player2.currentScore},${player2.legsWon},${player2.dartsThrown},${player1.myTurn},$startingPlayer,$thrownScore';
 
     print(msg);
     socket.emit('activeGameInfo', msg);
@@ -1919,8 +1920,8 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                             null;
                           });
                         },
-                        child: Padding(
-                          padding: const EdgeInsets.all(0.0),
+                        child: const Padding(
+                          padding: EdgeInsets.all(0.0),
                           child: AutoSizeText(
                             "1",
                             maxLines: 2,
@@ -1999,8 +2000,8 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                             null;
                           });
                         },
-                        child: Padding(
-                          padding: const EdgeInsets.all(0.0),
+                        child: const Padding(
+                          padding: EdgeInsets.all(0.0),
                           child: AutoSizeText(
                             "2",
                             maxLines: 2,
