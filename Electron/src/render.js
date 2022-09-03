@@ -307,7 +307,7 @@ io.on('connection', (socket) => {
             }else{
                 soundNumber = data.thrownScore;
             }
-            console.log(`Soundnumber length: ${soundNumber.length}`)
+
             if(soundNumber.length < 3){
                 if(soundNumber.length == 1){
                     soundNumber = '00' + soundNumber;
@@ -316,7 +316,6 @@ io.on('connection', (socket) => {
                 }
             }
             let soundFile = path.join(__dirname,('../audio/' + soundNumber + '.mp3'));
-            console.log(`Playing ${soundFile}`);
 
             let audio = new Audio(soundFile);
             audio.play();

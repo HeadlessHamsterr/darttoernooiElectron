@@ -28,8 +28,8 @@ function gamePlayed(){
     this.player2DartsThrown;
 }
 
-module.exports = function decodeAppMessage(messageType = "", message = []){
-    if(messageType == "" || message.length == 0){
+module.exports = function decodeAppMessage(messageType = "", message = ""){
+    if(messageType == "" || message == ""){
         console.error("App message decode error: no message type or no message passed to decoder.")
         return -1;
     }
