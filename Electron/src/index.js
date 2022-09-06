@@ -318,6 +318,10 @@ const createWindow = (shouldCheckUpdate = true) => {
     }else{
       console.log("Sending noUpdateAvailable to mainWindow");
       mainWindow.webContents.send('noUpdateAvailable');
+
+      console.log("Sending version info to mainWindow")
+      let msg = app.getVersion().toString()
+      mainWindow.webContents.send('version', msg);
     }
   });
   mainWindow.once('closed', () => {
@@ -362,6 +366,16 @@ app.on('ready', createWindow);
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
+  /*
+  let msg = `serverClose,${hostName}`;
+  udpServer = udp.createSocket("udp4");
+  udpServer.on('listening', function(){
+    udpServer.setBroadcast(true);
+    udpServer.send(msg, 8889, broadcastAdr);
+    msgSend = true;
+  });
+  udpServer.bind(8888);
+*/
   if (process.platform !== 'darwin') {
     app.quit();
   }
