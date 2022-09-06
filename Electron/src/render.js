@@ -734,11 +734,19 @@ function loadGame(){
             console.log(err);
         }
     });
+
+    if(!gameFileName.includes('.darts')){
+        alert("Onbekend bestandstype.");
+        returnToHome();
+        return -1;
+    }
+    
     let jsonObj = JSON.parse(jsonString);
 
     if(!jsonObj.hasOwnProperty('version') || jsonObj.version[0] != version[0]){
         alert("Deze bestandsversie wordt niet ondersteund.");
         returnToHome();
+        return -1;
     }
 
     for(let key in jsonObj.appSettings){
