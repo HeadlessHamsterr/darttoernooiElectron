@@ -269,7 +269,6 @@ Enyo
 Epidotes
 Glycon
 Hebe
-Hermaphroditus
 Auxo
 Karpo
 Pherousa
