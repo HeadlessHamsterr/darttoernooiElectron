@@ -68,8 +68,8 @@ ipcMain.on("klaarErmee", ()=>{
 
 ipcMain.on('connectServer', async(event) =>{
   const rendererWindow = new BrowserWindow({
-    width: 800,
-    height: 800,
+    width: mainWindow.getSize()[0],
+    height: mainWindow.getSize()[1],
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
@@ -84,6 +84,7 @@ ipcMain.on('connectServer', async(event) =>{
   rendererWindow.loadFile(path.join(__dirname, 'html/render.html'));
   rendererWindow.once('ready-to-show', () => {
     rendererWindow.show();
+    rendererWindow.maximize();
   });
 });
 
@@ -108,15 +109,19 @@ ipcMain.on('openActiveGamesWindow', async(event) => {
     activeGamesWindow.maximize();
     console.log("ActiveGamesWindow ready");
     ipcMain.on('sendActiveGameInfo', (event, arg) => {
+      console.log("Sending game info to new screen")
       activeGamesWindow.webContents.send('activeGameInfo', arg);
     });
     ipcMain.on('sendAlreadyActiveGames', (event, arg) => {
+      console.log("Sending already active games to new screen")
       activeGamesWindow.webContents.send('alreadyActiveGames', arg);
     });
     ipcMain.on('sendNewActiveGameInfo', (event, arg) => {
+      console.log("Sending new game to new screen")
       activeGamesWindow.webContents.send('newActiveGameInfo', arg);
     });
     ipcMain.on('sendStopActiveGame', (event, arg) => {
+      console.log("Stopping game on new screen")
       activeGamesWindow.webContents.send('stopActiveGame', arg);
     });
     ipcMain.on('returnPouleData', (event, arg) => {
@@ -318,6 +323,10 @@ const createWindow = (shouldCheckUpdate = true) => {
     }else{
       console.log("Sending noUpdateAvailable to mainWindow");
       mainWindow.webContents.send('noUpdateAvailable');
+
+      console.log("Sending version info to mainWindow")
+      let msg = app.getVersion().toString()
+      mainWindow.webContents.send('version', msg);
     }
   });
   mainWindow.once('closed', () => {
@@ -362,6 +371,16 @@ app.on('ready', createWindow);
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
+  /*
+  let msg = `serverClose,${hostName}`;
+  udpServer = udp.createSocket("udp4");
+  udpServer.on('listening', function(){
+    udpServer.setBroadcast(true);
+    udpServer.send(msg, 8889, broadcastAdr);
+    msgSend = true;
+  });
+  udpServer.bind(8888);
+*/
   if (process.platform !== 'darwin') {
     app.quit();
   }

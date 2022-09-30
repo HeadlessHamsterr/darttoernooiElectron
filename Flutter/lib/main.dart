@@ -1,3 +1,5 @@
+// ignore_for_file: camel_case_types
+
 import 'dart:io';
 import 'dart:convert';
 import 'dart:async';
@@ -8,7 +10,10 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:scan/scan.dart';
 import 'package:Darttoernooi/size_config.dart';
 import 'package:network_info_plus/network_info_plus.dart';
+import 'package:package_info/package_info.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'defs/constants.dart';
+import 'defs/classes.dart';
 
 String serverIP = '';
 String activePoule = '';
@@ -17,333 +22,22 @@ List gameInfo = [];
 late int numPoules;
 late IO.Socket socket;
 
-enum ChosenPlayerEnum { player1, player2, undefined }
-
 List activeGameInfo = [];
 ChosenPlayerEnum activeStartingPlayer = ChosenPlayerEnum.undefined;
-double numBtnWidth = 26.04;
-double numBtnHeigth = 8.57;
-double sideBtnWidth = 17.71;
-double sideBtnHeigth = 8.58;
-const PRIMARY_COLOR = 0xFF4A0000;
-const DEFAULT_BTN_COLOR = 0xFF4A0000;
-const BACKGROUND_COLOR = 0xFF181818;
 bool firstStart = false;
 bool gameActive = false;
 double horizontalScaling = 0;
 double verticalScaling = 0;
-int serverPort = 11520;
-const List<Color> rankingColors = [
-  Color.fromRGBO(255, 215, 0, 1.0),
-  Color.fromRGBO(192, 192, 192, 1.0),
-  Color.fromRGBO(128, 128, 128, 1.0)
-];
 
-List<String> possibleOuts = [
-  'T20 T20 BULL',
-  '',
-  '',
-  'T20 T19 BULL',
-  '',
-  '',
-  'T20 T18 BULL',
-  '',
-  '',
-  'T20 T17 BULL',
-  'T20 T20 D20',
-  '',
-  'T20 T20 D19',
-  'T20 T19 D20',
-  'T20 T20 D18',
-  'T20 T19 D19',
-  'T20 T18 D20',
-  'T20 T19 D18',
-  'T20 T20 D16',
-  'T20 T17 D20',
-  'T20 T18 D18',
-  'T20 T19 D16',
-  'T20 T16 D20',
-  'T20 T17 D18',
-  'T20 T18 D16',
-  'T20 T15 D20',
-  'T20 T20 D12',
-  'T20 T17 D16',
-  'T20 T14 D20',
-  'T20 T19 D12',
-  'T20 T16 D16',
-  'T19 T14 D20',
-  'T20 T18 D12',
-  'T19 T16 D16',
-  'T20 T20 D8',
-  'T20 T17 D12',
-  'T20 T14 D16',
-  'T20 T19 D8',
-  'BULL T14 D20',
-  'T20 T13 D16',
-  'T20 T20 D5',
-  'T19 T20 D6',
-  'T18 T14 D16',
-  'T20 T17 D8',
-  'T19 T19 D6',
-  '25 T20 D20',
-  'T20 T14 D11',
-  'T19 T16 D9',
-  'T18 T18 D7',
-  'T20 T11 D14',
-  'T20 20 D20',
-  'T19 T12 D13',
-  'T20 18 D20',
-  'T20 17 D20',
-  'T20 16 D20',
-  'T20 15 D20',
-  'T20 14 D20',
-  'T20 13 D20',
-  'T20 12 D20',
-  'T20 11 D20',
-  'T20 10 D20',
-  'T19 12 D20',
-  'T20 16 D16',
-  'T19 10 D20',
-  'T20 10 D18',
-  'T20 13 D16',
-  'T20 12 D16',
-  'T19 10 D18',
-  'T20 10 D16',
-  'T17 10 D20',
-  'T20 D20',
-  'T19 10 D16',
-  'T20 D19',
-  'T19 D20',
-  'T20 D18',
-  'T19 D19',
-  'T18 D20',
-  'T19 D18',
-  'T20 D16',
-  'T17 D20',
-  'T20 D15',
-  'T19 D16',
-  'T20 D14',
-  'T17 D18',
-  'T18 D16',
-  'T15 D20',
-  'T16 D18',
-  'T17 D16',
-  'T14 D20',
-  'T15 D18',
-  'T20 D10',
-  'T13 D20',
-  'T18 D12',
-  'T15 D16',
-  'T20 D8',
-  'T13 D18',
-  'T14 D16',
-  'T19 D8',
-  'T16 D12',
-  'T13 D16',
-  'T18 D8',
-  'T19 D6',
-  'T20 D4',
-  'T17 D8',
-  'T10 D18',
-  'T19 D4',
-  'T16 D8',
-  'T13 D12',
-  'T10 D16',
-  'T15 D8',
-  '20 D20',
-  '19 D20',
-  '18 D20',
-  '17 D20',
-  '16 D20',
-  '15 D20',
-  '14 D20',
-  '13 D20',
-  '12 D20',
-  '19 D16',
-  '10 D20',
-  '17 D16',
-  '16 D16',
-  '15 D16',
-  '6 D20',
-  '13 D16',
-  '12 D16',
-  '3 D20',
-  '10 D16',
-  '9 D16',
-  'D20',
-  '7 D16',
-  'D19',
-  '5 D16',
-  'D18',
-  '3 D16',
-  'D17',
-  '1 D16',
-  'D16',
-  '15 D8',
-  'D15',
-  '13 D8',
-  'D14',
-  '19 D4',
-  'D13',
-  '9 D8',
-  'D12',
-  '7 D8',
-  'D11',
-  '5 D8',
-  'D10',
-  '3 D8',
-  'D9',
-  '9 D4',
-  'D8',
-  '7 D4',
-  'D7',
-  '5 D4',
-  'D6',
-  '3 D4',
-  'D5',
-  '1 D4',
-  'D4',
-  '3 D2',
-  'D3',
-  '1 D2',
-  'D2',
-  '1 D1',
-  'D1'
-];
+late PackageInfo appInfo;
 
-var sideBtnStyle = ElevatedButton.styleFrom(
-  shape: const RoundedRectangleBorder(
-    borderRadius: BorderRadius.all(Radius.zero),
-  ),
-  elevation: 0,
-  shadowColor: Colors.transparent,
-  primary: Colors.grey[850],
-);
-var numBtnStyle = ElevatedButton.styleFrom(
-  side: const BorderSide(
-      color: Colors.black, width: 2.0, style: BorderStyle.solid),
-  shape: const RoundedRectangleBorder(
-    borderRadius: BorderRadius.all(Radius.zero),
-  ),
-  primary: Color(DEFAULT_BTN_COLOR),
-);
-var cBtnStyle = ElevatedButton.styleFrom(
-  side: const BorderSide(
-      color: Colors.black, width: 2.0, style: BorderStyle.solid),
-  shape: const RoundedRectangleBorder(
-    borderRadius: BorderRadius.all(Radius.zero),
-  ),
-  primary: const Color(0xFFC40000),
-);
-var bustBtnSytle = ElevatedButton.styleFrom(
-  side: const BorderSide(
-      color: Colors.black, width: 2.0, style: BorderStyle.solid),
-  shape: const RoundedRectangleBorder(
-    borderRadius: BorderRadius.all(Radius.zero),
-  ),
-  primary: const Color(0xFF9E5905),
-);
-var okBtnStyle = ElevatedButton.styleFrom(
-  side: const BorderSide(
-      color: Colors.black, width: 2.0, style: BorderStyle.solid),
-  shape: const RoundedRectangleBorder(
-    borderRadius: BorderRadius.all(Radius.zero),
-  ),
-  primary: const Color(0xFF014D05),
-);
-var numPadFontSize = 30;
-void main() {
-  runApp(StartScreen());
-}
-
-class GameInfoClass {
-  int pouleScore;
-  int pouleLegs;
-  int quartScore;
-  int quartLegs;
-  int halfScore;
-  int halfLegs;
-  int finalScore;
-  int finalLegs;
-
-  GameInfoClass(
-      {this.pouleScore = 0,
-      this.pouleLegs = 0,
-      this.quartScore = 0,
-      this.quartLegs = 0,
-      this.halfScore = 0,
-      this.halfLegs = 0,
-      this.finalScore = 0,
-      this.finalLegs = 0});
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  appInfo = await PackageInfo.fromPlatform();
+  runApp(const StartScreen());
 }
 
 GameInfoClass gameInfoClass = GameInfoClass();
-
-class PlayerClass {
-  bool myTurn;
-  int currentScore;
-  int legsWon;
-  int setsWon;
-  String possibleOut;
-  String thrownScore;
-  int dartsThrown;
-  int turnsThisLeg;
-  int turnsThisGame;
-  double gameAverage;
-  double legAverage;
-  int totalPointsThisLeg;
-  int totalPointsThisGame;
-  List<int> scoresThrownHistory = [];
-  List<int> dartsThrownHistory = [];
-
-  PlayerClass(
-      {this.myTurn = false,
-      this.currentScore = 0,
-      this.legsWon = 0,
-      this.setsWon = 0,
-      this.thrownScore = '',
-      this.possibleOut = '',
-      this.dartsThrown = 0,
-      this.turnsThisGame = 0,
-      this.turnsThisLeg = 0,
-      this.gameAverage = 0,
-      this.legAverage = 0,
-      this.totalPointsThisLeg = 0,
-      this.totalPointsThisGame = 0});
-}
-
-class PouleRanking {
-  final String playerName;
-  final String points;
-  final String pointsDiff;
-
-  PouleRanking(
-      {required this.playerName,
-      required this.points,
-      required this.pointsDiff});
-}
-
-class PouleGames {
-  final String gameID;
-  final String player1;
-  final String player2;
-  final bool gamePlayed;
-  final String gameType;
-  /*final int startingScore;
-  final int legsToPlay;
-  final int setsToPlay;*/
-
-  PouleGames({
-    required this.gameID,
-    required this.player1,
-    required this.player2,
-    required this.gamePlayed,
-    required this.gameType,
-  }); /*
-      required this.startingScore,
-      required this.legsToPlay,
-      required this.setsToPlay});*/
-}
 
 Widget getPouleName(pouleName) {
   if (pouleName == 'Finales') {
@@ -363,6 +57,7 @@ class StartScreen extends StatefulWidget {
 class _StartScreenState extends State<StartScreen> {
   late BuildContext standardContext;
   late Timer connectionTimer;
+  late Timer boolTimer;
   bool stopChecking = false;
   @override
   void initState() {
@@ -373,6 +68,7 @@ class _StartScreenState extends State<StartScreen> {
   List<String> availableHosts = [];
   List<Widget> hostButtons = [];
   final ipAddressController = TextEditingController(text: serverIP);
+  bool displayNoConnectMsg = false;
 
   void startServerScanning() async {
     final info = NetworkInfo();
@@ -393,6 +89,7 @@ class _StartScreenState extends State<StartScreen> {
           List<String> messageList = message.split(',');
           if (messageList[0] == 'serverName') {
             if (!availableHosts.contains(messageList[1])) {
+              boolTimer.cancel();
               availableHosts.add(messageList[1]);
               hostButtons.add(
                   _hostButton(standardContext, messageList[1], messageList[2]));
@@ -403,6 +100,16 @@ class _StartScreenState extends State<StartScreen> {
               if (availableHosts[i] == messageList[1]) {
                 availableHosts.removeAt(i);
                 hostButtons.removeAt(i);
+                if (availableHosts.isEmpty) {
+                  boolTimer =
+                      Timer.periodic(const Duration(seconds: 30), (timer) {
+                    displayNoConnectMsg = true;
+                    setState(() {});
+                    if (displayNoConnectMsg || stopChecking) {
+                      timer.cancel();
+                    }
+                  });
+                }
                 setState(() {});
                 break;
               }
@@ -410,11 +117,20 @@ class _StartScreenState extends State<StartScreen> {
           }
         }
       });
-      List<int> data = utf8.encode("serverNameRequest,$deviceIP");
+      List<int> data =
+          utf8.encode("serverNameRequest,$deviceIP,${appInfo.version}");
       udpSocket.send(data, _destinationAddress, 8888);
       connectionTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
         udpSocket.send(data, _destinationAddress, 8889);
         if (stopChecking) {
+          timer.cancel();
+        }
+      });
+
+      boolTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+        displayNoConnectMsg = true;
+        setState(() {});
+        if (displayNoConnectMsg || stopChecking) {
           timer.cancel();
         }
       });
@@ -592,7 +308,7 @@ class _StartScreenState extends State<StartScreen> {
             ),
             body: ListView(children: [
               Container(
-                  padding: const EdgeInsets.fromLTRB(50, 50, 50, 200),
+                  padding: const EdgeInsets.fromLTRB(50, 50, 50, 50),
                   child: Column(children: [
                     const AutoSizeText(
                       "Beschikbare wedstrijden:",
@@ -607,6 +323,18 @@ class _StartScreenState extends State<StartScreen> {
                         : Image.asset('assets/loading.gif',
                             height: 70, width: 70),
                   ])),
+              displayNoConnectMsg
+                  ? Center(
+                      child: Column(
+                        children: const [
+                          Text('Wordt de server niet gevonden?',
+                              style: TextStyle(color: Colors.white)),
+                          Text('Probeer de PC en mobiele app te updaten.',
+                              style: TextStyle(color: Colors.white))
+                        ],
+                      ),
+                    )
+                  : const Text(''),
             ]));
       }),
     );
@@ -686,7 +414,7 @@ De QR-code kan gevonden worden door op de computer rechtsboven op de drie streep
                   color: Colors.white, fontSize: 4.87 * horizontalScaling),
             ),
             Image(
-              image: AssetImage('assets/PCIP.png'),
+              image: const AssetImage('assets/PCIP.png'),
               width: 10 / horizontalScaling,
             ),
             SizedBox(
@@ -722,7 +450,6 @@ class _qrScanScreenState extends State<qrScanScreen> {
         scanLineColor: Colors.blue.shade800,
         onCapture: (data) {
           String ip = data.split(':')[0];
-          print(ip);
           Navigator.pop(context, ip);
         },
       ),
@@ -822,7 +549,7 @@ class _PoulesOverviewState extends State<PoulesOverview> {
   void backBtnPress(context) {
     socket.disconnect();
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (BuildContext context) => StartScreen()),
+      MaterialPageRoute(builder: (BuildContext context) => const StartScreen()),
     );
   }
 
@@ -1529,7 +1256,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
             onPressed: () {
               sendCurrentScores(false);
               String msg =
-                  "${widget.game.gameID},${player1.legsWon.toString()},${player2.legsWon.toString()},${player1.gameAverage},${player2.gameAverage},${player1.dartsThrown},${player2.dartsThrown}";
+                  "${widget.game.gameID},${player1.legsWon.toString()},${player1.gameAverage},${player1.dartsThrown},${player2.legsWon.toString()},${player2.gameAverage},${player2.dartsThrown}";
               socket.emit('gamePlayed', msg);
               activeStartingPlayer = ChosenPlayerEnum.undefined;
               gameStarted = false;
@@ -1680,7 +1407,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
       startingPlayer = 1;
     }
     String msg =
-        '${widget.game.gameID},${player1.currentScore},${player1.legsWon},${player2.currentScore},${player2.legsWon},${player1.myTurn},$startingPlayer,${player1.dartsThrown},${player2.dartsThrown},${thrownScore}';
+        '${widget.game.gameID},${player1.currentScore},${player1.legsWon},${player1.dartsThrown},${player2.currentScore},${player2.legsWon},${player2.dartsThrown},${player1.myTurn},$startingPlayer,$thrownScore';
 
     print(msg);
     socket.emit('activeGameInfo', msg);
@@ -2146,8 +1873,8 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                             null;
                           });
                         },
-                        child: Padding(
-                          padding: const EdgeInsets.all(0.0),
+                        child: const Padding(
+                          padding: EdgeInsets.all(0.0),
                           child: AutoSizeText(
                             "1",
                             maxLines: 2,
@@ -2226,8 +1953,8 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                             null;
                           });
                         },
-                        child: Padding(
-                          padding: const EdgeInsets.all(0.0),
+                        child: const Padding(
+                          padding: EdgeInsets.all(0.0),
                           child: AutoSizeText(
                             "2",
                             maxLines: 2,
