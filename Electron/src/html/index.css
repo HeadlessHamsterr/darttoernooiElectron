@@ -729,7 +729,7 @@ input.settingInput{
   margin-left: 10px;
   margin-right: 10px;
   border-collapse: collapse;
-  width: 100px;
+  min-width: 390px;
   transition: 0.1s;
   white-space: nowrap;
 }
