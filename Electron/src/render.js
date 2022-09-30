@@ -23,7 +23,7 @@ const io = require('socket.io')(websocketServer, {
 
 //Self-made modules
 const player = require('../modules/player.js');
-const outs = require('../modules/constants.js');
+const { outs, supportedAppVersions } = require('../modules/constants.js');
 const pouleGames = require('../modules/pouleGames.js');
 const decodeAppMessage = require('../modules/appMessageDecoder.js');
 
@@ -239,6 +239,7 @@ io.on('connection', (socket) => {
     });
     socket.on('activeGameInfo', (message) => {
         const data = decodeAppMessage("activeGameInfo", message);
+        let windowMsg = [data]
 
         console.log(`Active game info: ${data}`);
         $(document.getElementById('activeGamesDiv')).show();
@@ -355,14 +356,18 @@ io.on('connection', (socket) => {
 
         if(data.player1Score <= 170 && data.player1Score > 0){
             document.getElementById(`out${data.gameID}1`).innerHTML = outs[170-data.player1Score];
+            windowMsg.push(outs[170-data.player1Score]);
         }else{
             document.getElementById(`out${data.gameID}1`).innerHTML = '';
+            windowMsg.push('');
         }
 
         if(data.player2Score <= 170 && data.player2Score > 0){
             document.getElementById(`out${data.gameID}2`).innerHTML = outs[170-data.player2Score];
+            windowMsg.push(outs[170-data.player2Score]);
         }else{
             document.getElementById(`out${data.gameID}2`).innerHTML = '';
+            windowMsg.push('');
         }
 
         var player1;
@@ -376,13 +381,14 @@ io.on('connection', (socket) => {
             player2 = document.getElementById(`game${data.gameID}2Name`).innerHTML;
         }
 
-        /*
         if(newGame){
-            ipcRenderer.send("sendNewActiveGameInfo", activeGamesArray);
+            windowMsg.push(player1);
+            windowMsg.push(player2);
+            ipcRenderer.send("sendNewActiveGameInfo", windowMsg);
         }else{
-            ipcRenderer.send("sendActiveGameInfo", activeGamesArray);
+            console.log("Sending active game info!");
+            ipcRenderer.send("sendActiveGameInfo", windowMsg);
         }
-        */
     });
     socket.on('stopActiveGame', (gameName) => {
         for(let i = 0; i < activeGames.length; i++){
@@ -893,9 +899,14 @@ function loadGame(){
     udpServer.on("message", function(message){
         message = message.toString();
         let messageList = message.split(',');
+
         if(messageList[0] == "serverNameRequest"){
-            let msg = `serverName,${hostName},${address()}`;
-            udpServer.send(msg, 8889, messageList[1]);
+            if(supportedAppVersions.includes(messageList[2])){
+                let msg = `serverName,${hostName},${address()}`;
+                udpServer.send(msg, 8889, messageList[1]);
+            }else{
+                console.log(`Unsupported app version on ${messageList[1]}`);
+            }
         }
     });
 
@@ -1222,13 +1233,18 @@ function makePoules(){
         });
 
         udpServer.on("message", function(message){
-            message = message.toString();
-            let messageList = message.split(',');
-            if(messageList[0] == "serverNameRequest"){
+        message = message.toString();
+        let messageList = message.split(',');
+        
+        if(messageList[0] == "serverNameRequest"){
+            if(supportedAppVersions.includes(messageList[2])){
                 let msg = `serverName,${hostName},${address()}`;
                 udpServer.send(msg, 8889, messageList[1]);
+            }else{
+                console.log(`Unsupported app version on ${messageList[1]}`);
             }
-        });
+        }
+    });
         io.emit('pouleInfo', exportGameInfo(false));
     }
 }
