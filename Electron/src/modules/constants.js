@@ -170,4 +170,8 @@ const outs = [
     'D1'
 ];
 
-module.exports = outs;
+const supportedAppVersions = [
+    "2.7.0"
+]
+
+module.exports = {outs, supportedAppVersions}
