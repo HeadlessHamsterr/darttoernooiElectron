@@ -10,6 +10,7 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:scan/scan.dart';
 import 'package:Darttoernooi/size_config.dart';
 import 'package:network_info_plus/network_info_plus.dart';
+import 'package:package_info/package_info.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'defs/constants.dart';
 import 'defs/classes.dart';
@@ -28,7 +29,11 @@ bool gameActive = false;
 double horizontalScaling = 0;
 double verticalScaling = 0;
 
-void main() {
+late PackageInfo appInfo;
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  appInfo = await PackageInfo.fromPlatform();
   runApp(const StartScreen());
 }
 
@@ -52,6 +57,7 @@ class StartScreen extends StatefulWidget {
 class _StartScreenState extends State<StartScreen> {
   late BuildContext standardContext;
   late Timer connectionTimer;
+  late Timer boolTimer;
   bool stopChecking = false;
   @override
   void initState() {
@@ -62,6 +68,7 @@ class _StartScreenState extends State<StartScreen> {
   List<String> availableHosts = [];
   List<Widget> hostButtons = [];
   final ipAddressController = TextEditingController(text: serverIP);
+  bool displayNoConnectMsg = false;
 
   void startServerScanning() async {
     final info = NetworkInfo();
@@ -82,6 +89,7 @@ class _StartScreenState extends State<StartScreen> {
           List<String> messageList = message.split(',');
           if (messageList[0] == 'serverName') {
             if (!availableHosts.contains(messageList[1])) {
+              boolTimer.cancel();
               availableHosts.add(messageList[1]);
               hostButtons.add(
                   _hostButton(standardContext, messageList[1], messageList[2]));
@@ -92,6 +100,16 @@ class _StartScreenState extends State<StartScreen> {
               if (availableHosts[i] == messageList[1]) {
                 availableHosts.removeAt(i);
                 hostButtons.removeAt(i);
+                if (availableHosts.isEmpty) {
+                  boolTimer =
+                      Timer.periodic(const Duration(seconds: 30), (timer) {
+                    displayNoConnectMsg = true;
+                    setState(() {});
+                    if (displayNoConnectMsg || stopChecking) {
+                      timer.cancel();
+                    }
+                  });
+                }
                 setState(() {});
                 break;
               }
@@ -99,11 +117,20 @@ class _StartScreenState extends State<StartScreen> {
           }
         }
       });
-      List<int> data = utf8.encode("serverNameRequest,$deviceIP");
+      List<int> data =
+          utf8.encode("serverNameRequest,$deviceIP,${appInfo.version}");
       udpSocket.send(data, _destinationAddress, 8888);
       connectionTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
         udpSocket.send(data, _destinationAddress, 8889);
         if (stopChecking) {
+          timer.cancel();
+        }
+      });
+
+      boolTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+        displayNoConnectMsg = true;
+        setState(() {});
+        if (displayNoConnectMsg || stopChecking) {
           timer.cancel();
         }
       });
@@ -281,7 +308,7 @@ class _StartScreenState extends State<StartScreen> {
             ),
             body: ListView(children: [
               Container(
-                  padding: const EdgeInsets.fromLTRB(50, 50, 50, 200),
+                  padding: const EdgeInsets.fromLTRB(50, 50, 50, 50),
                   child: Column(children: [
                     const AutoSizeText(
                       "Beschikbare wedstrijden:",
@@ -296,6 +323,18 @@ class _StartScreenState extends State<StartScreen> {
                         : Image.asset('assets/loading.gif',
                             height: 70, width: 70),
                   ])),
+              displayNoConnectMsg
+                  ? Center(
+                      child: Column(
+                        children: const [
+                          Text('Wordt de server niet gevonden?',
+                              style: TextStyle(color: Colors.white)),
+                          Text('Probeer de PC en mobiele app te updaten.',
+                              style: TextStyle(color: Colors.white))
+                        ],
+                      ),
+                    )
+                  : const Text(''),
             ]));
       }),
     );
