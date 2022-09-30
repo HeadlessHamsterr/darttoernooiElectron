@@ -171,7 +171,7 @@ const outs = [
 ];
 
 const supportedAppVersions = [
-    "2.7.0"
+    "3.0.0"
 ]
 
 module.exports = {outs, supportedAppVersions}
