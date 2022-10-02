@@ -8,7 +8,6 @@ const { address } = require('ip');
 const websocketServer = require('http').createServer();
 const http = require('http');
 const { spawn } = require('child_process');
-const qr = require('qrcode');
 const { count } = require('console');
 const { clearInterval } = require('timers');
 const { hostname } = require('os');
@@ -27,6 +26,7 @@ const { outs, supportedAppVersions } = require('../modules/constants.js');
 const pouleGames = require('../modules/pouleGames.js');
 const decodeAppMessage = require('../modules/appMessageDecoder.js');
 
+//Begin waarden om de JSON te kunnen maken
 let appSettings = {
     "pouleScore": 0,
     "pouleLegs": 0,
@@ -598,9 +598,6 @@ function continueToGame(){
     
     const returnBtn = document.getElementById('returnBtn');
     returnBtn.onclick = returnToHome;
-
-    const qrBtn = document.getElementById('showQR');
-    qrBtn.onclick = showQR;
     
     makePoulesBtn = document.getElementById('mkPoulesBtn');
 
@@ -609,24 +606,6 @@ function continueToGame(){
     $(document.getElementById('playerInputDiv')).hide();
     $(document.getElementById('poulesDiv')).hide();
     $(document.getElementById('gameDiv')).hide();
-}
-
-function showQR(){
-    document.getElementById('qrCodeOverlay').style.display = "block";
-    let canvas = document.getElementById('qrCode');
-    let opts = {
-        width: 500,
-    }
-    let qrText = `${address()}:8000`
-    qr.toCanvas(canvas, qrText, opts, function(error){
-        if(error){
-            console.log(error);
-        }
-    });
-}
-
-function hideQR(){
-    document.getElementById('qrCodeOverlay').style.display = "none";
 }
 
 function returnToHome(){
@@ -1902,7 +1881,6 @@ function openNav(){
 
 function closeNav(){
     document.getElementById("sideNav").style.right = "-350px";
-    document.getElementById('qrCodeOverlay').style.display = "none";
     updateSettings();
 }
 
