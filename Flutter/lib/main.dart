@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 // ignore: library_prefixes
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:auto_size_text/auto_size_text.dart';
-import 'package:scan/scan.dart';
 import 'package:Darttoernooi/size_config.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:package_info/package_info.dart';
@@ -85,7 +84,7 @@ class _StartScreenState extends State<StartScreen> {
         Datagram? dg = udpSocket.receive();
         if (dg != null) {
           String message = utf8.decode(dg.data);
-          print("Received: $message");
+          //print("Received: $message");
           List<String> messageList = message.split(',');
           if (messageList[0] == 'serverName') {
             if (!availableHosts.contains(messageList[1])) {
@@ -95,7 +94,10 @@ class _StartScreenState extends State<StartScreen> {
                   _hostButton(standardContext, messageList[1], messageList[2]));
               setState(() {});
             }
-          } else if (messageList[0] == 'serverClose') {
+          }
+          //Extra code voor het ontvangen van het serverClose bericht
+          //Is redundant geworden door het leeg maken van de serverlijst bij een nieuwe request, wel laten staan voor de zekerheid
+          /*else if (messageList[0] == 'serverClose') {
             for (int i = 0; i < availableHosts.length; i++) {
               if (availableHosts[i] == messageList[1]) {
                 availableHosts.removeAt(i);
@@ -114,13 +116,20 @@ class _StartScreenState extends State<StartScreen> {
                 break;
               }
             }
-          }
+          }*/
         }
       });
       List<int> data =
           utf8.encode("serverNameRequest,$deviceIP,${appInfo.version}");
-      udpSocket.send(data, _destinationAddress, 8888);
-      connectionTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      udpSocket.send(data, _destinationAddress, 8889);
+      connectionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        //Serverlijst leegmaken en scherm refreshen zodat een verdwenen server
+        //niet in de lijst blijft staan
+        availableHosts.clear();
+        hostButtons.clear();
+        setState(() {});
+
+        //UDP Broadcast sturen om servers te vinden
         udpSocket.send(data, _destinationAddress, 8889);
         if (stopChecking) {
           timer.cancel();
@@ -163,18 +172,6 @@ class _StartScreenState extends State<StartScreen> {
                 PoulesOverview(serverIP: serverIP)));
       }
     });
-  }
-
-  void startQRScanner(BuildContext context) async {
-    final result = await Navigator.push(
-        context, MaterialPageRoute(builder: (context) => const qrScanScreen()));
-    print(result);
-    try {
-      ipAddressController.text = result;
-      enterIP(context, result);
-    } catch (e) {
-      print(e);
-    }
   }
 
   Widget _hostButton(
@@ -242,8 +239,8 @@ class _StartScreenState extends State<StartScreen> {
         sizeConfig.init(context);
         horizontalScaling = sizeConfig.blockSizeHorizontal;
         verticalScaling = sizeConfig.blockSizeVertical;
-        print("Horizontal scaling : $horizontalScaling");
-        print("Vertical scaling: $verticalScaling");
+        //print("Horizontal scaling : $horizontalScaling");
+        //print("Vertical scaling: $verticalScaling");
         return Scaffold(
             appBar: AppBar(
               title: const Text('Darttoernooi'),
@@ -271,12 +268,6 @@ class _StartScreenState extends State<StartScreen> {
                       TextField(
                         controller: ipAddressController,
                         decoration: InputDecoration(
-                          suffixIcon: IconButton(
-                              onPressed: () {
-                                startQRScanner(context);
-                              },
-                              icon: const Icon(Icons.qr_code_scanner_rounded),
-                              color: Colors.grey),
                           labelText: 'IP adres',
                           labelStyle: const TextStyle(color: Colors.white),
                           enabledBorder: const OutlineInputBorder(
@@ -388,27 +379,15 @@ class HelpScreen extends StatelessWidget {
               """Als er geen computers gevonden worden, zorg er dan voor dat:
 - Er een wedstrijd actief is op een computer;
 - De computer en de telefoon met hetzelfde netwerk verbonden zijn;
-- Het programma op de computer minimaal versie 1.10.1 is.
+- De mobiele en PC app de laatste versie zijn.
 
 Als dit allemaal goed is, maar de app nog steeds geen computers kan vinden, kan er altijd nog handmatig verbonden worden met de computer. Druk op de drie streepjes linksboven (op het begin scherm). Hier kan het IP-adres van de server ingevuld worden.
-De app kan ook worden verbonden met een QR-code. Druk op het QR-code symbool:
               """,
               style: TextStyle(
                   fontSize: 4.87 * horizontalScaling, color: Colors.white),
             ),
-            Image.asset('assets/qrBtnApp.png', scale: 5 / horizontalScaling),
             Text(
-              """
-De QR-code kan gevonden worden door op de computer rechtsboven op de drie streepjes te drukken. Druk vervolgens op het QR-code symbool en de QR-code verschijnt:
-              """,
-              style: TextStyle(
-                  fontSize: 4.87 * horizontalScaling, color: Colors.white),
-            ),
-            Image.asset('assets/qrBtnComputer.png',
-                scale: 5 / horizontalScaling),
-            Image.asset('assets/qrCodePC.png', scale: 5 / horizontalScaling),
-            Text(
-              '''Mocht dit ook niet werken, kan het IP-adres ook handmatig ingevoerd worden. Druk op "App instellingen" (in het menu met het QR-symbool). Onderaan staat het IP-adres van de server.
+              '''Druk op "App instellingen". Onderaan staat het IP-adres van de server.
 ''',
               style: TextStyle(
                   color: Colors.white, fontSize: 4.87 * horizontalScaling),
@@ -422,38 +401,6 @@ De QR-code kan gevonden worden door op de computer rechtsboven op de drie streep
             ),
           ],
         ));
-  }
-}
-
-class qrScanScreen extends StatefulWidget {
-  const qrScanScreen({Key? key}) : super(key: key);
-
-  @override
-  _qrScanScreenState createState() => _qrScanScreenState();
-}
-
-class _qrScanScreenState extends State<qrScanScreen> {
-  ScanController controller = ScanController();
-  @override
-  void initState() {
-    super.initState();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 250,
-      height: 250,
-      child: ScanView(
-        controller: controller,
-        scanAreaScale: 0.8,
-        scanLineColor: Colors.blue.shade800,
-        onCapture: (data) {
-          String ip = data.split(':')[0];
-          Navigator.pop(context, ip);
-        },
-      ),
-    );
   }
 }
 
@@ -2007,8 +1954,8 @@ class _PouleGameBodyState extends State<PouleGameBody> {
                             null;
                           });
                         },
-                        child: Padding(
-                          padding: const EdgeInsets.all(0.0),
+                        child: const Padding(
+                          padding: EdgeInsets.all(0.0),
                           child: AutoSizeText(
                             "3",
                             maxLines: 2,
