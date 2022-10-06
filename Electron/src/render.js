@@ -39,7 +39,7 @@ let appSettings = {
 };
 
 var sound = null;
-var audioEnabled = true;
+var audioEnabled = false;
 var pouleSortingTimer;
 var quickSaveTimer;
 var makePoulesBtn;
@@ -318,7 +318,7 @@ io.on('connection', (socket) => {
         document.getElementById(`activeDarts${data.gameID}1`).innerHTML = data.player1DartsThrown;
         document.getElementById(`activeDarts${data.gameID}2`).innerHTML = data.player2DartsThrown;
 
-        if(data.thrownScore != '0' && data.thrownScore != undefined && audioEnabled && (numPoules == 1 || data.gameType == 'finals_game')){
+        if(data.thrownScore != '0' && data.thrownScore != undefined && audioEnabled){
             console.log(`Received thrown score: ${data.thrownScore}`);
             var soundNumber;
             if(data.thrownScore == 'Standaard'){
@@ -440,7 +440,7 @@ ipcRenderer.on("noUpdateAvailable", (event, arg) => {
 
 ipcRenderer.on("version", (event, arg) => {
     version = arg;
-    console.log(version);
+    console.log(`Version: ${version} (${version[0]})`);
 })
 
 ipcRenderer.on("updateAvailable", (event, arg) => {
@@ -880,7 +880,7 @@ function loadGame(){
         let messageList = message.split(',');
 
         if(messageList[0] == "serverNameRequest"){
-            if(supportedAppVersions.includes(messageList[2])){
+            if(messageList[2][0] == version[0]){
                 let msg = `serverName,${hostName},${address()}`;
                 udpServer.send(msg, 8889, messageList[1]);
             }else{
@@ -1216,7 +1216,7 @@ function makePoules(){
         let messageList = message.split(',');
         
         if(messageList[0] == "serverNameRequest"){
-            if(supportedAppVersions.includes(messageList[2])){
+            if(messageList[2][0] == version[0]){
                 let msg = `serverName,${hostName},${address()}`;
                 udpServer.send(msg, 8889, messageList[1]);
             }else{
