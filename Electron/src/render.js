@@ -214,9 +214,18 @@ io.on('connection', (socket) => {
         switch(data.gameID[0]){
             case 'A':
                 pouleA.updatePoints();
+
+                let averages = [data.player1Average, data.player2Average]
+                console.log(`Averages: ${averages}`)
+                for(let i = 0; i < 2; i++){
+                    pouleA.players[pouleA.gameFormat[data.gameID[1]-1][i]].totalAvg += averages[i];
+                }    
+
+                /*
                 for(let i = 0; i < pouleA.players.length; i++){
-                    console.log(`${pouleA.players[i].name} has ${pouleA.players[i].hiddenPoints} hidden points and played ${pouleA.players[i].gamesPlayed} games`);
+                    console.log(`${pouleA.players[i].name} has ${pouleA.players[i].hiddenPoints} hidden points and played ${pouleA.players[i].gamesPlayed} games with ${pouleA.players[i].tournamentAvg} average score`);
                 }
+                */
                 msg = [pouleA.rankings, pouleA.sendPouleGames(), 'poule'];
                 io.emit('pouleARanks', msg);
             break;
@@ -1462,12 +1471,10 @@ function startPeriodicStuff(){
                 }else if(numPoules == 2){
                     document.getElementById('M51Name').innerHTML = pouleA.winner;
                     document.getElementById('M62Name').innerHTML = pouleA.secondPlace;
-                }else if(numPoules == 1){
-                    if(pouleA.finalsDrawn){
-                        document.getElementById('M71Name').innerHTML = pouleA.winner;
-                        document.getElementById('M72Name').innerHTML = pouleA.secondPlace;
-                    }
-                }
+                }/*else if(numPoules == 1){
+                    document.getElementById('M71Name').innerHTML = pouleA.winner;
+                    document.getElementById('M72Name').innerHTML = pouleA.secondPlace;
+                }*/
             }else{
                 if(numPoules >= 3){
                     document.getElementById('M11Name').innerHTML = "";
@@ -1588,7 +1595,8 @@ function startPeriodicStuff(){
             break;
             case 1:
                 if(pouleA.finalsDrawn){
-                    getFinalsWinner("M71", "M72", "M81");
+                    //getFinalsWinner("M71", "M72", "M81");
+                    document.getElementById(`M81Name`).innerHTML = pouleA.winner;
 
                     finalsMsg.push(finalsGameToApp(7, 'final'));
                 }

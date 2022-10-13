@@ -7,6 +7,8 @@ module.exports = class player{
         this.legsLost = 0;
         this.hiddenPoints = 0;
         this.gamesPlayed = 0;
+        this.tournamentAvg = 0.00;
+        this.totalAvg = 0.00;
     }
 
     convertToArray = function(){
