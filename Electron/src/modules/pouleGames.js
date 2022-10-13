@@ -298,6 +298,13 @@ module.exports = class pouleGames{
             }
             if(this.tieDetected){
                 return -1;
+            }else{
+                try{
+                    $(`#poule${this.pouleNum}Games`).remove(".tieBreaker");
+                    $(`poule${this.pouleNum}TiedGames`).remove();
+                }catch(e){
+                    console.error(e);
+                }
             }
             if(numPoules == 1 && this.tieResolved){
                 var points1 = document.getElementById('M71Score').value;
@@ -328,6 +335,9 @@ module.exports = class pouleGames{
             }
         }else if(!this.allGamesPlayed()){
             this.tieDetected = false;
+            this.winner = "";
+            this.secondPlace = "";
+            this.winnerPrinted = false;
         }
     }
 
@@ -447,7 +457,7 @@ module.exports = class pouleGames{
                     playersCopy.push(this.players[i]);
                 }
             }
-            if(playersCopy.length > 1){
+            if(playersCopy.length >= 3){
                 playersCopy.sort(function(a,b){
                     if(b.legsWon != a.legsWon){
                         return(b.legsWon-a.legsWon);
@@ -455,11 +465,8 @@ module.exports = class pouleGames{
                         return(b.hiddenPoints-a.hiddenPoints);
                     }
                 });
-                for(let i = 0; i < 2%playersCopy.length; i++){
-                    if(playersCopy[i].legsWon == playersCopy[i+1].legsWon && playersCopy[i].legsWon != 0 && playersCopy[i].hiddenPoints == playersCopy[i+1].hiddenPoints){
-                        newTiedPlayers = [playersCopy[i].name, playersCopy[i+1].name];
-                        break;
-                    }
+                if(playersCopy[1].legsWon == playersCopy[2].legsWon && playersCopy[1].legsWon != 0 && playersCopy[1].hiddenPoints == playersCopy[2].hiddenPoints){
+                    newTiedPlayers = [playersCopy[1].name, playersCopy[2].name];
                 }
                 return newTiedPlayers;
             }else{
