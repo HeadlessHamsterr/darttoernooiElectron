@@ -125,20 +125,22 @@ module.exports = class pouleGames{
         this.rankings = []
         for(let i = 0; i < this.players.length; i++){
             if(this.players[i].gamesPlayed != 0){
-                let tempArray = [this.players[i].name, this.players[i].legsWon, this.players[i].hiddenPoints];
+                let tempArray = [this.players[i].name, this.players[i].legsWon, this.players[i].hiddenPoints, this.players[i].tournamentAvg];
                 this.rankings.push(tempArray);
             }
         }
         this.rankings.sort(function(a,b){
             if(b[1] != a[1]){
                 return(b[1]-a[1]);
-            }else{
+            }else if(b[2] != a[2]){
                 return(b[2]-a[2]);
+            }else{
+                return(b[3]-a[3]);
             }
         });
         for(let i = 0; i < this.players.length; i++){
             if(this.players[i].gamesPlayed == 0){
-                let tempArray = [this.players[i].name, this.players[i].legsWon, this.players[i].hiddenPoints];
+                let tempArray = [this.players[i].name, this.players[i].legsWon, this.players[i].hiddenPoints, this.players[i].tournamentAvg];
                 this.rankings.push(tempArray);
             }
         }
@@ -197,10 +199,10 @@ module.exports = class pouleGames{
             games.push(tempArray);
         }
         if(this.tieDetected){
-            let player1 = document.getElementById(`game${this.pouleNum}${this.numGames+1}1Name`).innerHTML;
-            let player2 = document.getElementById(`game${this.pouleNum}${this.numGames+1}2Name`).innerHTML;
-            let score1 = document.getElementById(`game${this.pouleNum}${this.numGames+1}1Score`).value;
-            let score2 = document.getElementById(`game${this.pouleNum}${this.numGames+1}2Score`).value;
+            let player1 = document.getElementById(`tie${this.pouleNum}1Name`).innerHTML;
+            let player2 = document.getElementById(`tie${this.pouleNum}2Name`).innerHTML;
+            let score1 = document.getElementById(`tie${this.pouleNum}1Score`).value;
+            let score2 = document.getElementById(`tie${this.pouleNum}2Score`).value;
 
             var gamePlayed = true;
             var gameActive = false;
@@ -259,8 +261,8 @@ module.exports = class pouleGames{
         }
 
         try{
-            var points1 = document.getElementById(`game${this.pouleNum}${this.numGames+1}1Score`).value;
-            var points2 = document.getElementById(`game${this.pouleNum}${this.numGames+1}2Score`).value;
+            var points1 = document.getElementById(`tie${this.pouleNum}1Score`).value;
+            var points2 = document.getElementById(`tie${this.pouleNum}2Score`).value;
 
             points1 = parseInt(points1);
             points2 = parseInt(points2);
@@ -273,11 +275,14 @@ module.exports = class pouleGames{
                 points2 = 0;
             }
 
+            //De punten uit de tie breaker worden afgetrokken van de scores van de spelers
+            //Anders kan de winnaar van de tie breaker eerste worden in de poule, terwijl het altijd alleen om de tweede plaats mag gaan
+            //Alleen de counterPoints worden toegevoegd, om zo ook niet het risico te lopen dat beide spelers onder de laatste speler terrecht komen
             for(let i = 0; i < this.players.length; i++){
                 if(this.players[i].name == this.tiedPlayers[0]){
-                    points[i] += points1;
+                    counterPoints[i] += points2;
                 }else if(this.players[i].name == this.tiedPlayers[1]){
-                    points[i] += points2;
+                    counterPoints[i] += points1;
                 }
             }
         }catch(e){
@@ -287,6 +292,12 @@ module.exports = class pouleGames{
             this.players[i].legsWon = points[i];
             this.players[i].legsLost = counterPoints[i];
             this.players[i].gamesPlayed = numGamesPlayed[i];
+            if(this.players[i].totalAvg > 0 && this.players[i].gamesPlayed > 0){
+                const avg = this.players[i].totalAvg / this.players[i].gamesPlayed;
+                //Gemiddelde scores moeten afgerond worden op twee decimalen, dus eerst vermenigvuldigen met 100 om de twee decimalen te houden
+                //dan afronden (gaat naar 0 decimalen) en weer delen door 100 om de decimalen terug te halen
+                this.players[i].tournamentAvg = Math.round(avg*100)/100;
+            }
             this.players[i].calculateHiddenPoints();
         }  
 
@@ -297,13 +308,14 @@ module.exports = class pouleGames{
                 this.checkTies();
             }
             if(this.tieDetected){
+                console.log("Tie detected!")
                 return -1;
-            }else{
+            }else if(!this.tieResolved){
                 try{
-                    $(`#poule${this.pouleNum}Games`).remove(".tieBreaker");
-                    $(`poule${this.pouleNum}TiedGames`).remove();
+                    $(`.poule${this.pouleNum}TieBreaker`).remove();
+                    $(`#poule${this.pouleNum}TiedGames`).remove();
                 }catch(e){
-                    console.error(e);
+                    console.error(`All games played, no tie detected error: ${e}`);
                 }
             }
             if(numPoules == 1 && this.tieResolved){
@@ -332,28 +344,53 @@ module.exports = class pouleGames{
                 this.winner = this.rankings[0][0];
                 this.secondPlace = this.rankings[1][0];
                 this.winnerPrinted = true;
+                this.finalsDrawn = true;
             }
         }else if(!this.allGamesPlayed()){
-            this.tieDetected = false;
             this.winner = "";
             this.secondPlace = "";
             this.winnerPrinted = false;
+
+            if(this.tieDetected){
+                this.checkTies();
+            }
+
+            if(!this.tieDetected && !this.tieResolved){
+                try{
+                    $(`.poule${this.pouleNum}TieBreaker`).remove();
+                    $(`#poule${this.pouleNum}TiedGames`).remove();
+                }catch(e){
+                    console.error(`Not all games played error: ${e}`);
+                }
+            }
         }
     }
 
     checkTies(){
         let newTiedPlayers = this.isTie();
-        if(!this.tieDetected && newTiedPlayers.length != 0 && this.newTieDetected(newTiedPlayers, this.tiedPlayers)){
-            this.tieDetected = true;
-            this.tiedPlayers = newTiedPlayers;
-            if(numPoules == 1){
-                makeFinals(0);
-                $("#winnerTable").insertAfter("#finalsTable");
-                document.getElementById('M71Name').innerHTML = this.tiedPlayers[0];
-                document.getElementById('M72Name').innerHTML = this.tiedPlayers[1];
+        console.log(`New tied players: ${newTiedPlayers}`);
+        try{
+            if(newTiedPlayers !== 'undefined' && newTiedPlayers.length != 0){ //&& this.newTieDetected(newTiedPlayers, this.tiedPlayers)){
+                //Tie breaker poules mogen alleen toegevoegd worden als er nog geen tie detected was
+                //Anders komen er heel veel tie breaker poules
+                this.tiedPlayers = newTiedPlayers;
+                if(!this.tieDetected){
+                    if(numPoules == 1){
+                        makeFinals(0);
+                        $("#winnerTable").insertAfter("#finalsTable");
+                        document.getElementById('M71Name').innerHTML = this.tiedPlayers[0];
+                        document.getElementById('M72Name').innerHTML = this.tiedPlayers[1];
+                    }else{
+                        this.drawTiedPoules();
+                    }
+                }
+
+                this.tieDetected = true;
             }else{
-                this.drawTiedPoules();
+                this.tieDetected = false;
             }
+        }catch(e){
+            this.tieDetected = false;
         }
     }
 
@@ -391,33 +428,31 @@ module.exports = class pouleGames{
                 points1 = parseInt(points1);
                 points2 = parseInt(points2);
 
-                if(isNaN(points1) || isNaN(points2)){
-                    return false;
-                }else{
+                if(!isNaN(points1) && !isNaN(points2)){
                     this.tieDetected = false;
                     this.tieResolved = true;
                 }
             }
         }else if(this.tieDetected){
-            var points1 = document.getElementById(`game${this.pouleNum}${this.numGames+1}1Score`).value;
-            var points2 = document.getElementById(`game${this.pouleNum}${this.numGames+1}2Score`).value;
+            var points1 = document.getElementById(`tie${this.pouleNum}1Score`).value;
+            var points2 = document.getElementById(`tie${this.pouleNum}2Score`).value;
 
             points1 = parseInt(points1);
             points2 = parseInt(points2);
 
-            if(isNaN(points1) || isNaN(points2)){
-                return false;
-            }else{
+            if(!isNaN(points1) && !isNaN(points2)){
                 this.tieDetected = false;
                 this.tieResolved = true;
+            }else{
+                this.tieResolved = false;
             }
-        }else{
+        }/*else{
             var playersCopy = [];
             Array.prototype.push.apply(playersCopy, this.players);
             playersCopy.sort(function(a,b){return b.legsWon - a.legsWon});
             this.winner = playersCopy[0].name;
             this.secondPlace = playersCopy[1].name;
-        }
+        }*/
 
         return true;
     }
@@ -438,11 +473,12 @@ module.exports = class pouleGames{
 
     drawTiedPoules(){
         let pouleGamesDiv = document.getElementById(`poule${this.pouleNum}Games`);
-        $(pouleGamesDiv).append(`<hr id="tieBreaker"><header class="pouleGamesHeader" id="tieBreaker"><h1 id="tieBreaker">Tiebreakers:</h1></header><hr><table class="pouleGamesTable" id="poule${this.pouleNum}TiedGames"></table>`);
+        //Headers en table krijgen een extra (lege) class: poulePOULENUMTieBreaker om makkelijk weggehaald te kunnen worden door jQuery
+        $(pouleGamesDiv).append(`<hr id="poule${this.pouleNum}TieBreaker" class="poule${this.pouleNum}TieBreaker"><header class="pouleGamesHeader poule${this.pouleNum}TieBreaker" id="poule${this.pouleNum}TieBreaker"><h1 id="tieBreaker">Tiebreakers:</h1></header><hr class="poule${this.pouleNum}TieBreaker"><table class="pouleGamesTable" id="poule${this.pouleNum}TiedGames"></table>`);
         let tieBreakerTable = document.getElementById(`poule${this.pouleNum}TiedGames`);
         
-        $(tieBreakerTable).append(`<tr><td><p1 id="game${this.pouleNum}${this.numGames+1}1Name">${this.tiedPlayers[0]}</p1></td><td><p1>-</p1></td><td><p1 id="game${this.pouleNum}${this.numGames+1}2Name">${this.tiedPlayers[1]}</p1></td></tr>`);
-        $(tieBreakerTable).append(`<tr><td><input id="game${this.pouleNum}${this.numGames+1}1Score" type="number" class="gameScore"></td><td><p1>-</p1></td><td><input id="game${this.pouleNum}${this.numGames+1}2Score" type="number" class="gameScore"></td></tr>`);
+        $(tieBreakerTable).append(`<tr><td><p1 id="tie${this.pouleNum}1Name">${this.tiedPlayers[0]}</p1></td><td><p1>-</p1></td><td><p1 id="tie${this.pouleNum}2Name">${this.tiedPlayers[1]}</p1></td></tr>`);
+        $(tieBreakerTable).append(`<tr><td><input id="tie${this.pouleNum}1Score" type="number" class="gameScore"></td><td><p1>-</p1></td><td><input id="tie${this.pouleNum}2Score" type="number" class="gameScore"></td></tr>`);
         
         let msg = [this.rankings, this.sendPouleGames(), 'poule'];
         io.emit(`poule${this.pouleNum}Ranks`, msg);
@@ -468,6 +504,7 @@ module.exports = class pouleGames{
                 if(playersCopy[1].legsWon == playersCopy[2].legsWon && playersCopy[1].legsWon != 0 && playersCopy[1].hiddenPoints == playersCopy[2].hiddenPoints){
                     newTiedPlayers = [playersCopy[1].name, playersCopy[2].name];
                 }
+                console.log(newTiedPlayers);
                 return newTiedPlayers;
             }else{
                 return [];
