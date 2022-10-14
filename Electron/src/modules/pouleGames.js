@@ -370,7 +370,7 @@ module.exports = class pouleGames{
         let newTiedPlayers = this.isTie();
         console.log(`New tied players: ${newTiedPlayers}`);
         try{
-            if(newTiedPlayers !== 'undefined' && newTiedPlayers.length != 0){ //&& this.newTieDetected(newTiedPlayers, this.tiedPlayers)){
+            if(newTiedPlayers !== 'undefined' && newTiedPlayers.length != 0){
                 //Tie breaker poules mogen alleen toegevoegd worden als er nog geen tie detected was
                 //Anders komen er heel veel tie breaker poules
                 this.tiedPlayers = newTiedPlayers;
@@ -446,13 +446,7 @@ module.exports = class pouleGames{
             }else{
                 this.tieResolved = false;
             }
-        }/*else{
-            var playersCopy = [];
-            Array.prototype.push.apply(playersCopy, this.players);
-            playersCopy.sort(function(a,b){return b.legsWon - a.legsWon});
-            this.winner = playersCopy[0].name;
-            this.secondPlace = playersCopy[1].name;
-        }*/
+        }
 
         return true;
     }
@@ -497,12 +491,18 @@ module.exports = class pouleGames{
                 playersCopy.sort(function(a,b){
                     if(b.legsWon != a.legsWon){
                         return(b.legsWon-a.legsWon);
-                    }else{
+                    }else if(b.hiddenPoints != a.hiddenPoints){
                         return(b.hiddenPoints-a.hiddenPoints);
+                    }else{
+                        return(b.tournamentAvg-a.tournamentAvg);
                     }
                 });
+                //Eerst controleren of nummer 2 en 3 gelijk staan, als dat niet zo is kijken of nummers 1 en 2 gelijk staan
+                //Als alle drie gelijk staan, wordt namelijk alleen een tie breaker gespeeld tussen 2 en 3, dus daaraan voorrang geven
                 if(playersCopy[1].legsWon == playersCopy[2].legsWon && playersCopy[1].legsWon != 0 && playersCopy[1].hiddenPoints == playersCopy[2].hiddenPoints){
                     newTiedPlayers = [playersCopy[1].name, playersCopy[2].name];
+                }else if(playersCopy[0].legsWon == playersCopy[1].legsWon && playersCopy[0].legsWon != 0 && playersCopy[0].hiddenPoints == playersCopy[1].hiddenPoints){
+                    newTiedPlayers = [playersCopy[0].name, playersCopy[1].name];
                 }
                 console.log(newTiedPlayers);
                 return newTiedPlayers;
