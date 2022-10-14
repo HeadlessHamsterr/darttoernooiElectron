@@ -1908,28 +1908,28 @@ function updateSettings(){
 
     if(pouleExists(pouleA)){
         for(let i = 0; i < pouleA.players.length; i++){
-            pouleA.players[i][0] = document.getElementById(`playerA${i}Input`).value;
+            pouleA.players[i].name = document.getElementById(`playerA${i}Input`).value;
         }
         pouleA.reloadPlayers();
     }
 
     if(pouleExists(pouleB)){
         for(let i = 0; i < pouleB.players.length; i++){
-            pouleB.players[i][0] = document.getElementById(`playerB${i}Input`).value;
+            pouleB.players[i].name = document.getElementById(`playerB${i}Input`).value;
         }
         pouleB.reloadPlayers();
     }
 
     if(pouleExists(pouleC)){
         for(let i = 0; i < pouleC.players.length; i++){
-            pouleC.players[i][0] = document.getElementById(`playerC${i}Input`).value;
+            pouleC.players[i].name = document.getElementById(`playerC${i}Input`).value;
         }
         pouleC.reloadPlayers();
     }
 
     if(pouleExists(pouleD)){
         for(let i = 0; i < pouleD.players.length; i++){
-            pouleD.players[i][0] = document.getElementById(`playerD${i}Input`).value;
+            pouleD.players[i].name = document.getElementById(`playerD${i}Input`).value;
         }
         pouleD.reloadPlayers();
     }
