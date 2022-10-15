@@ -53,6 +53,7 @@ var activeGamesWindowOpen = false;
 var hostName = 'Gefaald';
 let finalsGames = [];
 let version = ''
+let screenState = "startScreen";
 
 var udpServer = udp.createSocket("udp4");
 udpServer.bind(8889);
@@ -675,6 +676,7 @@ function returnToHome(){
 }
 
 function drawSetup(){
+    screenState = "setupScreen"
     $(document.getElementById('gameOptionsWrapper')).hide();
     $(document.getElementById('gameSetup')).show();
     $(document.getElementById('gameSetupSubDiv')).show();
@@ -702,7 +704,8 @@ function getGameFileName(action){
 function loadGame(){
     var gameFileName = getGameFileName("load");
     if(gameFileName === null){
-        console.log("No file selected");
+        alert("Geen bestand geselecteerd.")
+        returnToHome();
         return -1;
     }
 
@@ -986,6 +989,7 @@ function getGameInfo(){
 
         document.getElementById('setupErrorSpan').innerHTML = "Eén van de poules heeft maar één speler. Fix dat."
     }else{
+        screenState = "playersInput"
         $(document.getElementById('numPlayers')).css('border-color', '#414141');
         $(document.getElementById('numPoules')).css('border-color', '#414141');
         document.getElementById('setupErrorSpan').innerHTML = "";
@@ -1065,6 +1069,7 @@ function makePoules(){
     if(playerEmpty){
         document.getElementById('playerInputErrorSpan').innerHTML = "Vul voor alle spelers een naam in."
     }else{
+        screenState = "gameScreen"
         $(document.getElementById('playerInputDiv')).hide();
 
         $(document.getElementById('saveBtn')).show();
@@ -1238,6 +1243,7 @@ function makePoules(){
 }
 
 function makePoulesWithPan(){
+    screenState = "gameScreen"
     $(document.getElementById('playerInputDiv')).hide();
     //$(document.getElementById('controlBtnDiv')).show();
     //$(saveBtn).show();
@@ -1880,6 +1886,9 @@ function exportGameInfo(writeToFile = true, quickSave = false){
 }
 
 function openNav(){
+    if(screenState == "gameScreen"){
+        screenState = "sideNavOpen";
+    }
     for(key in appSettings){
         document.getElementById(`${key}Input`).value = appSettings[key];
     }
@@ -1888,6 +1897,9 @@ function openNav(){
 }
 
 function closeNav(){
+    if(screenState == "sideNavOpen"){
+        screenState = "gameScreen";
+    }
     document.getElementById("sideNav").style.right = "-350px";
     updateSettings();
 }
@@ -1896,7 +1908,17 @@ function handle(e){
     key = e.keyCode || e.which;
     if(key == 13){
         e.preventDefault();
-        updateSettings();
+        switch(screenState){
+            case "setupScreen":
+                getGameInfo();
+            break;
+            case "playersInput":
+                makePoules();
+            break;
+            case "sideNavOpen":
+                updateSettings();
+            break;
+        }
     }
 }
 
@@ -1982,6 +2004,16 @@ function showActiveGames(){
     }else{
         document.getElementById("activeGamesArrow").style.transform = "rotate(0deg)";
         $(document.getElementById('activeGamesSideDiv')).slideUp(300);
+    }
+}
+
+function showGameOptions(){
+    if(document.getElementById("gameOptionsArrow").style.transform == "rotate(0deg)"){
+        document.getElementById("gameOptionsArrow").style.transform = "rotate(180deg)";
+        $("#gameOptionsDiv").slideDown(300);
+    }else{
+        document.getElementById("gameOptionsArrow").style.transform = "rotate(0deg)";
+        $("#gameOptionsDiv").slideUp(300);
     }
 }
 
