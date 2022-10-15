@@ -55,7 +55,7 @@ input:focus{
 
 .cardSetup{
   position: absolute;
-  bottom: 30%;
+  top: 30%;
   right: 50%;
   height: auto;
   width: auto;
@@ -242,7 +242,7 @@ input::-webkit-inner-spin-button{
 .gameOptionsTable{
   border-collapse: collapse;
   margin-left: 115px;
-  margin-bottom: 15px;
+  margin-bottom: 10px;
 }
 
 .gameOptionsTable td{
@@ -803,4 +803,24 @@ input.settingInput{
   position: absolute;
   top: 33%;
   left: 40%;
+}
+
+.gameOptionsBtn{
+  background-color: inherit;
+  border: none;
+  font-size: 23px;
+  color: white;
+  font-family: var(--default-font);
+  border-radius: 4px;
+  display: inline-block;
+  transition: 0.1s;
+  padding-bottom: 20px;
+}
+
+.gameOptionsBtn:hover{
+  color: #c7c7c7
+}
+
+.gameOptionsBtn i{
+  transition: transform 0.5s;
 }
