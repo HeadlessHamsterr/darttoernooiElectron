@@ -478,7 +478,15 @@ let pouleD = new pouleGames("D");
 async function updateAvailable(msg){
     let downloadUrl = msg[0];
     let fileName = msg[1];
-    savePath = ipcRenderer.sendSync('downloadPath') + `/${fileName}`;
+    savePath = ipcRenderer.sendSync('downloadPath');
+
+    if(savePath == "canceled"){
+        ipcRenderer.send('loadIndex');
+        return 1;
+    }else{
+        savePath += `/${fileName}`;
+    }
+    console.log(`Save path: ${savePath}`)
     $(document.getElementById('updateDiv')).hide();
     $(document.getElementById('progressDiv')).show();
     await download(downloadUrl, savePath, (bytes, percent) => updateProgress(percent));
