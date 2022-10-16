@@ -270,6 +270,7 @@ input::-webkit-inner-spin-button{
   margin-left: 10px;
   min-width: 150px;
   text-align: center;
+  max-height: 270px;
 }
 
 .pouleHeader h2{
@@ -814,7 +815,8 @@ input.settingInput{
   border-radius: 4px;
   display: inline-block;
   transition: 0.1s;
-  padding-bottom: 20px;
+  padding: 0px 0px 0px 0px;
+  margin-bottom: 20px;
 }
 
 .gameOptionsBtn:hover{
@@ -823,4 +825,8 @@ input.settingInput{
 
 .gameOptionsBtn i{
   transition: transform 0.5s;
+}
+
+.grid-container{
+  display: grid;
 }

@@ -31,7 +31,7 @@ ipcMain.on('enterFileName', async (event)=>{
 ipcMain.on('downloadPath', async(event)=>{
   const result = await showSaveDialogForDownload();
   if(result["canceled"]){
-    event.returnValue = null;
+    event.returnValue = "canceled";
   }else{
     event.returnValue = result["filePaths"];
   }
