@@ -34,6 +34,7 @@ ipcRenderer.on('pouleDataUpdate', (event, arg) =>{
 */
 function updateGames(data, infoType){
     console.log(data);
+    let containerSetup = 'display: grid; grid-template-columns:';
     switch(infoType){
         case 0:
             document.getElementById(`activeLeg${data[0].gameID}1`).innerHTML = data[0].player1LegsWon;
@@ -71,6 +72,17 @@ function updateGames(data, infoType){
         break;
         case 1:
             numActiveGames += 1;
+
+            if(numActiveGames > 4){
+                containerSetup += ' auto auto auto auto;'
+            }else{
+                for(let i = 0; i < numActiveGames; i++){
+                    containerSetup += ' auto'
+                }
+                containerSetup += ';'
+            }
+            $('#activeTablesDiv1').attr('style', containerSetup);
+
             let div = document.getElementById('activeTablesDiv1');
             $(document.getElementById('noActiveGames')).remove();
             $(div).append(`<table id="${data[0].gameID}" class="activeGameTable"><tr><td id="activePlayer${data[0].gameID}1">${data[3]}</td><td><i id="${data[0].gameID}TurnArrow" class="material-icons turnArrow">expand_more</i></td><td id="activePlayer${data[0].gameID}2">${data[4]}</td></tr><tr><td id="activeDarts${data[0].gameID}1"></td><td>Darts</td><td id="activeDarts${data[0].gameID}2"></td></tr><tr><td id="activeLeg${data[0].gameID}1">${data[0].player1LegsWon}</td><td>Legs</td><td id="activeLeg${data[0].gameID}2">${data[0].player2LegsWon}</td></tr><tr><td id="activeScore${data[0].gameID}1">${data[0].player1Score}</td><td></td><td id="activeScore${data[0].gameID}2">${data[0].player2Score}</td></tr><tr><td id="out${data[0].gameID}1"></td><td></td><td id="out${data[0].gameID}2"></td></tr></table>`)
@@ -112,6 +124,17 @@ function updateGames(data, infoType){
         break;
         case 2:
             numActiveGames -= 1;
+
+            if(numActiveGames > 4){
+                containerSetup += ' auto auto auto auto;'
+            }else{
+                for(let i = 0; i < numActiveGames; i++){
+                    containerSetup += ' auto'
+                }
+                containerSetup += ';'
+            }
+            $('#activeTablesDiv1').attr('style', containerSetup);
+
             console.log(`Game ${data} stopped`);
 
             $(document.getElementById(data)).remove();
@@ -128,41 +151,54 @@ function initiateActiveGames(data){
     let div = document.getElementById('activeTablesDiv1');
     numActiveGames = data[0].length;
     console.log(data);
-    for(let i = 0; i < data[0].length; i++){
-        $(div).empty();
-        $(div).append(`<table id="${data[i][0+i]}" class="activeGameTable"><tr><td id="activePlayer${data[i][0+i]}1">${data[i][11+i]}</td><td><i id="${data[i][0+i]}TurnArrow" class="material-icons turnArrow">expand_more</i></td><td id="activePlayer${data[i][0+i]}2">${data[i][12+i]}</td></tr><tr><td id="activeDarts${data[i][0+i]}1"></td><td>Darts</td><td id="activeDarts${data[i][0+i]}2"></td></tr><tr><td id="activeLeg${data[i][0+i]}1">${data[i][2+i]}</td><td>Legs</td><td id="activeLeg${data[i][0+i]}2">${data[i][4+i]}</td></tr><tr><td id="activeScore${data[i][0+i]}1">${data[i][1+i]}</td><td></td><td id="activeScore${data[i][0+i]}2">${data[i][3+i]}</td></tr><tr><td id="out${data[i][0+i]}1"></td><td></td><td id="out${data[i][0+i]}2"></td></tr></table>`)
+    $(div).empty();
 
-        document.getElementById(`activeLeg${data[i][0+i]}1`).innerHTML = data[i][2+i];
-        document.getElementById(`activeLeg${data[i][0+i]}2`).innerHTML = data[i][4+i];
-        document.getElementById(`activeScore${data[i][0+i]}1`).innerHTML = data[i][1+i];
-        document.getElementById(`activeScore${data[i][0+i]}2`).innerHTML = data[i][3+i];
-        document.getElementById(`activeDarts${data[i][0+i]}1`).innerHTML = data[i][7+i];
-        document.getElementById(`activeDarts${data[i][0+i]}2`).innerHTML = data[i][8+i];
+    let containerSetup = 'display: grid; grid-template-columns:';
 
-        if(data[i][6+i] == '0'){
-            document.getElementById(`activePlayer${data[i][0+i]}1`).style.color = 'green';
-            document.getElementById(`activePlayer${data[i][0+i]}2`).style.color = 'white';
+    if(numActiveGames > 4){
+        containerSetup += ' auto auto auto auto;'
+    }else{
+        for(let i = 0; i < numActiveGames; i++){
+            containerSetup += ' auto'
+        }
+        containerSetup += ';'
+    }
+    $('#activeTablesDiv1').attr('style', containerSetup);
+
+    for(let i = 0; i < data.length; i++){
+        $(div).append(`<table id="${data[i][0]}" class="activeGameTable"><tr><td id="activePlayer${data[i][0]}1">${data[i][11]}</td><td><i id="${data[i][0]}TurnArrow" class="material-icons turnArrow">expand_more</i></td><td id="activePlayer${data[i][0]}2">${data[i][12]}</td></tr><tr><td id="activeDarts${data[i][0]}1"></td><td>Darts</td><td id="activeDarts${data[i][0]}2"></td></tr><tr><td id="activeLeg${data[i][0]}1">${data[i][2]}</td><td>Legs</td><td id="activeLeg${data[i][0]}2">${data[i][4]}</td></tr><tr><td id="activeScore${data[i][0]}1">${data[i][1]}</td><td></td><td id="activeScore${data[i][0]}2">${data[i][3]}</td></tr><tr><td id="out${data[i][0]}1"></td><td></td><td id="out${data[i][0]}2"></td></tr></table>`)
+
+        document.getElementById(`activeLeg${data[i][0]}1`).innerHTML = data[i][2];
+        document.getElementById(`activeLeg${data[i][0]}2`).innerHTML = data[i][4];
+        document.getElementById(`activeScore${data[i][0]}1`).innerHTML = data[i][1];
+        document.getElementById(`activeScore${data[i][0]}2`).innerHTML = data[i][3];
+        document.getElementById(`activeDarts${data[i][0]}1`).innerHTML = data[i][7];
+        document.getElementById(`activeDarts${data[i][0]}2`).innerHTML = data[i][8];
+
+        if(data[i][6] == '0'){
+            document.getElementById(`activePlayer${data[i][0]}1`).style.color = 'green';
+            document.getElementById(`activePlayer${data[i][0]}2`).style.color = 'white';
         }else{
-            document.getElementById(`activePlayer${data[i][0+i]}1`).style.color = 'white';
-            document.getElementById(`activePlayer${data[i][0+i]}2`).style.color = 'green';
+            document.getElementById(`activePlayer${data[i][0]}1`).style.color = 'white';
+            document.getElementById(`activePlayer${data[i][0]}2`).style.color = 'green';
         }
 
-        if(data[i][5+i] == 'true'){
-            document.getElementById(`${data[i][0+i]}TurnArrow`).style.transform = 'rotate(90deg)';
+        if(data[i][5] == 'true'){
+            document.getElementById(`${data[i][0]}TurnArrow`).style.transform = 'rotate(90deg)';
         }else{
-            document.getElementById(`${data[i][0+i]}TurnArrow`).style.transform = 'rotate(270deg)';
+            document.getElementById(`${data[i][0]}TurnArrow`).style.transform = 'rotate(270deg)';
         }
 
-        if(data[i][1+i] <= 170 && data[i][1+i] > 0){
-            document.getElementById(`out${data[i][0+i]}1`).innerHTML = data[i][9+i];
+        if(data[i][1] <= 170 && data[i][1] > 0){
+            document.getElementById(`out${data[i][0]}1`).innerHTML = data[i][9];
         }else{
-            document.getElementById(`out${data[i][0+i]}1`).innerHTML = '';
+            document.getElementById(`out${data[i][0]}1`).innerHTML = '';
         }
 
-        if(data[i][3+i] <= 170 && data[i][3+i] > 0){
-            document.getElementById(`out${data[i][0+i]}2`).innerHTML = data[i][10+i];
+        if(data[i][3] <= 170 && data[i][3] > 0){
+            document.getElementById(`out${data[i][0]}2`).innerHTML = data[i][10];
         }else{
-            document.getElementById(`out${data[i][0+i]}2`).innerHTML = '';
+            document.getElementById(`out${data[i][0]}2`).innerHTML = '';
         }
     }
 }
