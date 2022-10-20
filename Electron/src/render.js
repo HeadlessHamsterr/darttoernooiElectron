@@ -219,7 +219,8 @@ io.on('connection', (socket) => {
                 let averages = [data.player1Average, data.player2Average]
                 console.log(`Averages: ${averages}`)
                 for(let i = 0; i < 2; i++){
-                    pouleA.players[pouleA.gameFormat[data.gameID[1]-1][i]].totalAvg += averages[i];
+                    let playerAverage = Math.round(parseFloat(averages[i])*100)/100;
+                    pouleA.players[pouleA.gameFormat[data.gameID[1]-1][i]].totalAvg += playerAverage;
                 }    
 
                 /*
@@ -251,7 +252,6 @@ io.on('connection', (socket) => {
         const data = decodeAppMessage("activeGameInfo", message);
         let windowMsg = [data]
 
-        console.log(`Active game info: ${data}`);
         $(document.getElementById('activeGamesDiv')).show();
         var newGame = true
 
@@ -396,7 +396,6 @@ io.on('connection', (socket) => {
             windowMsg.push(player2);
             ipcRenderer.send("sendNewActiveGameInfo", windowMsg);
         }else{
-            console.log("Sending active game info!");
             ipcRenderer.send("sendActiveGameInfo", windowMsg);
         }
     });
@@ -474,6 +473,8 @@ let pouleA = new pouleGames("A");
 let pouleB = new pouleGames("B");
 let pouleC = new pouleGames("C");
 let pouleD = new pouleGames("D");
+
+const poules = [pouleA, pouleB, pouleC, pouleD];
 
 async function updateAvailable(msg){
     let downloadUrl = msg[0];
@@ -1042,7 +1043,7 @@ function getGameInfo(){
                 $(playerInputForm).append(playerInput);
             }
 
-            makePoulesBtn.onclick = makePoulesWithPan;
+            makePoulesBtn.onclick = makePoules;
         }else{
             //$(document.getElementById('gameSetup')).hide();
             for(let i = 0; i < numPlayers; i++){
@@ -1060,50 +1061,76 @@ function getGameInfo(){
 }
 
 function makePoules(){
-    var playerEmpty = false;
-    players = [];
+    let panModus = document.getElementById('panModCheck').checked;
+    let playerEmpty = false;
+    let playersPerPoule = numPlayers/numPoules;
+    
+    //Array om spelers op te slaan per poule
+    let playerGrouping = [[], [], [], []];
+    
+    if(panModus){
+        let pouleLetters = ['A', 'B', 'C', 'D'];
+        for(let i = 0; i < numPoules; i++){
+            let playerNames = [];
+            for(let j = 0; j < playersPerPoule; j++){
+                let activePlayer = document.getElementById(`player${pouleLetters[i]}${j}`);
+                let playerName = activePlayer.value;
 
-    for(let i = 0; i < numPlayers; i++){
-        var playerName = document.getElementById(`player${i}`).value;
-        if(playerName == ""){
-            $(document.getElementById(`player${i}`)).css('border-color', 'red');
-            playerEmpty = true;
-        }else{
-            $(document.getElementById(`player${i}`)).css('border-color', '#414141');
-            players.push(playerName);
+                if(playerName != ""){
+                    playerNames.push(playerName);
+                    $(player).css('border-color', '#414141');
+                }else{
+                    playerEmpty = true;
+                    $(player).css('border-color', 'red')
+                }
+            }
+            playerGrouping[i] = (playerNames);
         }
-    }
-
-    if(playerEmpty){
-        document.getElementById('playerInputErrorSpan').innerHTML = "Vul voor alle spelers een naam in."
-    }else{
-        screenState = "gameScreen"
-        $(document.getElementById('playerInputDiv')).hide();
-
-        $(document.getElementById('saveBtn')).show();
-        $(document.getElementById('exportBtn')).show();
-        $(document.getElementById('ipAddressDiv')).show();
-        $(document.getElementById('sideNavMenusDiv')).show();
-
-        var poulesDiv = document.getElementById('poulesDiv');
-
+        if(playerEmpty){
+            document.getElementById('playerInputErrorSpan').innerHTML = "Vul voor alle spelers een naam in."
+            return -1;
+        }
+        //Error div moet leeggemaakt worden, anders blijft de error staan
         document.getElementById('playerInputErrorSpan').innerHTML = "";
 
-        players.sort(function(a,b){return 0.5 - Math.random()});
+        console.log(playerGrouping);
+    }else{
+        let playerEmpty = false;
+        players = [];
         
-        var PLAYERS_PER_POULE = numPlayers/numPoules;
-        let PLAYERS_PER_POULE_ROUNDED = Math.round(PLAYERS_PER_POULE);
+        for(let i = 0; i < numPlayers; i++){
+            let playerName = document.getElementById(`player${i}`).value;
+            if(playerName == ""){
+                $(document.getElementById(`player${i}`)).css('border-color', 'red');
+                playerEmpty = true;
+            }else{
+                $(document.getElementById(`player${i}`)).css('border-color', '#414141');
+                players.push(playerName);
+            }
+        }
+        
+        if(playerEmpty){
+            document.getElementById('playerInputErrorSpan').innerHTML = "Vul voor alle spelers een naam in."
+            return -1;
+        }
+        
+        document.getElementById('playerInputErrorSpan').innerHTML = "";
+        
+        players.sort(function(a,b){return 0.5 - Math.random()});
+
+        const PLAYERS_PER_POULE = numPlayers/numPoules;
+        const PLAYERS_PER_POULE_ROUNDED = Math.round(PLAYERS_PER_POULE);
 
         if(PLAYERS_PER_POULE - PLAYERS_PER_POULE_ROUNDED > 0){
             for(let i = 0; i < numPlayers-1; i++){
                 if(i < PLAYERS_PER_POULE_ROUNDED){
-                    pouleA.players.push(new player(players[i]));
+                    playerGrouping[0].push(players[i]);
                 }else if(PLAYERS_PER_POULE_ROUNDED <= i && i < (2*PLAYERS_PER_POULE_ROUNDED)){
-                    pouleB.players.push(new player(players[i]));
+                    playerGrouping[1].push(players[i]);
                 }else if((2*PLAYERS_PER_POULE_ROUNDED) <= i && i < (3*PLAYERS_PER_POULE_ROUNDED)){
-                    pouleC.players.push(new player(players[i]));
+                    playerGrouping[2].push(players[i]);
                 }else if((3*PLAYERS_PER_POULE_ROUNDED) <= i && i < (4*PLAYERS_PER_POULE_ROUNDED)){
-                    pouleD.players.push(new player(players[i]));
+                    playerGrouping[3].push(players[i]);
                 }
             }
 
@@ -1118,122 +1145,66 @@ function makePoules(){
                 randomNumber = Math.floor(Math.random()*4);
             }
 
-            switch(randomNumber){
-                case 0:
-                    pouleA.players.push(new player(players[numPlayers - 1]));
-                break;
-                case 1:
-                    pouleB.players.push(new player(players[numPlayers - 1]));
-                break;
-                case 2:
-                    pouleC.players.push(new player(players[numPlayers - 1]));
-                break;
-                case 3:
-                    pouleD.players.push(new player(players[numPlayers - 1]));
-                break;
-            }
+            playerGrouping[randomNumber].push(players[numPlayers-1]);
+
         }else{
             for(let i = 0; i < numPlayers; i++){
                 if(i < PLAYERS_PER_POULE_ROUNDED){
-                    pouleA.players.push(new player(players[i]));
+                    playerGrouping[0].push(players[i]);
                 }else if(PLAYERS_PER_POULE_ROUNDED <= i && i < (2*PLAYERS_PER_POULE_ROUNDED)){
-                    pouleB.players.push(new player(players[i]));
+                    playerGrouping[1].push(players[i]);
                 }else if((2*PLAYERS_PER_POULE_ROUNDED) <= i && i < (3*PLAYERS_PER_POULE_ROUNDED)){
-                    pouleC.players.push(new player(players[i]));
+                    playerGrouping[2].push(players[i]);
                 }else if((3*PLAYERS_PER_POULE_ROUNDED) <= i && i < (4*PLAYERS_PER_POULE_ROUNDED)){
-                    pouleD.players.push(new player(players[i]));
+                    playerGrouping[3].push(players[i]);
                 }
             }
         }
 
-        let shouldBePrinted = document.getElementById('printCheckbox').checked;
-        var filePath;
+        console.log(playerGrouping);
+    }
 
-        if(shouldBePrinted){
-            filePath = ipcRenderer.sendSync('selectPDFDirectory');
-        }
+    let shouldBePrinted = document.getElementById('printCheckbox').checked;
+    let playerSettingsForm = document.getElementById('playerSettingForm');
+    $(playerSettingsForm).empty();
 
-        let playerSettingsForm = document.getElementById('playerSettingForm');
-        $(playerSettingsForm).empty();
-        
-        if(pouleExists(pouleA)){
-            pouleA.makePoule();
-            pouleA.makeGames();
-            for(var i = 0; i < pouleA.players.length; i++){
-                let input = $(`<input id="playerA${i}Input" class="settingInput" type="text" value="${pouleA.players[i].name}"></br>`)
-                $(playerSettingsForm).append(input)
-            }
-            if(shouldBePrinted){
-                exportPDF(pouleA, filePath, true);
-            }
-            $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleA')));
-        }
+    for(let i = 0; i < numPoules; i++){
+        console.log(playerGrouping[i]);
+        addPlayersToPoule(poules[i], playerGrouping[i], shouldBePrinted, playerSettingsForm);
+    }
 
-        if(pouleExists(pouleB)){
-            pouleB.makePoule();
-            pouleB.makeGames();
-            for(var i = 0; i < pouleB.players.length; i++){
-                let input = $(`<input id="playerB${i}Input" class="settingInput" type="text" value="${pouleB.players[i].name}"></br>`)
-                $(playerSettingsForm).append(input)
-            }
-            if(shouldBePrinted){
-                exportPDF(pouleB, filePath, true);
-            }
-            $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleB')));
-        }
+    //Active games div wordt bij het maken van de poules naar achteren geschoven, maar moet daarna nog verstopt worden.
+    $(document.getElementById('activeGamesDiv')).hide();
+    
+    if(numPoules > 1){
+        makeFinals(numPoules);
+    }else{
+        let winnerTable = $('<table id="winnerTable" class="mainRosterTable"><tr><td colspan="3"><h2>Winnaar:</h2></td></tr><tr><td colspan="3"><h2 id="M81Name"></h2></td></tr></table>');
+        $("#mainRosterSubDiv").append(winnerTable);
+    }
 
-        if(pouleExists(pouleC)){
-            pouleC.makePoule();
-            pouleC.makeGames();
-            for(var i = 0; i < pouleC.players.length; i++){
-                let input = $(`<input id="playerC${i}Input" class="settingInput" type="text" value="${pouleC.players[i].name}"></br>`)
-                $(playerSettingsForm).append(input)
-            }
-            if(shouldBePrinted){
-                exportPDF(pouleC, filePath, true);
-            }
-            $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleC')));
-        }
+    screenState = "gameScreen"
+    
+    $(document.getElementById('playerInputDiv')).hide();
+    $(document.getElementById('saveBtnDiv')).show();
+    $(document.getElementById('exportBtnDiv')).show();
+    $(document.getElementById('ipAddressDiv')).show();
+    $(document.getElementById('poulesDiv')).show();
+    $(document.getElementById('mainRosterDiv')).show();
+    $(document.getElementById('mainRosterSubDiv')).show();
+    $(document.getElementById('gameDiv')).show();
+    $(document.getElementById('sideNavMenusDiv')).show();
+    $(document.getElementById('saveBtn')).show();
+    $(document.getElementById('exportBtn')).show();
+    
+    startPeriodicStuff();
+    document.getElementById('serverName').innerHTML = `Server naam: ${hostName}`;
+    document.getElementById('serverIP').innerHTML = `Server IP: ${address()}`;
+    websocketServer.listen(PORT, () => {
+        console.log(`Server listening on http://${address()}:${PORT}`);
+    });
 
-        if(pouleExists(pouleD)){
-            pouleD.makePoule();
-            pouleD.makeGames();
-            for(var i = 0; i < pouleD.players.length; i++){
-                let input = $(`<input id="playerD${i}Input" class="settingInput" type="text" value="${pouleD.players[i].name}"></br>`)
-                $(playerSettingsForm).append(input)
-            }
-            if(shouldBePrinted){
-                exportPDF(pouleD, filePath, true);
-            }
-            $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleD')));
-        }
-        $(document.getElementById('activeGamesDiv')).hide();
-
-        if(numPoules > 1){
-            makeFinals(numPoules);
-        }else{
-            let winnerTable = $('<table id="winnerTable" class="mainRosterTable"><tr><td colspan="3"><h2>Winnaar:</h2></td></tr><tr><td colspan="3"><h2 id="M81Name"></h2></td></tr></table>');
-            $("#mainRosterSubDiv").append(winnerTable);
-        }
-        
-        $(poulesDiv).show();
-        //$(saveBtn).show();
-        //$(document.getElementById('appSettingForm')).hide();
-        $(document.getElementById('mainRosterDiv')).show();
-        $(document.getElementById('mainRosterSubDiv')).show();
-        $(document.getElementById('gameDiv')).show();
-        $(document.getElementById('sideNavMenusDiv')).show();
-        $(document.getElementById('saveBtn')).show();
-        $(document.getElementById('exportBtn')).show();
-        startPeriodicStuff();
-
-        document.getElementById('serverName').innerHTML = `Server naam: ${hostName}`;
-        document.getElementById('serverIP').innerHTML = `Server IP: ${address()}`;
-        websocketServer.listen(PORT, () => {
-            console.log(`Server listening on http://${address()}:${PORT}`);
-        });
-
-        udpServer.on("message", function(message){
+    udpServer.on("message", function(message){
         message = message.toString();
         let messageList = message.split(',');
         
@@ -1246,144 +1217,28 @@ function makePoules(){
             }
         }
     });
-        io.emit('pouleInfo', exportGameInfo(false));
-    }
+    io.emit('pouleInfo', exportGameInfo(false));
 }
 
-function makePoulesWithPan(){
-    screenState = "gameScreen"
-    $(document.getElementById('playerInputDiv')).hide();
-    //$(document.getElementById('controlBtnDiv')).show();
-    //$(saveBtn).show();
-    //$(document.getElementById('appSettingForm')).hide();
-    $(document.getElementById('saveBtnDiv')).show();
-    $(document.getElementById('exportBtnDiv')).show();
-    $(document.getElementById('ipAddressDiv')).show();
-
-    let playersPerPoule = numPlayers/numPoules;
-
-    for(let i = 0; i < numPoules; i++){
-        for (let j = 0; j < playersPerPoule; j++){
-            switch(i){
-                case 0:
-                    playerName = document.getElementById(`playerA${j}`).value;
-                    if(playerName != ""){
-                        let tempPlayer = new player(playerName);
-                        pouleA.players.push(tempPlayer);
-                    }
-                break;
-                case 1:
-                    playerName = document.getElementById(`playerB${j}`).value;
-                    if(playerName != ""){
-                        let tempPlayer = new player(playerName);
-                        pouleB.players.push(tempPlayer);
-                    }
-                break;
-                case 2:
-                    playerName = document.getElementById(`playerC${j}`).value;
-                    if(playerName != ""){
-                        let tempPlayer = new player(playerName);
-                        pouleC.players.push(tempPlayer);
-                    }
-                break;
-                case 3:
-                    playerName = document.getElementById(`playerD${j}`).value;
-                    if(playerName != ""){
-                        let tempPlayer = new player(playerName);
-                        pouleD.players.push(tempPlayer);
-                    }
-                break;
-            }
-        }
+function addPlayersToPoule(poule, players, shouldBePrinted, playerSettingsForm){
+    console.log(players);
+    for(let i = 0; i < players.length; i++){
+        poule.players.push(new player(players[i]))
     }
 
-    let shouldBePrinted = document.getElementById('printCheckbox').checked;
-    var filePath;
+    poule.makePoule();
+    poule.makeGames();
+
+    for(let i = 0; i < poule.players.length; i++){
+        let input = $(`<input id="player${poule.pouleNum}${i}Input" class="settingInput" type="text" value="${poule.players[i].name}"></br>`);
+        $(playerSettingsForm).append(input);
+    }
 
     if(shouldBePrinted){
-        filePath = ipcRenderer.sendSync('selectPDFDirectory');
+        let filePath = ipcRenderer.sendSync('selectPDFDirectory');
+        exportPDF(poule, filePath);
     }
-    
-    let playerSettingsForm = document.getElementById('playerSettingsDiv');
-        
-    if(pouleExists(pouleA)){
-        pouleA.makePoule();
-        pouleA.makeGames();
-        for(var i = 0; i < pouleA.players.length; i++){
-            let input = $(`<input id="playerA${i}Input" class="settingInput" type="text" value="${pouleA.players[i][0]}"></br>`)
-            $(playerSettingsForm).append(input)
-        }
-        if(shouldBePrinted){
-            exportPDF(pouleA, filePath, true);
-        }
-        $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleA')));
-    }
-
-    if(pouleExists(pouleB)){
-        pouleB.makePoule();
-        pouleB.makeGames();
-        for(var i = 0; i < pouleB.players.length; i++){
-            let input = $(`<input id="playerB${i}Input" class="settingInput" type="text" value="${pouleB.players[i][0]}"></br>`)
-            $(playerSettingsForm).append(input)
-        }
-        if(shouldBePrinted){
-            exportPDF(pouleB, filePath, true);
-        }
-        $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleB')));
-    }
-
-    if(pouleExists(pouleC)){
-        pouleC.makePoule();
-        pouleC.makeGames();
-        for(var i = 0; i < pouleC.players.length; i++){
-            let input = $(`<input id="playerC${i}Input" class="settingInput" type="text" value="${pouleC.players[i][0]}"></br>`)
-            $(playerSettingsForm).append(input)
-        }
-        if(shouldBePrinted){
-            exportPDF(pouleC, filePath, true);
-        }
-        $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleC')));
-    }
-
-    if(pouleExists(pouleD)){
-        pouleD.makePoule();
-        pouleD.makeGames();
-        for(var i = 0; i < pouleD.players.length; i++){
-            let input = $(`<input id="playerD${i}Input" class="settingInput" type="text" value="${pouleD.players[i][0]}"></br>`)
-            $(playerSettingsForm).append(input)
-        }
-        if(shouldBePrinted){
-            exportPDF(pouleD, filePath, true);
-        }
-        $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById('pouleD')));
-    }
-    $(document.getElementById('activeGamesDiv')).hide();
-
-    if(numPoules > 1){
-        makeFinals(numPoules);
-    }else{
-        let winnerTable = $('<table id="winnerTable" class="mainRosterTable"><tr><td colspan="3"><h2>Winnaar:</h2></td></tr><tr><td colspan="3"><h2 id="M81Name"></h2></td></tr></table>');
-        $("#mainRosterSubDiv").append(winnerTable);
-    }
-    
-    $(poulesDiv).show();
-    //$(saveBtn).show();
-    //$(document.getElementById('appSettingForm')).hide();
-    $(document.getElementById('mainRosterDiv')).show();
-    $(document.getElementById('mainRosterSubDiv')).show();
-    $(document.getElementById('gameDiv')).show();
-    $(document.getElementById('sideNavMenusDiv')).show();
-    $(document.getElementById('saveBtn')).show();
-    $(document.getElementById('exportBtn')).show();
-    startPeriodicStuff();
-
-    
-
-    document.getElementById('serverName').innerHTML = `IP adres: ${address()}`;
-    websocketServer.listen(PORT, () => {
-        console.log(`Server listening on http://${address()}:${PORT}`);
-    });
-    io.emit('pouleInfo', exportGameInfo(false));
+    $(document.getElementById('activeGamesDiv')).insertAfter($(document.getElementById(`poule${poule.pouleNum}`)));
 }
 
 function preparePDFExport(){
