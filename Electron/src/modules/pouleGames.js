@@ -368,7 +368,6 @@ module.exports = class pouleGames{
 
     checkTies(){
         let newTiedPlayers = this.isTie();
-        console.log(`New tied players: ${newTiedPlayers}`);
         try{
             if(newTiedPlayers !== 'undefined' && newTiedPlayers.length != 0){
                 //Tie breaker poules mogen alleen toegevoegd worden als er nog geen tie detected was
@@ -504,7 +503,6 @@ module.exports = class pouleGames{
                 }else if(playersCopy[0].legsWon == playersCopy[1].legsWon && playersCopy[0].legsWon != 0 && playersCopy[0].hiddenPoints == playersCopy[1].hiddenPoints){
                     newTiedPlayers = [playersCopy[0].name, playersCopy[1].name];
                 }
-                console.log(newTiedPlayers);
                 return newTiedPlayers;
             }else{
                 return [];
