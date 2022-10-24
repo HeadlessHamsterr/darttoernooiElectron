@@ -729,6 +729,8 @@ function loadGame(){
     $(document.getElementById('mainRosterSubDiv')).show();
     $(document.getElementById('gameDiv')).show();
 
+    screenState = 'gameScreen';
+
     pouleA.players = [];
     pouleB.players = [];
     pouleC.players = [];
