@@ -13,6 +13,7 @@ import 'package:package_info/package_info.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'defs/constants.dart';
 import 'defs/classes.dart';
+import 'package:wifi_configuration_2/wifi_configuration_2.dart';
 
 String serverIP = '';
 String activePoule = '';
@@ -60,16 +61,57 @@ class _StartScreenState extends State<StartScreen> {
   bool stopChecking = false;
   @override
   void initState() {
-    startServerScanning();
     super.initState();
+
+    //Start server scanning mag pas beginnen nadat de ui geladen is
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      startServerScanning();
+    });
   }
 
   List<String> availableHosts = [];
+  List<String> newHosts = [];
   List<Widget> hostButtons = [];
   final ipAddressController = TextEditingController(text: serverIP);
   bool displayNoConnectMsg = false;
 
   void startServerScanning() async {
+    WifiConfiguration wifiConfiguration = WifiConfiguration();
+    bool wifiReady = false;
+
+    bool wifiEnabled = false;
+    bool wifiConnected = false;
+
+    wifiConfiguration.isWifiEnabled().then((value) {
+      if (value) {
+        print("Wifi enabled");
+      } else {
+        showDialog(
+            context: context,
+            builder: (BuildContext context) => AlertDialog(
+                  title: const Text('WiFi uitgeschakeld'),
+                  content: const Text(
+                      'Schakel de WiFi in om de app te kunnen gebruiken'),
+                  actions: <Widget>[
+                    TextButton(
+                        onPressed: () {
+                          Navigator.pop(context, 'Cancel');
+                        },
+                        child: const Text("Annuleren")),
+                    TextButton(
+                        onPressed: () {
+                          wifiConfiguration.enableWifi();
+                        },
+                        child: const Text("WiFi inschakelen"))
+                  ],
+                ));
+      }
+    });
+
+    wifiConfiguration.connectedToWifi().then((value) {
+      print('Connected to wifi: ${value.ssid}');
+    });
+
     final info = NetworkInfo();
     var deviceIP = await info.getWifiIP();
     var broadCastAddr = await info.getWifiBroadcast();
@@ -97,7 +139,7 @@ class _StartScreenState extends State<StartScreen> {
           }
           //Extra code voor het ontvangen van het serverClose bericht
           //Is redundant geworden door het leeg maken van de serverlijst bij een nieuwe request, wel laten staan voor de zekerheid
-          /*else if (messageList[0] == 'serverClose') {
+          else if (messageList[0] == 'serverClose') {
             for (int i = 0; i < availableHosts.length; i++) {
               if (availableHosts[i] == messageList[1]) {
                 availableHosts.removeAt(i);
@@ -116,7 +158,7 @@ class _StartScreenState extends State<StartScreen> {
                 break;
               }
             }
-          }*/
+          }
         }
       });
       List<int> data =
@@ -125,9 +167,6 @@ class _StartScreenState extends State<StartScreen> {
       connectionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
         //Serverlijst leegmaken en scherm refreshen zodat een verdwenen server
         //niet in de lijst blijft staan
-        availableHosts.clear();
-        hostButtons.clear();
-        setState(() {});
 
         //UDP Broadcast sturen om servers te vinden
         udpSocket.send(data, _destinationAddress, 8889);
@@ -840,8 +879,8 @@ class PouleGameBody extends StatefulWidget {
 
 //Puntentel en beginner keuze scherm
 class _PouleGameBodyState extends State<PouleGameBody> {
-  PlayerClass player1 = PlayerClass();
-  PlayerClass player2 = PlayerClass();
+  late PlayerClass player1;
+  late PlayerClass player2;
   ChosenPlayerEnum chosenPlayer = activeStartingPlayer;
   var specialBtnStyle = cBtnStyle;
   bool gameStarted = false;
@@ -853,6 +892,8 @@ class _PouleGameBodyState extends State<PouleGameBody> {
   @override
   void initState() {
     super.initState();
+    player1 = PlayerClass(widget.game.player1);
+    player2 = PlayerClass(widget.game.player2);
     activeGameInfo.clear();
     activeGameInfo.add(widget.game.gameID);
     if (widget.game.gameType == 'poule') {
@@ -893,268 +934,158 @@ class _PouleGameBodyState extends State<PouleGameBody> {
   }
 
   void btnPress(String btnType) {
+    PlayerClass activePlayer;
+    PlayerClass otherPlayer;
+    if (player1.myTurn) {
+      activePlayer = player1;
+      otherPlayer = player2;
+    } else {
+      activePlayer = player2;
+      otherPlayer = player1;
+    }
+
     switch (btnType) {
       case 'OK':
-        if (player1.myTurn) {
-          if (player1.thrownScore == '') {
+        if (activePlayer.thrownScore == '') {
+          ScaffoldMessenger.of(widget.context).showSnackBar(
+            const SnackBar(content: Text("Geen score ingevuld")),
+          );
+          break;
+        } else if (activePlayer.thrownScore == 'BUST') {
+          activePlayer.dartsThrown += numDarts;
+          activePlayer.scoresThrownHistory.add(0);
+          otherPlayer.thrownScore = '';
+          activePlayer.myTurn = false;
+        } else {
+          if (int.parse(activePlayer.thrownScore) > 180 ||
+              int.parse(activePlayer.thrownScore) > activePlayer.currentScore) {
             ScaffoldMessenger.of(widget.context).showSnackBar(
-              const SnackBar(content: Text("Geen score ingevuld")),
+              SnackBar(
+                content: Text(activePlayer.thrownScore + ' is te hoog'),
+                duration: const Duration(seconds: 5),
+              ),
             );
             break;
-          } else if (player1.thrownScore == 'BUST') {
-            player1.dartsThrown += numDarts;
-            player1.scoresThrownHistory.add(0);
-            player2.thrownScore = '';
-            player1.myTurn = false;
-          } else {
-            if (int.parse(player1.thrownScore) > 180 ||
-                int.parse(player1.thrownScore) > player1.currentScore) {
-              ScaffoldMessenger.of(widget.context).showSnackBar(
-                SnackBar(
-                  content: Text(player1.thrownScore + ' is te hoog'),
-                  duration: const Duration(seconds: 5),
-                ),
-              );
-              break;
-            } else if (int.parse(player1.thrownScore) / numDarts > 60) {
-              ScaffoldMessenger.of(widget.context).showSnackBar(
-                SnackBar(
-                  content: Text((numDarts == 1)
-                      ? '${player1.thrownScore} kan niet met $numDarts pijl gegooid worden.'
-                      : '${player1.thrownScore} kan niet met $numDarts pijlen gegooid worden.'),
-                  duration: const Duration(seconds: 5),
-                ),
-              );
-              break;
-            } else if (player1.currentScore - int.parse(player1.thrownScore) ==
-                1) {
-              ScaffoldMessenger.of(widget.context).showSnackBar(
-                SnackBar(
-                  content:
-                      Text("${player1.thrownScore} kan niet gegooid worden."),
-                  duration: const Duration(seconds: 5),
-                ),
-              );
-              break;
-            } else if (player1.thrownScore != '0') {
-              player1.dartsThrown += numDarts;
-              player1.dartsThrownHistory.add(numDarts);
-              player1.scoresThrownHistory.add(int.parse(player1.thrownScore));
-              if (player1.currentScore == int.parse(player1.thrownScore)) {
-                endLeg(widget.game.player1, player1);
-              } else {
-                player1.currentScore -= int.parse(player1.thrownScore);
-                player1.myTurn = false;
-                player2.thrownScore = '';
-              }
-            } else {
-              player1.myTurn = false;
-              player1.scoresThrownHistory.add(int.parse(player1.thrownScore));
-              player1.dartsThrown += numDarts;
-              player1.dartsThrownHistory.add(numDarts);
-              player2.thrownScore = '';
-            }
-            player1.turnsThisGame += 1;
-            player1.turnsThisLeg += 1;
-            player1.totalPointsThisLeg += int.parse(player1.thrownScore);
-            player1.totalPointsThisGame += int.parse(player1.thrownScore);
-
-            sendCurrentScores(false,
-                thrownScore: int.parse(player1.thrownScore));
-            if (170 - player1.currentScore >= 0) {
-              player1.possibleOut = possibleOuts[170 - player1.currentScore];
-            } else {
-              player1.possibleOut = '';
-            }
-          }
-        } else {
-          if (player2.thrownScore == '') {
+          } else if (int.parse(activePlayer.thrownScore) / numDarts > 60) {
             ScaffoldMessenger.of(widget.context).showSnackBar(
-              const SnackBar(content: Text("Geen score ingevuld")),
+              SnackBar(
+                content: Text((numDarts == 1)
+                    ? '${activePlayer.thrownScore} kan niet met $numDarts pijl gegooid worden.'
+                    : '${activePlayer.thrownScore} kan niet met $numDarts pijlen gegooid worden.'),
+                duration: const Duration(seconds: 5),
+              ),
             );
-          } else if (player2.thrownScore == 'BUST') {
-            player2.dartsThrown += numDarts;
-            player2.scoresThrownHistory.add(0);
-            player1.thrownScore = '';
-            player1.myTurn = true;
+            break;
+          } else if (activePlayer.currentScore -
+                  int.parse(activePlayer.thrownScore) ==
+              1) {
+            ScaffoldMessenger.of(widget.context).showSnackBar(
+              SnackBar(
+                content: Text(
+                    "${activePlayer.thrownScore} kan niet gegooid worden."),
+                duration: const Duration(seconds: 5),
+              ),
+            );
+            break;
+          } else if (activePlayer.thrownScore != '0') {
+            activePlayer.dartsThrown += numDarts;
+            activePlayer.dartsThrownHistory.add(numDarts);
+            activePlayer.scoresThrownHistory
+                .add(int.parse(activePlayer.thrownScore));
+            if (activePlayer.currentScore ==
+                int.parse(activePlayer.thrownScore)) {
+              endLeg(activePlayer.name, activePlayer);
+            } else {
+              activePlayer.currentScore -= int.parse(activePlayer.thrownScore);
+              activePlayer.myTurn = false;
+              otherPlayer.myTurn = true;
+              otherPlayer.thrownScore = '';
+            }
           } else {
-            if (int.parse(player2.thrownScore) > 180 ||
-                int.parse(player2.thrownScore) > player2.currentScore) {
-              ScaffoldMessenger.of(widget.context).showSnackBar(
-                SnackBar(content: Text(player2.thrownScore + ' is te hoog')),
-              );
-              break;
-            } else if (int.parse(player2.thrownScore) / numDarts > 60) {
-              ScaffoldMessenger.of(widget.context).showSnackBar(
-                SnackBar(
-                  content: Text((numDarts == 1)
-                      ? '${player2.thrownScore} kan niet met $numDarts pijl gegooid worden.'
-                      : '${player2.thrownScore} kan niet met $numDarts pijlen gegooid worden.'),
-                  duration: const Duration(seconds: 5),
-                ),
-              );
-              break;
-            } else if (player2.currentScore - int.parse(player2.thrownScore) ==
-                1) {
-              ScaffoldMessenger.of(widget.context).showSnackBar(
-                SnackBar(
-                  content:
-                      Text("${player2.thrownScore} kan niet gegooid worden."),
-                  duration: const Duration(seconds: 5),
-                ),
-              );
-              break;
-            } else if (player2.thrownScore != '0') {
-              player2.dartsThrown += numDarts;
-              player2.dartsThrownHistory.add(numDarts);
-              player2.scoresThrownHistory.add(int.parse(player2.thrownScore));
-              if (player2.currentScore == int.parse(player2.thrownScore)) {
-                endLeg(widget.game.player2, player2);
-              } else {
-                player2.currentScore -= int.parse(player2.thrownScore);
-                player1.myTurn = true;
-                player1.thrownScore = '';
-              }
-            } else {
-              player2.scoresThrownHistory.add(int.parse(player2.thrownScore));
-              player2.dartsThrown += numDarts;
-              player2.dartsThrownHistory.add(numDarts);
-              player1.myTurn = true;
-              player1.thrownScore = '';
-            }
+            activePlayer.myTurn = false;
+            activePlayer.scoresThrownHistory
+                .add(int.parse(activePlayer.thrownScore));
+            activePlayer.dartsThrown += numDarts;
+            activePlayer.dartsThrownHistory.add(numDarts);
+            otherPlayer.thrownScore = '';
+            otherPlayer.myTurn = true;
+          }
+          activePlayer.turnsThisGame += 1;
+          activePlayer.turnsThisLeg += 1;
+          activePlayer.totalPointsThisLeg +=
+              int.parse(activePlayer.thrownScore);
+          activePlayer.totalPointsThisGame +=
+              int.parse(activePlayer.thrownScore);
 
-            player2.turnsThisGame += 1;
-            player2.turnsThisLeg += 1;
-            player2.totalPointsThisLeg += int.parse(player2.thrownScore);
-            player2.totalPointsThisGame += int.parse(player2.thrownScore);
-
-            sendCurrentScores(false,
-                thrownScore: int.parse(player2.thrownScore));
-            if (170 - player2.currentScore >= 0) {
-              player2.possibleOut = possibleOuts[170 - player2.currentScore];
-            } else {
-              player2.possibleOut = '';
-            }
+          sendCurrentScores(false,
+              thrownScore: int.parse(activePlayer.thrownScore));
+          if (170 - activePlayer.currentScore >= 0) {
+            activePlayer.possibleOut =
+                possibleOuts[170 - activePlayer.currentScore];
+          } else {
+            activePlayer.possibleOut = '';
           }
         }
         numDarts = 3;
         break;
       case 'C':
-        if (player1.myTurn) {
-          player1.thrownScore = '';
-        } else {
-          player2.thrownScore = '';
-        }
+        activePlayer.thrownScore = '';
         break;
       case 'BUST':
-        if (player1.myTurn && player1.thrownScore == '') {
-          player1.thrownScore = 'BUST';
-          player1.dartsThrown += numDarts;
-          player1.scoresThrownHistory.add(0);
-          player1.turnsThisLeg += 1;
-          player1.turnsThisGame += 1;
-          player2.thrownScore = '';
-          player1.myTurn = false;
-          player2.myTurn = true;
-        } else if (player2.myTurn && player2.thrownScore == '') {
-          player2.thrownScore = 'BUST';
-          player2.dartsThrown += numDarts;
-          player2.scoresThrownHistory.add(0);
-          player2.turnsThisGame += 1;
-          player2.turnsThisLeg += 1;
-          player1.thrownScore = '';
-          player2.myTurn = false;
-          player1.myTurn = true;
+        if (activePlayer.thrownScore == '') {
+          activePlayer.thrownScore = 'BUST';
+          activePlayer.dartsThrown += numDarts;
+          activePlayer.scoresThrownHistory.add(0);
+          activePlayer.turnsThisLeg += 1;
+          activePlayer.turnsThisGame += 1;
+          otherPlayer.thrownScore = '';
+          activePlayer.myTurn = false;
+          otherPlayer.myTurn = true;
+          sendCurrentScores(false);
         }
-        sendCurrentScores(false);
         break;
       case 'ST':
-        if (player1.myTurn && player1.thrownScore == '') {
-          if (player1.currentScore < 26) {
+        if (activePlayer.thrownScore == '') {
+          if (activePlayer.currentScore < 26) {
             ScaffoldMessenger.of(widget.context).showSnackBar(
               const SnackBar(content: Text('Standaard is te hoog')),
             );
-            player2.thrownScore = '';
+            otherPlayer.thrownScore = '';
           } else {
-            player1.dartsThrown += numDarts;
-            player1.dartsThrownHistory.add(numDarts);
-            player1.turnsThisGame += 1;
-            player1.turnsThisLeg += 1;
-            player1.scoresThrownHistory.add(26);
-            if (player1.currentScore == 26) {
-              endLeg(widget.game.player1, player1);
+            activePlayer.dartsThrown += numDarts;
+            activePlayer.dartsThrownHistory.add(numDarts);
+            activePlayer.turnsThisGame += 1;
+            activePlayer.turnsThisLeg += 1;
+            activePlayer.scoresThrownHistory.add(26);
+            if (activePlayer.currentScore == 26) {
+              endLeg(activePlayer.name, activePlayer);
             } else {
-              player1.thrownScore = 'Standaard';
-              player1.currentScore -= 26;
-              player1.totalPointsThisGame += 26;
-              player1.totalPointsThisLeg += 26;
-              player2.thrownScore = '';
-              player1.myTurn = false;
-              player2.myTurn = true;
+              activePlayer.thrownScore = 'Standaard';
+              activePlayer.currentScore -= 26;
+              activePlayer.totalPointsThisGame += 26;
+              activePlayer.totalPointsThisLeg += 26;
+              otherPlayer.thrownScore = '';
+              activePlayer.myTurn = false;
+              otherPlayer.myTurn = true;
             }
             sendCurrentScores(false, thrownScore: 26);
-            if (170 - player1.currentScore >= 0) {
-              player1.possibleOut = possibleOuts[170 - player1.currentScore];
+            if (170 - activePlayer.currentScore >= 0) {
+              activePlayer.possibleOut =
+                  possibleOuts[170 - activePlayer.currentScore];
             } else {
-              player1.possibleOut = '';
+              activePlayer.possibleOut = '';
             }
           }
-        } else if (player2.myTurn && player2.thrownScore == '') {
-          if (player2.currentScore < 26) {
-            ScaffoldMessenger.of(widget.context).showSnackBar(
-              const SnackBar(content: Text('Standaard is te hoog')),
-            );
-            player1.thrownScore = '';
-          } else {
-            player2.dartsThrown += numDarts;
-            player2.dartsThrownHistory.add(numDarts);
-            player2.scoresThrownHistory.add(26);
-            player2.turnsThisGame += 1;
-            player2.turnsThisLeg += 1;
-
-            if (player2.currentScore == 26) {
-              endLeg(widget.game.player2, player2);
-            } else {
-              player2.thrownScore = 'Standaard';
-              player2.currentScore -= 26;
-              player2.scoresThrownHistory.add(26);
-              player2.totalPointsThisGame += 26;
-              player2.totalPointsThisLeg += 26;
-              player1.thrownScore = '';
-              player2.myTurn = false;
-              player1.myTurn = true;
-            }
-            sendCurrentScores(false, thrownScore: 26);
-            if (170 - player2.currentScore >= 0) {
-              player2.possibleOut = possibleOuts[170 - player2.currentScore];
-            } else {
-              player2.possibleOut = '';
-            }
-          }
-        } else {
-          print("${player1.myTurn} | ${player2.thrownScore}");
         }
         break;
       default:
-        if (player1.myTurn) {
-          if ((player1.thrownScore + btnType).toString().length > 3) {
-            break;
-          } else {
-            if (player1.thrownScore == '0') {
-              player1.thrownScore == btnType;
-            } else {
-              player1.thrownScore = player1.thrownScore + btnType;
-            }
-          }
+        if ((activePlayer.thrownScore + btnType).toString().length > 3) {
+          break;
         } else {
-          if ((player2.thrownScore + btnType).toString().length > 3) {
-            break;
+          if (activePlayer.thrownScore == '0') {
+            activePlayer.thrownScore == btnType;
           } else {
-            if (player2.thrownScore == '0') {
-              player2.thrownScore == btnType;
-            } else {
-              player2.thrownScore = player2.thrownScore + btnType;
-            }
+            activePlayer.thrownScore = activePlayer.thrownScore + btnType;
           }
         }
         break;
