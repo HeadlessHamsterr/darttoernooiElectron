@@ -97,7 +97,7 @@ class _StartScreenState extends State<StartScreen> {
           }
           //Extra code voor het ontvangen van het serverClose bericht
           //Is redundant geworden door het leeg maken van de serverlijst bij een nieuwe request, wel laten staan voor de zekerheid
-          /*else if (messageList[0] == 'serverClose') {
+          else if (messageList[0] == 'serverClose') {
             for (int i = 0; i < availableHosts.length; i++) {
               if (availableHosts[i] == messageList[1]) {
                 availableHosts.removeAt(i);
@@ -116,7 +116,7 @@ class _StartScreenState extends State<StartScreen> {
                 break;
               }
             }
-          }*/
+          }
         }
       });
       List<int> data =
@@ -125,9 +125,6 @@ class _StartScreenState extends State<StartScreen> {
       connectionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
         //Serverlijst leegmaken en scherm refreshen zodat een verdwenen server
         //niet in de lijst blijft staan
-        availableHosts.clear();
-        hostButtons.clear();
-        setState(() {});
 
         //UDP Broadcast sturen om servers te vinden
         udpSocket.send(data, _destinationAddress, 8889);
