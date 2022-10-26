@@ -34,7 +34,8 @@ late PackageInfo appInfo;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   appInfo = await PackageInfo.fromPlatform();
-  runApp(const StartScreen());
+  //runApp(const StartScreen());
+  runApp(MainApp());
 }
 
 GameInfoClass gameInfoClass = GameInfoClass();
@@ -44,6 +45,15 @@ Widget getPouleName(pouleName) {
     return Text(pouleName);
   } else {
     return Text('Poule $pouleName');
+  }
+}
+
+class MainApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return const MaterialApp(
+      home: StartScreen(),
+    );
   }
 }
 
@@ -59,14 +69,15 @@ class _StartScreenState extends State<StartScreen> {
   late Timer connectionTimer;
   late Timer boolTimer;
   bool stopChecking = false;
+  bool readyToCheck = false;
   @override
   void initState() {
     super.initState();
 
     //Start server scanning mag pas beginnen nadat de ui geladen is
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    /*WidgetsBinding.instance.addPostFrameCallback((_) {
       startServerScanning();
-    });
+    });*/
   }
 
   List<String> availableHosts = [];
@@ -75,45 +86,87 @@ class _StartScreenState extends State<StartScreen> {
   final ipAddressController = TextEditingController(text: serverIP);
   bool displayNoConnectMsg = false;
 
-  void startServerScanning() async {
+  void startServerScanning(BuildContext context) async {
     WifiConfiguration wifiConfiguration = WifiConfiguration();
     bool wifiReady = false;
 
-    bool wifiEnabled = false;
-    bool wifiConnected = false;
+    bool wifiEnabled = await wifiConfiguration.isWifiEnabled().then((value) {
+      return value;
+    });
 
-    wifiConfiguration.isWifiEnabled().then((value) {
-      if (value) {
-        print("Wifi enabled");
+    if (!wifiEnabled) {
+      print("Wifi not enabled");
+      showDialog(
+          context: context,
+          builder: (BuildContext context) => AlertDialog(
+                title: const Text('WiFi uitgeschakeld'),
+                content: const Text(
+                    'Schakel de WiFi in om de app te kunnen gebruiken'),
+                actions: <Widget>[
+                  TextButton(
+                      onPressed: () {
+                        Navigator.pop(context, 'Done');
+                      },
+                      child: const Text("Gereed"))
+                ],
+              ));
+      while (!wifiEnabled) {
+        wifiEnabled = await wifiConfiguration.isWifiEnabled().then((value) {
+          return value;
+        });
+      }
+    }
+
+    bool wifiConnected =
+        await wifiConfiguration.connectedToWifi().then((value) {
+      if (value.ssid != null) {
+        return true;
       } else {
-        showDialog(
-            context: context,
-            builder: (BuildContext context) => AlertDialog(
-                  title: const Text('WiFi uitgeschakeld'),
-                  content: const Text(
-                      'Schakel de WiFi in om de app te kunnen gebruiken'),
-                  actions: <Widget>[
-                    TextButton(
-                        onPressed: () {
-                          Navigator.pop(context, 'Cancel');
-                        },
-                        child: const Text("Annuleren")),
-                    TextButton(
-                        onPressed: () {
-                          wifiConfiguration.enableWifi();
-                        },
-                        child: const Text("WiFi inschakelen"))
-                  ],
-                ));
+        return false;
       }
     });
 
-    wifiConfiguration.connectedToWifi().then((value) {
-      print('Connected to wifi: ${value.ssid}');
-    });
+    if (!wifiConnected) {
+      Timer wifiAlertTimer =
+          Timer.periodic(const Duration(seconds: 5), (timer) {
+        showDialog(
+            context: context,
+            builder: (BuildContext context) => AlertDialog(
+                  title: const Text('WiFi niet verbonden'),
+                  content: const Text(
+                      'Verbind met een WiFi netwerk om de app te gebruiken'),
+                  actions: <Widget>[
+                    TextButton(
+                        onPressed: () {
+                          Navigator.pop(context, 'Done');
+                        },
+                        child: const Text("Gereed"))
+                  ],
+                ));
+        timer.cancel();
+      });
+
+      while (!wifiConnected) {
+        wifiConnected = await wifiConfiguration.connectedToWifi().then((value) {
+          if (value.ssid != null) {
+            return true;
+          } else {
+            return false;
+          }
+        });
+      }
+      wifiAlertTimer.cancel();
+    }
 
     final info = NetworkInfo();
     var deviceIP = await info.getWifiIP();
+    //Als de wifi pas net aan staat is het IP null, dus wachten tot de telefoon een IP heeft gekregen
+    while (deviceIP == null) {
+      deviceIP = await info.getWifiIP();
+      readyToCheck = true;
+      setState(() {});
+    }
+    print('Device IP: $deviceIP');
     var broadCastAddr = await info.getWifiBroadcast();
     broadCastAddr = broadCastAddr.toString().replaceAll(RegExp(r'/'), '');
     print(broadCastAddr);
@@ -267,6 +320,7 @@ class _StartScreenState extends State<StartScreen> {
 
   @override
   Widget build(BuildContext context) {
+    startServerScanning(context);
     return MaterialApp(
       theme: ThemeData(
           scaffoldBackgroundColor: const Color(0xFF181818),
@@ -348,10 +402,13 @@ class _StartScreenState extends State<StartScreen> {
                         fontSize: 20,
                       ),
                     ),
-                    hostButtons.isNotEmpty
-                        ? Column(children: hostButtons)
-                        : Image.asset('assets/loading.gif',
-                            height: 70, width: 70),
+                    readyToCheck
+                        ? hostButtons.isNotEmpty
+                            ? Column(children: hostButtons)
+                            : Image.asset('assets/loading.gif',
+                                height: 70, width: 70)
+                        : const Text('Wachten op WiFi verbinding',
+                            style: TextStyle(color: Colors.white)),
                   ])),
               displayNoConnectMsg
                   ? Center(
