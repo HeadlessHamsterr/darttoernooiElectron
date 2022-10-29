@@ -163,9 +163,9 @@ class _StartScreenState extends State<StartScreen> {
     //Als de wifi pas net aan staat is het IP null, dus wachten tot de telefoon een IP heeft gekregen
     while (deviceIP == null) {
       deviceIP = await info.getWifiIP();
-      readyToCheck = true;
       setState(() {});
     }
+    readyToCheck = true;
     print('Device IP: $deviceIP');
     var broadCastAddr = await info.getWifiBroadcast();
     broadCastAddr = broadCastAddr.toString().replaceAll(RegExp(r'/'), '');
