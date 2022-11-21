@@ -20,36 +20,24 @@ class GameInfoClass {
 }
 
 class PlayerClass {
-  bool myTurn;
-  int currentScore;
-  int legsWon;
-  int setsWon;
-  String possibleOut;
-  String thrownScore;
-  int dartsThrown;
-  int turnsThisLeg;
-  int turnsThisGame;
-  double gameAverage;
-  double legAverage;
-  int totalPointsThisLeg;
-  int totalPointsThisGame;
+  bool myTurn = false;
+  int currentScore = 0;
+  int legsWon = 0;
+  int setsWon = 0;
+  String possibleOut = '';
+  String thrownScore = '';
+  int dartsThrown = 0;
+  int turnsThisLeg = 0;
+  int turnsThisGame = 0;
+  double gameAverage = 0;
+  double legAverage = 0;
+  int totalPointsThisLeg = 0;
+  int totalPointsThisGame = 0;
   List<int> scoresThrownHistory = [];
   List<int> dartsThrownHistory = [];
+  String name = '';
 
-  PlayerClass(
-      {this.myTurn = false,
-      this.currentScore = 0,
-      this.legsWon = 0,
-      this.setsWon = 0,
-      this.thrownScore = '',
-      this.possibleOut = '',
-      this.dartsThrown = 0,
-      this.turnsThisGame = 0,
-      this.turnsThisLeg = 0,
-      this.gameAverage = 0,
-      this.legAverage = 0,
-      this.totalPointsThisLeg = 0,
-      this.totalPointsThisGame = 0});
+  PlayerClass(this.name);
 }
 
 class PouleRanking {
