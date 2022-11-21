@@ -165,7 +165,12 @@ class _StartScreenState extends State<StartScreen> {
       deviceIP = await info.getWifiIP();
       setState(() {});
     }
-    readyToCheck = true;
+
+    if (!readyToCheck) {
+      readyToCheck = true;
+      setState(() {});
+    }
+
     print('Device IP: $deviceIP');
     var broadCastAddr = await info.getWifiBroadcast();
     broadCastAddr = broadCastAddr.toString().replaceAll(RegExp(r'/'), '');
