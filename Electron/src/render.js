@@ -48,6 +48,7 @@ const sockets = new Set();
 var numPlayers = 0;
 var numPoules = 0;
 const appOptions = ["pouleScore", "pouleLegs", "quartScore", "quartLegs", "halfScore", "halfLegs", "finalScore", "finalLegs"];
+const specialSounds = ["006", "020", "023", "042", "063", "064"];
 var activeGames = [];
 var activeGamesWindowOpen = false;
 var hostName = 'Gefaald';
@@ -328,7 +329,7 @@ io.on('connection', (socket) => {
         document.getElementById(`activeDarts${data.gameID}1`).innerHTML = data.player1DartsThrown;
         document.getElementById(`activeDarts${data.gameID}2`).innerHTML = data.player2DartsThrown;
 
-        if(data.thrownScore != '0' && data.thrownScore != undefined && audioEnabled){
+        if(/*data.thrownScore != '0' && */data.thrownScore != undefined && audioEnabled){
             console.log(`Received thrown score: ${data.thrownScore}`);
             var soundNumber;
             if(data.thrownScore == 'Standaard'){
@@ -344,7 +345,12 @@ io.on('connection', (socket) => {
                     soundNumber = '0' + soundNumber;
                 }
             }
-            let soundFile = path.join(__dirname,('../audio/' + soundNumber + '.mp3'));
+            let soundFile;
+            if(!document.getElementById('normalSound').checked && specialSounds.includes(soundNumber)){
+                soundFile = path.join(__dirname,('../audio/M' + soundNumber + '.mp3'));
+            }else{
+                soundFile = path.join(__dirname, ('../audio/' + soundNumber + ".mp3"));
+            }
 
             let audio = new Audio(soundFile);
             audio.play();

@@ -1197,7 +1197,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
           ),
           TextButton(
             onPressed: () {
-              sendCurrentScores(false);
+              sendCurrentScores(true);
               String msg =
                   "${widget.game.gameID},${player1.legsWon.toString()},${player1.gameAverage},${player1.dartsThrown},${player2.legsWon.toString()},${player2.gameAverage},${player2.dartsThrown}";
               socket.emit('gamePlayed', msg);
@@ -1227,7 +1227,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
         actions: <Widget>[
           TextButton(
             onPressed: () {
-              sendCurrentScores(false);
+              sendCurrentScores(true);
               resetLastScore(winnerType, resetScore: false);
               Navigator.pop(context, 'Cancel');
             },
@@ -1336,13 +1336,13 @@ class _PouleGameBodyState extends State<PouleGameBody> {
       player2.myTurn = false; //spelers niet de beurt geven om vervolgens
       player.myTurn = true; //de juiste speler wel de beurt te geven.
     }
-    sendCurrentScores(false);
+    sendCurrentScores(true);
     setState(() {
       null;
     });
   }
 
-  void sendCurrentScores(bool firstMsg, {int thrownScore = 0}) {
+  void sendCurrentScores(bool dontPlaySound, {int thrownScore = 0}) {
     int startingPlayer;
     if (activeStartingPlayer == ChosenPlayerEnum.player1) {
       startingPlayer = 0;
@@ -1350,7 +1350,11 @@ class _PouleGameBodyState extends State<PouleGameBody> {
       startingPlayer = 1;
     }
     String msg =
-        '${widget.game.gameID},${player1.currentScore},${player1.legsWon},${player1.dartsThrown},${player2.currentScore},${player2.legsWon},${player2.dartsThrown},${player1.myTurn},$startingPlayer,$thrownScore';
+        '${widget.game.gameID},${player1.currentScore},${player1.legsWon},${player1.dartsThrown},${player2.currentScore},${player2.legsWon},${player2.dartsThrown},${player1.myTurn},$startingPlayer';
+
+    if (!dontPlaySound) {
+      msg += ',$thrownScore';
+    }
 
     print(msg);
     socket.emit('activeGameInfo', msg);
