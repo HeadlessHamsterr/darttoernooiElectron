@@ -900,8 +900,8 @@ function loadGame(){
 
     udpServer.on("message", function(message){
         message = message.toString();
-        let messageList = message.split(',');
-
+        let messageList = message.split(',')
+        console.log(message);
         if(messageList[0] == "serverNameRequest"){
             if(messageList[2][0] == version[0]){
                 let msg = `serverName,${hostName},${address()}`;
@@ -1788,10 +1788,12 @@ function handle(e){
 }
 
 function updateSettings(){
-    for(let i=0; i<appSettings.length; i++){
-        appSettings[i] = document.getElementById(appOptions[i]+"Input").value;
+    for(let i=0; i<Object.keys(appSettings).length; i++){
+        appSettings[appOptions[i]] = document.getElementById(`${appOptions[i]}Input`).value;
+        console.log(`${appOptions[i]}: ${document.getElementById(`${appOptions[i]}Input`).value}`);
     }
-    io.emit("settingsUpdate", appSettings);
+    io.emit("settingsUpdate", JSON.stringify(appSettings));
+    console.log(JSON.stringify(appSettings))
 
     if(pouleExists(pouleA)){
         for(let i = 0; i < pouleA.players.length; i++){

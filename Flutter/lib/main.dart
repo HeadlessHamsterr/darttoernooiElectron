@@ -222,6 +222,7 @@ class _StartScreenState extends State<StartScreen> {
       List<int> data =
           utf8.encode("serverNameRequest,$deviceIP,${appInfo.version}");
       udpSocket.send(data, _destinationAddress, 8889);
+      print("Just send: ${utf8.decode(data)}");
       connectionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
         //Serverlijst leegmaken en scherm refreshen zodat een verdwenen server
         //niet in de lijst blijft staan
@@ -575,15 +576,17 @@ class _PoulesOverviewState extends State<PoulesOverview> {
   }
 
   void updateSettings(data) {
-    gameInfoClass.pouleScore = int.parse(data[0]);
-    gameInfoClass.pouleLegs = int.parse(data[1]);
-    gameInfoClass.quartScore = int.parse(data[2]);
-    gameInfoClass.quartLegs = int.parse(data[3]);
-    gameInfoClass.halfScore = int.parse(data[4]);
-    gameInfoClass.halfLegs = int.parse(data[5]);
-    gameInfoClass.finalScore = int.parse(data[6]);
-    gameInfoClass.finalLegs = int.parse(data[7]);
-    print(gameInfoClass);
+    Map<String, dynamic> jsonData = jsonDecode(data);
+    gameInfoClass.pouleScore = int.parse(jsonData['pouleScore']);
+    gameInfoClass.pouleLegs = int.parse(jsonData['pouleLegs']);
+    gameInfoClass.quartScore = int.parse(jsonData['quartScore']);
+    gameInfoClass.quartLegs = int.parse(jsonData['quartLegs']);
+    gameInfoClass.halfScore = int.parse(jsonData['halfScore']);
+    gameInfoClass.halfLegs = int.parse(jsonData['halfLegs']);
+    gameInfoClass.finalScore = int.parse(jsonData['finalScore']);
+    gameInfoClass.finalLegs = int.parse(jsonData['finalLegs']);
+    print("Updated game settings:");
+    print(gameInfoClass.pouleLegs);
   }
 
   void pouleBtnPress(pouleNum, context) {
