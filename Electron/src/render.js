@@ -1301,7 +1301,7 @@ function exportPDF(poule, filePath, exportToPDF){
     }
 }
 
-function makeFinals(numberOfPoules){
+function makeFinals(numberOfPoules, finalType = ""){
     var rosterDiv = document.getElementById('mainRosterSubDiv');
     numberOfPoules = parseInt(numberOfPoules)
 
@@ -1326,7 +1326,12 @@ function makeFinals(numberOfPoules){
         finalsGames = ['M5', 'M6'];
     }
 
-    let finals = $('<table id="finalsTable" class="mainRosterTable"><tr><th colspan="3"><h2>Finale</h2></th></tr><tr><td><h2 id="M71Name"></h2></td><td><h2>-</h2></td><td><h2 id="M72Name"></h2></td></tr><tr><td><input id="M71Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M72Score" class="gameScore"></td></tr></table>');
+    let finals = ""
+    if(finalType == "secondPlace"){
+        finals = $('<table id="finalsTable" class="mainRosterTable"><tr><th colspan="3"><h2>Verliezers finale</h2></th></tr><tr><td><h2 id="M71Name"></h2></td><td><h2>-</h2></td><td><h2 id="M72Name"></h2></td></tr><tr><td><input id="M71Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M72Score" class="gameScore"></td></tr></table>');    
+    }else{
+        finals = $('<table id="finalsTable" class="mainRosterTable"><tr><th colspan="3"><h2>Finale</h2></th></tr><tr><td><h2 id="M71Name"></h2></td><td><h2>-</h2></td><td><h2 id="M72Name"></h2></td></tr><tr><td><input id="M71Score" class="gameScore"></td><td><h2>-</h2></td><td><input id="M72Score" class="gameScore"></td></tr></table>');
+    }
     finalsGames.push('M7');
     $(rosterDiv).append(finals);
 
@@ -1796,10 +1801,8 @@ function handle(e){
 function updateSettings(){
     for(let i=0; i<Object.keys(appSettings).length; i++){
         appSettings[appOptions[i]] = document.getElementById(`${appOptions[i]}Input`).value;
-        console.log(`${appOptions[i]}: ${document.getElementById(`${appOptions[i]}Input`).value}`);
     }
     io.emit("settingsUpdate", JSON.stringify(appSettings));
-    console.log(JSON.stringify(appSettings))
 
     if(pouleExists(pouleA)){
         for(let i = 0; i < pouleA.players.length; i++){
