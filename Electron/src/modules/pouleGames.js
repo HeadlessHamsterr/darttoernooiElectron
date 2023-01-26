@@ -261,8 +261,13 @@ module.exports = class pouleGames{
         }
 
         try{
-            var points1 = document.getElementById(`tie${this.pouleNum}1Score`).value;
-            var points2 = document.getElementById(`tie${this.pouleNum}2Score`).value;
+            if(numPoules > 1){
+                var points1 = document.getElementById(`tie${this.pouleNum}1Score`).value;
+                var points2 = document.getElementById(`tie${this.pouleNum}2Score`).value;
+            }else{
+                var points1 = document.getElementById('M71Score').value;
+                var points2 = document.getElementById('M72Score').value;
+            }
 
             points1 = parseInt(points1);
             points2 = parseInt(points2);
@@ -275,7 +280,7 @@ module.exports = class pouleGames{
                 points2 = 0;
             }
 
-            //De punten uit de tie breaker worden afgetrokken van de scores van de spelers
+            //De punten uit de tie breaker worden niet opgeteld bij de scores van de spelers
             //Anders kan de winnaar van de tie breaker eerste worden in de poule, terwijl het altijd alleen om de tweede plaats mag gaan
             //Alleen de counterPoints worden toegevoegd, om zo ook niet het risico te lopen dat beide spelers onder de laatste speler terrecht komen
             for(let i = 0; i < this.players.length; i++){
@@ -299,7 +304,7 @@ module.exports = class pouleGames{
                 this.players[i].tournamentAvg = Math.round(avg*100)/100;
             }
             this.players[i].calculateHiddenPoints();
-        }  
+        }
 
         this.sort();
 
@@ -314,11 +319,15 @@ module.exports = class pouleGames{
                 try{
                     $(`.poule${this.pouleNum}TieBreaker`).remove();
                     $(`#poule${this.pouleNum}TiedGames`).remove();
+
+                    if(numPoules == 1){
+                        $('#finalsTable').remove();
+                    }
                 }catch(e){
                     console.error(`All games played, no tie detected error: ${e}`);
                 }
             }
-            if(numPoules == 1 && this.tieResolved){
+            /*if(numPoules == 1 && this.tieResolved){
                 var points1 = document.getElementById('M71Score').value;
                 var points2 = document.getElementById('M72Score').value;
                 points1 = parseInt(points1);
@@ -340,12 +349,12 @@ module.exports = class pouleGames{
                     this.secondPlace = document.getElementById('M71Name').innerHTML;
                 }
                 document.getElementById("M81Name").innerHTML = this.winner;
-            }else{
+            }else{*/
                 this.winner = this.rankings[0][0];
                 this.secondPlace = this.rankings[1][0];
                 this.winnerPrinted = true;
                 this.finalsDrawn = true;
-            }
+            //}
         }else if(!this.allGamesPlayed()){
             this.winner = "";
             this.secondPlace = "";
@@ -359,6 +368,9 @@ module.exports = class pouleGames{
                 try{
                     $(`.poule${this.pouleNum}TieBreaker`).remove();
                     $(`#poule${this.pouleNum}TiedGames`).remove();
+                    if(numPoules == 1){
+                        $('#finalsTable').remove();
+                    }
                 }catch(e){
                     console.error(`Not all games played error: ${e}`);
                 }
@@ -375,7 +387,7 @@ module.exports = class pouleGames{
                 this.tiedPlayers = newTiedPlayers;
                 if(!this.tieDetected){
                     if(numPoules == 1){
-                        makeFinals(0);
+                        makeFinals(0, this.tiedPlayers[2]);
                         $("#winnerTable").insertAfter("#finalsTable");
                         document.getElementById('M71Name').innerHTML = this.tiedPlayers[0];
                         document.getElementById('M72Name').innerHTML = this.tiedPlayers[1];
@@ -499,9 +511,9 @@ module.exports = class pouleGames{
                 //Eerst controleren of nummer 2 en 3 gelijk staan, als dat niet zo is kijken of nummers 1 en 2 gelijk staan
                 //Als alle drie gelijk staan, wordt namelijk alleen een tie breaker gespeeld tussen 2 en 3, dus daaraan voorrang geven
                 if(playersCopy[1].legsWon == playersCopy[2].legsWon && playersCopy[1].legsWon != 0 && playersCopy[1].hiddenPoints == playersCopy[2].hiddenPoints){
-                    newTiedPlayers = [playersCopy[1].name, playersCopy[2].name];
+                    newTiedPlayers = [playersCopy[1].name, playersCopy[2].name, "secondPlace"];
                 }else if(playersCopy[0].legsWon == playersCopy[1].legsWon && playersCopy[0].legsWon != 0 && playersCopy[0].hiddenPoints == playersCopy[1].hiddenPoints){
-                    newTiedPlayers = [playersCopy[0].name, playersCopy[1].name];
+                    newTiedPlayers = [playersCopy[0].name, playersCopy[1].name, "firstPlace"];
                 }
                 return newTiedPlayers;
             }else{
