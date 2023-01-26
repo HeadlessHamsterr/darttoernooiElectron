@@ -125,43 +125,66 @@ module.exports = class pouleGames{
         this.rankings = []
         for(let i = 0; i < this.players.length; i++){
             if(this.players[i].gamesPlayed != 0){
-                let tempArray = [this.players[i].name, this.players[i].legsWon, this.players[i].hiddenPoints, this.players[i].tournamentAvg];
-                this.rankings.push(tempArray);
+                //let tempArray = [this.players[i].name, this.players[i].legsWon, this.players[i].hiddenPoints, this.players[i].tournamentAvg];
+                this.rankings.push(this.players[i]);
             }
         }
         this.rankings.sort(function(a,b){
-            if(b[1] != a[1]){
-                return(b[1]-a[1]);
-            }else if(b[2] != a[2]){
-                return(b[2]-a[2]);
+            if(b.legsWon != a.legsWon){
+                return(b.legsWon-a.legsWon);
+            }else if(b.hiddenPoints != a.hiddenPoints){
+                return(b.hiddenPoints-a.hiddenPoints);
             }else{
-                return(b[3]-a[3]);
+                return(b.tournamentAvg-a.tournamentAvg);
             }
         });
+
         for(let i = 0; i < this.players.length; i++){
             if(this.players[i].gamesPlayed == 0){
-                let tempArray = [this.players[i].name, this.players[i].legsWon, this.players[i].hiddenPoints, this.players[i].tournamentAvg];
-                this.rankings.push(tempArray);
+                //let tempArray = [this.players[i].name, this.players[i].legsWon, this.players[i].hiddenPoints, this.players[i].tournamentAvg];
+                this.rankings.push(this.players[i]);
             }
         }
 
-        var pouleTable = document.getElementById(`poule${this.pouleNum}Table`);
-        var pouleTableHeader = $('<tr><th>Speler</th><th>Score</th><th>Saldo</th></tr>');
-
-        $(pouleTable).empty();
-        $(pouleTable).append(pouleTableHeader);
-
-        for(let i in this.rankings){
-            if(typeof this.rankings[i][1] == 'undefined'){
-                this.rankings[i][1] = 0;
+        let newRankings = false;
+        if(this.lastRankings.length > 0){
+            for(let i = 0; i < this.lastRankings.length; i++){
+                if(this.lastRankings[i].name != this.rankings[i].name){
+                    newRankings = true;
+                    break;
+                }else if(this.lastRankings[i].legsWon != this.rankings[i].legsWon){
+                    newRankings = true;
+                    break;
+                }else if(this.lastRankings[i].hiddenPoints != this.rankings[i].hiddenPoints){
+                    newRankings = true;
+                    break;
+                }else if(this.lastRankings[i].tournamentAvg != this.rankings[i].tournamentAvg){
+                    newRankings = true;
+                    break;
+                }
             }
-
-            var tableEntry = $(`<tr><td>${this.rankings[i][0]}</td><td>${this.rankings[i][1]}</td><td>${this.rankings[i][2]}</td></tr>`);
-            $(pouleTable).append(tableEntry);
+        }else{
+            newRankings = true;
         }
 
-        if(JSON.stringify(this.rankings) != JSON.stringify(this.lastRankings)){
-            this.lastRankings = JSON.parse(JSON.stringify(this.rankings));
+        if(newRankings){
+            var pouleTable = document.getElementById(`poule${this.pouleNum}Table`);
+            var pouleTableHeader = $('<tr><th>Speler</th><th>Score</th><th>Saldo</th></tr>');
+
+            $(pouleTable).empty();
+            $(pouleTable).append(pouleTableHeader);
+
+            for(let i in this.rankings){
+                if(typeof this.rankings[i].legsWon == 'undefined'){
+                    this.rankings[i].legsWon = 0;
+                }
+
+                var tableEntry = $(`<tr><td><span class="hint--bottom" aria-label="Gemiddelde score: ${this.rankings[i].tournamentAvg}">${this.rankings[i].name}</span></td><td>${this.rankings[i].legsWon}</td><td>${this.rankings[i].hiddenPoints}</td></tr>`);
+                $(pouleTable).append(tableEntry);
+            }
+
+            //if(JSON.stringify(this.rankings) != JSON.stringify(this.lastRankings)){
+                //this.lastRankings = JSON.parse(JSON.stringify(this.rankings));
             let msg = [this.rankings, this.sendPouleGames(), 'poule'];
             io.emit(`poule${this.pouleNum}Ranks`, msg);
 
@@ -169,6 +192,12 @@ module.exports = class pouleGames{
                 let msg = [this.pouleNum, this.rankings];
                 ipcRenderer.send("updatePouleRanks", msg);
             }
+            //}
+        }
+
+        this.lastRankings = [];
+        for(let i = 0; i < this.rankings.length; i++){
+           this.lastRankings.push(this.rankings[i]);
         }
     }
 
@@ -327,34 +356,11 @@ module.exports = class pouleGames{
                     console.error(`All games played, no tie detected error: ${e}`);
                 }
             }
-            /*if(numPoules == 1 && this.tieResolved){
-                var points1 = document.getElementById('M71Score').value;
-                var points2 = document.getElementById('M72Score').value;
-                points1 = parseInt(points1);
-                points2 = parseInt(points2);
 
-                if(isNaN(points1)){
-                    points1 = 0;
-                }
-
-                if(isNaN(points2)){
-                    points2 = 0;
-                }
-
-                if(points1 > points2){
-                    this.winner = document.getElementById('M71Name').innerHTML;
-                    this.secondPlace = document.getElementById('M72Name').innerHTML;
-                }else if(points2 > points1){
-                    this.winner = document.getElementById('M72Name').innerHTML;
-                    this.secondPlace = document.getElementById('M71Name').innerHTML;
-                }
-                document.getElementById("M81Name").innerHTML = this.winner;
-            }else{*/
-                this.winner = this.rankings[0][0];
-                this.secondPlace = this.rankings[1][0];
-                this.winnerPrinted = true;
-                this.finalsDrawn = true;
-            //}
+            this.winner = this.rankings[0].name;
+            this.secondPlace = this.rankings[1].name;
+            this.winnerPrinted = true;
+            this.finalsDrawn = true;
         }else if(!this.allGamesPlayed()){
             this.winner = "";
             this.secondPlace = "";
