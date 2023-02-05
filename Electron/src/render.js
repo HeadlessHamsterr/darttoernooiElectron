@@ -919,6 +919,10 @@ function loadGame(){
     });
 
     io.emit('pouleInfo', exportGameInfo(false));
+
+    if(numPoules == 1){
+        toggleAudio();
+    }
 }
 
 function loadPoulGames(pouleLetter, jsonObj){
@@ -1226,6 +1230,10 @@ function makePoules(){
         }
     });
     io.emit('pouleInfo', exportGameInfo(false));
+
+    if(numPoules == 1){
+        toggleAudio();
+    }
 }
 
 function addPlayersToPoule(poule, players, shouldBePrinted, playerSettingsForm){
