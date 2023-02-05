@@ -90,7 +90,7 @@
     "@electron-forge/maker-squirrel": "^6.0.0-beta.60",
     "@electron-forge/maker-zip": "^6.0.0-beta.60",
     "@socket.io/sticky": "^1.0.1",
-    "datagram": "^0.9.2",
+    "datagram": "^1.0.0",
     "electron": "15.5.5",
     "electron-builder": "22.10.5",
     "electron-compile": "^6.4.4",
