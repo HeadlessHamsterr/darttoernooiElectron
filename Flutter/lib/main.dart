@@ -10,7 +10,6 @@ import 'package:auto_size_text/auto_size_text.dart';
 import 'package:Darttoernooi/size_config.dart';
 import 'package:network_info_plus/network_info_plus.dart';
 import 'package:package_info/package_info.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'defs/constants.dart';
 import 'defs/classes.dart';
 import 'package:wifi_configuration_2/wifi_configuration_2.dart';
@@ -117,14 +116,14 @@ class _StartScreenState extends State<StartScreen> {
       }
     }
 
-    bool wifiConnected =
-        await wifiConfiguration.connectedToWifi().then((value) {
-      if (value.ssid != null) {
-        return true;
-      } else {
-        return false;
-      }
-    });
+    final info = NetworkInfo();
+    bool wifiConnected = false;
+    final wifiName = await info.getWifiIP();
+    print('Wifiname: $wifiName');
+
+    if (wifiName != null) {
+      wifiConnected = true;
+    }
 
     if (!wifiConnected) {
       Timer wifiAlertTimer =
@@ -147,18 +146,16 @@ class _StartScreenState extends State<StartScreen> {
       });
 
       while (!wifiConnected) {
-        wifiConnected = await wifiConfiguration.connectedToWifi().then((value) {
-          if (value.ssid != null) {
-            return true;
-          } else {
-            return false;
-          }
-        });
+        final wifiName = await info.getWifiIP();
+        print('Wifiname: $wifiName');
+
+        if (wifiName != null) {
+          wifiConnected = true;
+        }
       }
       wifiAlertTimer.cancel();
     }
 
-    final info = NetworkInfo();
     var deviceIP = await info.getWifiIP();
     //Als de wifi pas net aan staat is het IP null, dus wachten tot de telefoon een IP heeft gekregen
     while (deviceIP == null) {
@@ -329,10 +326,8 @@ class _StartScreenState extends State<StartScreen> {
     startServerScanning(context);
     return MaterialApp(
       theme: ThemeData(
-          scaffoldBackgroundColor: const Color(0xFF181818),
-          textTheme: GoogleFonts.poppinsTextTheme(
-            Theme.of(context).textTheme,
-          )),
+        scaffoldBackgroundColor: const Color(0xFF181818),
+      ),
       home: Builder(builder: (context) {
         standardContext = context;
         sizeConfig.init(context);
@@ -558,6 +553,7 @@ class _PoulesOverviewState extends State<PoulesOverview> {
       pouleNames.add("Finales");
 
       //gameInfo.addAll(data[1]);
+      print(data);
       gameInfoClass.pouleScore = int.parse(data[1][0]);
       gameInfoClass.pouleLegs = int.parse(data[1][1]);
       gameInfoClass.quartScore = int.parse(data[1][2]);
@@ -675,10 +671,11 @@ class _PouleScreenState extends State<PouleScreen> {
   void updateRanks(data) {
     rankings.clear();
     for (var i = 0; i < data[0].length; i++) {
+      print(data[0][i]);
       rankings.add(PouleRanking(
-          playerName: data[0][i][0].toString(),
-          points: data[0][i][1].toString(),
-          pointsDiff: data[0][i][2].toString()));
+          playerName: data[0][i]['name'].toString(),
+          points: data[0][i]['legsWon'].toString(),
+          pointsDiff: data[0][i]['hiddenPoints'].toString()));
     }
 
     games.clear();
@@ -1026,7 +1023,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
               int.parse(activePlayer.thrownScore) > activePlayer.currentScore) {
             ScaffoldMessenger.of(widget.context).showSnackBar(
               SnackBar(
-                content: Text(activePlayer.thrownScore + ' is te hoog'),
+                content: Text('${activePlayer.thrownScore} is te hoog'),
                 duration: const Duration(seconds: 5),
               ),
             );
@@ -1238,7 +1235,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
               Navigator.pop(context, 'Bevestigd');
               winnerType.legsWon++;
               if (winnerType.legsWon > (legsToPlay - winnerType.legsWon)) {
-                sendCurrentScores(false);
+                sendCurrentScores(true);
                 endGame(winnerName, winnerType);
               } else {
                 resetGame();
@@ -1294,7 +1291,7 @@ class _PouleGameBodyState extends State<PouleGameBody> {
     player1.myTurn
         ? activeStartingPlayer = ChosenPlayerEnum.player1
         : activeStartingPlayer = ChosenPlayerEnum.player2;
-    sendCurrentScores(false);
+    sendCurrentScores(true);
     setState(() {
       null;
     });
