@@ -412,9 +412,9 @@ class _StartScreenState extends State<StartScreen> {
                             style: TextStyle(color: Colors.white)),
                   ])),
               displayNoConnectMsg
-                  ? Center(
+                  ? const Center(
                       child: Column(
-                        children: const [
+                        children: [
                           Text('Wordt de server niet gevonden?',
                               style: TextStyle(color: Colors.white)),
                           Text('Probeer de PC en mobiele app te updaten.',
