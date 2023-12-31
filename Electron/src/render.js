@@ -38,12 +38,10 @@ let appSettings = {
     "finalLegs": 0
 };
 
-var sound = null;
 var audioEnabled = false;
 var pouleSortingTimer;
 var quickSaveTimer;
 var makePoulesBtn;
-var tieBreakersEnabled;
 const sockets = new Set();
 var numPlayers = 0;
 var numPoules = 0;
@@ -56,8 +54,9 @@ let finalsGames = [];
 let version = ''
 let screenState = "startScreen";
 
-var udpServer = udp.createSocket("udp4");
+var udpServer = udp.createSocket("udp4")
 udpServer.bind(8889);
+
 
 io.on('connection', (socket) => {
     console.log(`Websocket ${socket.id} connection astablished`);
@@ -634,11 +633,16 @@ function continueToGame(){
 }
 
 function returnToHome(){
+    io.emit("gameClose");
+    ipcRenderer.send("restart")
+    /*io.emit("gameClose");
+    udpServer.on("message", ()=>{});
+
     closeNav();
     clearInterval(quickSaveTimer);
     clearInterval(pouleSortingTimer);
     for(const socket in sockets){
-        socket.disconnect();
+        socket.destroy();
         sockets.delete(socket);
     }
     websocketServer.close();
@@ -688,6 +692,7 @@ function returnToHome(){
     closeNav();
     $(document.getElementById('controlBtnDiv')).hide();
     $(document.getElementById('gameOptionsWrapper')).show();
+    */
 }
 
 function drawSetup(){

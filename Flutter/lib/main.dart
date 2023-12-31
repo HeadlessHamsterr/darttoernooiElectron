@@ -64,11 +64,23 @@ class StartScreen extends StatefulWidget {
 }
 
 class _StartScreenState extends State<StartScreen> {
+  final GlobalKey<RefreshIndicatorState> _refreshIndicatorKey =
+      GlobalKey<RefreshIndicatorState>();
   late BuildContext standardContext;
   late Timer connectionTimer;
   late Timer boolTimer;
   bool stopChecking = false;
   bool readyToCheck = false;
+  bool scanning = true;
+
+  List<String> availableHosts = [];
+  List<String> newHosts = [];
+  List<Widget> hostButtons = [];
+  final ipAddressController = TextEditingController(text: serverIP);
+  bool displayNoConnectMsg = false;
+  var destinationAddress;
+  var deviceIP;
+
   @override
   void initState() {
     super.initState();
@@ -77,13 +89,8 @@ class _StartScreenState extends State<StartScreen> {
     /*WidgetsBinding.instance.addPostFrameCallback((_) {
       startServerScanning();
     });*/
+    startServerScanning(context);
   }
-
-  List<String> availableHosts = [];
-  List<String> newHosts = [];
-  List<Widget> hostButtons = [];
-  final ipAddressController = TextEditingController(text: serverIP);
-  bool displayNoConnectMsg = false;
 
   void startServerScanning(BuildContext context) async {
     WifiConfiguration wifiConfiguration = WifiConfiguration();
@@ -95,6 +102,7 @@ class _StartScreenState extends State<StartScreen> {
 
     if (!wifiEnabled) {
       print("Wifi not enabled");
+      // ignore: use_build_context_synchronously
       showDialog(
           context: context,
           builder: (BuildContext context) => AlertDialog(
@@ -156,7 +164,7 @@ class _StartScreenState extends State<StartScreen> {
       wifiAlertTimer.cancel();
     }
 
-    var deviceIP = await info.getWifiIP();
+    deviceIP = await info.getWifiIP();
     //Als de wifi pas net aan staat is het IP null, dus wachten tot de telefoon een IP heeft gekregen
     while (deviceIP == null) {
       deviceIP = await info.getWifiIP();
@@ -172,7 +180,24 @@ class _StartScreenState extends State<StartScreen> {
     var broadCastAddr = await info.getWifiBroadcast();
     broadCastAddr = broadCastAddr.toString().replaceAll(RegExp(r'/'), '');
     print(broadCastAddr);
-    var _destinationAddress = InternetAddress(broadCastAddr);
+    destinationAddress = InternetAddress(broadCastAddr);
+
+    sendServerRequests().then(
+      (value) => setState(() {}),
+    );
+    return Future.value();
+  }
+
+  Future<void> sendServerRequests() async {
+    scanning = true;
+    availableHosts.clear();
+    hostButtons.clear();
+    newHosts.clear();
+    setState(() {});
+
+    print(hostButtons);
+
+    Completer<void> c = Completer<void>();
 
     RawDatagramSocket.bind(InternetAddress.anyIPv4, 8889)
         .then((RawDatagramSocket udpSocket) {
@@ -192,42 +217,17 @@ class _StartScreenState extends State<StartScreen> {
               setState(() {});
             }
           }
-          //Extra code voor het ontvangen van het serverClose bericht
-          //Is redundant geworden door het leeg maken van de serverlijst bij een nieuwe request, wel laten staan voor de zekerheid
-          else if (messageList[0] == 'serverClose') {
-            for (int i = 0; i < availableHosts.length; i++) {
-              if (availableHosts[i] == messageList[1]) {
-                availableHosts.removeAt(i);
-                hostButtons.removeAt(i);
-                if (availableHosts.isEmpty) {
-                  boolTimer =
-                      Timer.periodic(const Duration(seconds: 30), (timer) {
-                    displayNoConnectMsg = true;
-                    setState(() {});
-                    if (displayNoConnectMsg || stopChecking) {
-                      timer.cancel();
-                    }
-                  });
-                }
-                setState(() {});
-                break;
-              }
-            }
-          }
         }
       });
       List<int> data =
           utf8.encode("serverNameRequest,$deviceIP,${appInfo.version}");
-      udpSocket.send(data, _destinationAddress, 8889);
+      udpSocket.send(data, destinationAddress, 8889);
       print("Just send: ${utf8.decode(data)}");
       connectionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        //Serverlijst leegmaken en scherm refreshen zodat een verdwenen server
-        //niet in de lijst blijft staan
-
         //UDP Broadcast sturen om servers te vinden
-        udpSocket.send(data, _destinationAddress, 8889);
+        udpSocket.send(data, destinationAddress, 8889);
         if (stopChecking) {
-          timer.cancel();
+          connectionTimer.cancel();
         }
       });
 
@@ -235,11 +235,22 @@ class _StartScreenState extends State<StartScreen> {
         displayNoConnectMsg = true;
         setState(() {});
         if (displayNoConnectMsg || stopChecking) {
-          timer.cancel();
+          boolTimer.cancel();
         }
       });
+
+      Timer(const Duration(seconds: 10), (() {
+        scanning = false;
+        print(hostButtons);
+        connectionTimer.cancel();
+        boolTimer.cancel();
+        udpSocket.close();
+        c.complete();
+        setState(() {});
+      }));
     });
-    return Future.value(1);
+
+    return c.future;
   }
 
   void enterIP(BuildContext context, String serverIP) {
@@ -323,7 +334,6 @@ class _StartScreenState extends State<StartScreen> {
 
   @override
   Widget build(BuildContext context) {
-    startServerScanning(context);
     return MaterialApp(
       theme: ThemeData(
         scaffoldBackgroundColor: const Color(0xFF181818),
@@ -391,39 +401,89 @@ class _StartScreenState extends State<StartScreen> {
                 ],
               ),
             ),
-            body: ListView(children: [
-              Container(
-                  padding: const EdgeInsets.fromLTRB(50, 50, 50, 50),
-                  child: Column(children: [
-                    const AutoSizeText(
-                      "Beschikbare wedstrijden:",
-                      maxLines: 1,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
+            body: RefreshIndicator(
+              key: _refreshIndicatorKey,
+              onRefresh: sendServerRequests,
+              child: ListView(children: [
+                Container(
+                    padding: const EdgeInsets.fromLTRB(50, 50, 50, 50),
+                    child: Column(children: [
+                      const AutoSizeText(
+                        "Beschikbare wedstrijden:",
+                        maxLines: 1,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 20,
+                        ),
                       ),
-                    ),
-                    readyToCheck
-                        ? hostButtons.isNotEmpty
-                            ? Column(children: hostButtons)
-                            : Image.asset('assets/loading.gif',
-                                height: 70, width: 70)
-                        : const Text('Wachten op WiFi verbinding',
-                            style: TextStyle(color: Colors.white)),
-                  ])),
-              displayNoConnectMsg
-                  ? const Center(
-                      child: Column(
-                        children: [
-                          Text('Wordt de server niet gevonden?',
-                              style: TextStyle(color: Colors.white)),
-                          Text('Probeer de PC en mobiele app te updaten.',
-                              style: TextStyle(color: Colors.white))
-                        ],
-                      ),
-                    )
-                  : const Text(''),
-            ]));
+                      readyToCheck
+                          ? Column(
+                              children: [
+                                scanning
+                                    ? const Column(
+                                        children: [
+                                          SizedBox(
+                                            height: 20,
+                                          ),
+                                          Text(
+                                            "Scannen...",
+                                            style:
+                                                TextStyle(color: Colors.white),
+                                          ),
+                                        ],
+                                      )
+                                    : hostButtons.isEmpty
+                                        ? const Column(
+                                            children: [
+                                              SizedBox(
+                                                height: 20,
+                                              ),
+                                              Text(
+                                                "Geen wedstrijden gevonden",
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ],
+                                          )
+                                        : const SizedBox(),
+                                Column(children: hostButtons),
+                              ],
+                            )
+                          : const Column(
+                              children: [
+                                SizedBox(
+                                  height: 20,
+                                ),
+                                Text('Wachten op WiFi verbinding',
+                                    style: TextStyle(color: Colors.white)),
+                              ],
+                            ),
+                      !scanning
+                          ? TextButton(
+                              onPressed: () {
+                                _refreshIndicatorKey.currentState?.show();
+                                sendServerRequests().then((value) => setState(
+                                      () {},
+                                    ));
+                              },
+                              child: const Text("Opnieuw scannen"))
+                          : const SizedBox()
+                    ])),
+                /*displayNoConnectMsg
+                    ? const Center(
+                        child: Column(
+                          children: [
+                            Text('Wordt de server niet gevonden?',
+                                style: TextStyle(color: Colors.white)),
+                            Text('Probeer de PC en mobiele app te updaten.',
+                                style: TextStyle(color: Colors.white))
+                          ],
+                        ),
+                      )
+                    : const Text(''),*/
+              ]),
+            ));
       }),
     );
   }
@@ -526,7 +586,31 @@ class _PoulesOverviewState extends State<PoulesOverview> {
     });*/
     socket.on('pouleInfo', (data) => updatePouleInfo(data));
     socket.on('settingsUpdate', (data) => updateSettings(data));
+    socket.on('gameClose', (_) => serversideGameClose());
     socket.emit('allPouleInfoRequest', 'plsGeef');
+  }
+
+  void serversideGameClose() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: const Text("Wedstrijd gesloten"),
+        content: const Text(
+            "De server heeft de wedstrijd gesloten.\nJe wordt teruggestuurd naar het startscherm."),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () {
+              socket.disconnect();
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (BuildContext context) => const StartScreen()),
+              );
+            },
+            child: const Text("Sluiten"),
+          ),
+        ],
+      ),
+    );
   }
 
   void updatePouleInfo(data) {

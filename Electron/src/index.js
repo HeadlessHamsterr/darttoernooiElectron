@@ -66,6 +66,12 @@ ipcMain.on("klaarErmee", ()=>{
   app.quit();
 });
 
+ipcMain.on("restart", ()=>{
+  console.log("Restarting")
+  app.relaunch();
+  app.exit();
+})
+
 ipcMain.on('connectServer', async(event) =>{
   const rendererWindow = new BrowserWindow({
     width: mainWindow.getSize()[0],
