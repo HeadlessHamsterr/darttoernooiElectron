@@ -1026,9 +1026,11 @@ function getGameInfo(){
 
         for(let key in appSettings){
             let selectId = `${key}Select`;
-            console.log(selectId);
             appSettings[key] = document.getElementById(selectId).value;
         }
+
+        console.log("Game score settings:")
+        console.log(appSettings);
 
         $(document.getElementById('gameSetup')).hide();
         $(document.getElementById('playerInputDiv')).show();
