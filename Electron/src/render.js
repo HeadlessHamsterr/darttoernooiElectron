@@ -633,6 +633,7 @@ function continueToGame(){
 }
 
 function returnToHome(){
+    console.log("Returning home...")
     io.emit("gameClose");
     ipcRenderer.send("restart")
     /*io.emit("gameClose");

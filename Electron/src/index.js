@@ -1,6 +1,6 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
-const {networkInterfaces} = require('os');
+const { networkInterfaces } = require('os');
 const { fs } = require('fs');
 let mainWindow = null;
 let activeGamesWindow = null;
@@ -17,30 +17,30 @@ if (require('electron-squirrel-startup')) { // eslint-disable-line global-requir
   app.quit();
 }
 
-ipcMain.on('hostNameUpdate', (event, arg) =>{
+ipcMain.on('hostNameUpdate', (event, arg) => {
   hostName = arg;
 });
-ipcMain.on('enterFileName', async (event)=>{
+ipcMain.on('enterFileName', async (event) => {
   const result = await showSaveDialog();
-  if(result["canceled"]){
+  if (result["canceled"]) {
     event.returnValue = null;
-  }else{
+  } else {
     event.returnValue = result["filePath"];
   }
 });
-ipcMain.on('downloadPath', async(event)=>{
+ipcMain.on('downloadPath', async (event) => {
   const result = await showSaveDialogForDownload();
-  if(result["canceled"]){
+  if (result["canceled"]) {
     event.returnValue = "canceled";
-  }else{
+  } else {
     event.returnValue = result["filePaths"];
   }
 });
-ipcMain.on('selectSaveFile', async(event) =>{
+ipcMain.on('selectSaveFile', async (event) => {
   const result = await showLoadDialog();
-  if(result["canceled"]){
+  if (result["canceled"]) {
     event.returnValue = null;
-  }else{
+  } else {
     event.returnValue = result["filePaths"];
   }
 });
@@ -49,30 +49,40 @@ ipcMain.on('getDocPath', (event) => {
   event.returnValue = app.getPath("documents");
 });
 
-ipcMain.on('selectPDFDirectory', async(event) =>{
+ipcMain.on('selectPDFDirectory', async (event) => {
   const result = await showOpenDialog();
-  if(result["canceled"]){
+  if (result["canceled"]) {
     event.returnValue = null;
-  }else{
+  } else {
     event.returnValue = result["filePaths"];
   }
 });
 
-ipcMain.on('loadIndex', () =>{
+ipcMain.on('loadIndex', () => {
   createWindow(false);
 });
 
-ipcMain.on("klaarErmee", ()=>{
+ipcMain.on("klaarErmee", () => {
   app.quit();
 });
 
-ipcMain.on("restart", ()=>{
+ipcMain.on("restart", () => {
   console.log("Restarting")
-  app.relaunch();
-  app.exit();
+  const { dialog } = require('electron');
+  dialog.showMessageBox({
+    message: "Het programma wordt nu herladen. Als je het spel op wil slaan, doe dat dan via het menu aan de rechterkant.",
+    title: "Programma herladen",
+    buttons: ['Eerst opslaan', 'Niet opslaan'],
+    defaultId: 1,
+  }).then(response => {
+    if(response.response === 1){
+      app.relaunch();
+      app.exit();
+    }
+  })
 })
 
-ipcMain.on('connectServer', async(event) =>{
+ipcMain.on('connectServer', async (event) => {
   const rendererWindow = new BrowserWindow({
     width: mainWindow.getSize()[0],
     height: mainWindow.getSize()[1],
@@ -94,11 +104,11 @@ ipcMain.on('connectServer', async(event) =>{
   });
 });
 
-ipcMain.on('openActiveGamesWindow', async(event) => {
+ipcMain.on('openActiveGamesWindow', async (event) => {
   activeGamesWindow = new BrowserWindow({
     width: 800,
     height: 800,
-    webPreferences:{
+    webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
 
@@ -109,7 +119,7 @@ ipcMain.on('openActiveGamesWindow', async(event) => {
     show: false
   });
   activeGamesWindow.loadFile(path.join(__dirname, 'html/activeGames.html'));
-  
+
   activeGamesWindow.once('ready-to-show', () => {
     activeGamesWindow.show();
     activeGamesWindow.maximize();
@@ -134,7 +144,7 @@ ipcMain.on('openActiveGamesWindow', async(event) => {
       console.log("Sending pouledata to new screen");
       activeGamesWindow.webContents.send('pouleData', arg);
     });
-    ipcMain.on('updatePouleRanks', (event, arg) =>{
+    ipcMain.on('updatePouleRanks', (event, arg) => {
       console.log("updating poule ranks");
       activeGamesWindow.webContents.send('pouleDataUpdate', arg);
     });
@@ -152,55 +162,59 @@ ipcMain.on('openActiveGamesWindow', async(event) => {
   });
 });
 
-function showLoadDialog(){
+function showLoadDialog() {
   var filePath = app.getPath("documents");
-  return new Promise((resolve, reject)=>{
+  return new Promise((resolve, reject) => {
     dialog.showOpenDialog({
       buttonLabel: "Spel laden",
       properties: ["openFile"],
-      filters:[
-        {name: "DARTS files",
-        extensions: "DARTS"}
+      filters: [
+        {
+          name: "DARTS files",
+          extensions: "DARTS"
+        }
       ],
       defaultPath: filePath
-    }).then(fileNames=>{
-      if(fileNames === undefined){
+    }).then(fileNames => {
+      if (fileNames === undefined) {
         console.log("Failed to open files.");
         reject("No file selected");
-      }else{
+      } else {
         resolve(fileNames);
       }
     });
   });
 }
 
-function showSaveDialog(){
+function showSaveDialog() {
   var filePath = app.getPath("documents");
-  return new Promise((resolve, reject)=>{
-    const {dialog} = require('electron');
-  
+  return new Promise((resolve, reject) => {
+    const { dialog } = require('electron');
+
     dialog.showSaveDialog({
-      buttonLabel:"Opslaan",
-      filters:[
-        {name: "DARTS files",
-        extensions: 'darts'}
+      buttonLabel: "Opslaan",
+      filters: [
+        {
+          name: "DARTS files",
+          extensions: 'darts'
+        }
       ],
-      properties:[
-        {showOverwriteConfirmation: true}
+      properties: [
+        { showOverwriteConfirmation: true }
       ],
       defaultPath: filePath
-    }).then(fileNames=>{
-      if(fileNames === undefined){
+    }).then(fileNames => {
+      if (fileNames === undefined) {
         console.log("Failed to open files");
         reject("No file selected");
-      }else{
+      } else {
         resolve(fileNames);
       }
     });
   });
 }
 
-function showSaveDialogForDownload(){
+function showSaveDialogForDownload() {
   var filePath = app.getPath("downloads");
   return new Promise((resolve, reject) => {
     dialog.showOpenDialog({
@@ -210,18 +224,18 @@ function showSaveDialogForDownload(){
         'createDirectory'
       ],
       defaultPath: filePath
-    }).then(fileNames=>{
-      if(fileNames === undefined){
+    }).then(fileNames => {
+      if (fileNames === undefined) {
         console.log("Failed to open directory.");
         reject("No directory selected");
-      }else{
+      } else {
         resolve(fileNames);
       }
     });
   });
 }
 
-function showOpenDialog(){
+function showOpenDialog() {
   var filePath = app.getPath("documents");
   return new Promise((resolve, reject) => {
     dialog.showOpenDialog({
@@ -231,11 +245,11 @@ function showOpenDialog(){
         'createDirectory'
       ],
       defaultPath: filePath
-    }).then(fileNames=>{
-      if(fileNames === undefined){
+    }).then(fileNames => {
+      if (fileNames === undefined) {
         console.log("Failed to open directory.");
         reject("No directory selected");
-      }else{
+      } else {
         resolve(fileNames);
       }
     });
@@ -247,7 +261,7 @@ const createWindow = (shouldCheckUpdate = true) => {
   mainWindow = new BrowserWindow({
     width: 800,
     height: 800,
-    webPreferences:{
+    webPreferences: {
       nodeIntegration: true,
       contextIsolation: false
     },
@@ -258,13 +272,13 @@ const createWindow = (shouldCheckUpdate = true) => {
   });
 
   var updateAvailable = false;
-  if(!app.getVersion().includes('b') && shouldCheckUpdate){
+  if (!app.getVersion().includes('b') && shouldCheckUpdate) {
     var updateUrl;
     var fileName;
-    
+
     let request = new XMLHttpRequest();
 
-    request.onreadystatechange = function() {
+    request.onreadystatechange = function () {
       if (this.readyState == 4 && this.status == 200) {
         let response = JSON.parse(this.responseText);
         //console.log(response);
@@ -277,23 +291,23 @@ const createWindow = (shouldCheckUpdate = true) => {
         console.log(latestVersionList);
         console.log(currentVersionList);
 
-        if(parseInt(latestVersionList[0]) > parseInt(currentVersionList[0])){
+        if (parseInt(latestVersionList[0]) > parseInt(currentVersionList[0])) {
           updateAvailable = true;
-        }else if(parseInt(latestVersionList[1]) > parseInt(currentVersionList[1]) && parseInt(latestVersionList[0]) >= parseInt(currentVersionList[0])){
+        } else if (parseInt(latestVersionList[1]) > parseInt(currentVersionList[1]) && parseInt(latestVersionList[0]) >= parseInt(currentVersionList[0])) {
           updateAvailable = true;
-        }else if(parseInt(latestVersionList[2]) > parseInt(currentVersionList[2]) && parseInt(latestVersionList[1]) >= parseInt(currentVersionList[1]) && parseInt(latestVersionList[0]) >= parseInt(currentVersionList[0])){
+        } else if (parseInt(latestVersionList[2]) > parseInt(currentVersionList[2]) && parseInt(latestVersionList[1]) >= parseInt(currentVersionList[1]) && parseInt(latestVersionList[0]) >= parseInt(currentVersionList[0])) {
           updateAvailable = true;
         }
 
-        if(updateAvailable){
+        if (updateAvailable) {
           var wantedExtension;
-          if(process.platform == "win32"){
+          if (process.platform == "win32") {
             wantedExtension = 'exe';
-          }else if(process.platform == 'linux'){
+          } else if (process.platform == 'linux') {
             wantedExtension = 'AppImage';
           }
-          for(asset in response["assets"]){
-            if(response["assets"][asset]["name"].includes(wantedExtension)){
+          for (asset in response["assets"]) {
+            if (response["assets"][asset]["name"].includes(wantedExtension)) {
               updateUrl = response["assets"][asset]["browser_download_url"];
               fileName = response["assets"][asset]["name"];
               break;
@@ -303,7 +317,7 @@ const createWindow = (shouldCheckUpdate = true) => {
           mainWindow.loadFile(path.join(__dirname, 'html/updateCheck.html'));
           mainWindow.maximize();
           //mainWindow.webContents.send('updateAvailable', updateUrl);
-        }else{
+        } else {
           console.log("No update available");
           //mainWindow.webContents.send("noUpdateAvailable");
           mainWindow.loadFile(path.join(__dirname, 'html/index.html'));
@@ -314,19 +328,19 @@ const createWindow = (shouldCheckUpdate = true) => {
 
     request.open("GET", "https://api.github.com/repos/HeadlessHamsterr/darttoernooiElectron/releases/latest", true);
     request.send();
-  }else{
+  } else {
     mainWindow.loadFile(path.join(__dirname, 'html/index.html'));
     mainWindow.maximize();
   }
 
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
-    
-    if(updateAvailable == true){
+
+    if (updateAvailable == true) {
       console.log(`Sending ${updateUrl} to mainWindow via updateAvailable`);
       let msg = [updateUrl, fileName, process.platform];
       mainWindow.webContents.send('updateAvailable', msg);
-    }else{
+    } else {
       console.log("Sending noUpdateAvailable to mainWindow");
       mainWindow.webContents.send('noUpdateAvailable');
 
@@ -340,31 +354,31 @@ const createWindow = (shouldCheckUpdate = true) => {
     let interfaces = networkInterfaces();
 
     //Het broadcast adres moet gezocht worden
-    for(let interface of Object.keys(interfaces)){  //Loop door alle interfaces
-      for(let ip of interfaces[interface]){         //Loop door alle ip's van de interface
-        if(ip.family == 'IPv4' && !ip.internal){
-          if(ip.address.includes(address())){       //Als het adres van de interface het huidige adres bevat
+    for (let interface of Object.keys(interfaces)) {  //Loop door alle interfaces
+      for (let ip of interfaces[interface]) {         //Loop door alle ip's van de interface
+        if (ip.family == 'IPv4' && !ip.internal) {
+          if (ip.address.includes(address())) {       //Als het adres van de interface het huidige adres bevat
             broadcastAdr = broadcastAddress(interface); //Haal het broadcast adres op
             break;
           }
         }
       }
-      if(broadcastAdr != undefined){  //Broadcast adres is gevonden, dus het zoeken kan gestopt worden
+      if (broadcastAdr != undefined) {  //Broadcast adres is gevonden, dus het zoeken kan gestopt worden
         break;
       }
     }
 
     let msg = `serverClose,${hostName}`;
     udpServer = udp.createSocket("udp4");
-    udpServer.on('listening', function(){
+    udpServer.on('listening', function () {
       udpServer.setBroadcast(true);
       udpServer.send(msg, 8889, broadcastAdr);
       msgSend = true;
     });
     udpServer.bind(8888);
-    try{
+    try {
       activeGamesWindow.close();
-    }catch(e){}
+    } catch (e) { }
   });
 };
 
